@@ -66,6 +66,12 @@ class UserResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
+                        Forms\Components\Select::make('position_id')
+                            ->label('Posición')
+                            ->relationship('position', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required(),
                     ]),
                 Forms\Components\Section::make('Roles y estado')
                     ->schema([
@@ -94,6 +100,10 @@ class UserResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('department.name')
                     ->label('Departamento')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('position.name')
+                    ->label('Posición')
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('roles.name')

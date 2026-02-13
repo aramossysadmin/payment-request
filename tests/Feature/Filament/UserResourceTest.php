@@ -4,6 +4,7 @@ use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\Department;
+use App\Models\Position;
 use App\Models\User;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -36,6 +37,7 @@ it('can render the create page', function () {
 
 it('can create a user', function () {
     $department = Department::factory()->create();
+    $position = Position::factory()->create();
 
     Livewire::test(CreateUser::class)
         ->set('data.name', 'John Doe')
@@ -43,6 +45,7 @@ it('can create a user', function () {
         ->set('data.password', 'password123')
         ->set('data.password_confirmation', 'password123')
         ->set('data.department_id', $department->id)
+        ->set('data.position_id', $position->id)
         ->set('data.is_active', true)
         ->call('create')
         ->assertHasNoFormErrors();
@@ -52,6 +55,7 @@ it('can create a user', function () {
         'email' => 'john@example.com',
         'is_active' => true,
         'department_id' => $department->id,
+        'position_id' => $position->id,
     ]);
 });
 
@@ -62,6 +66,7 @@ it('validates required fields on create', function () {
             'email' => '',
             'password' => '',
             'department_id' => null,
+            'position_id' => null,
         ])
         ->call('create')
         ->assertHasFormErrors([
@@ -69,12 +74,14 @@ it('validates required fields on create', function () {
             'email' => 'required',
             'password' => 'required',
             'department_id' => 'required',
+            'position_id' => 'required',
         ]);
 });
 
 it('validates unique email on create', function () {
     User::factory()->create(['email' => 'taken@example.com']);
     $department = Department::factory()->create();
+    $position = Position::factory()->create();
 
     Livewire::test(CreateUser::class)
         ->set('data.name', 'Another User')
@@ -82,6 +89,7 @@ it('validates unique email on create', function () {
         ->set('data.password', 'password123')
         ->set('data.password_confirmation', 'password123')
         ->set('data.department_id', $department->id)
+        ->set('data.position_id', $position->id)
         ->call('create')
         ->assertHasFormErrors(['email']);
 });
@@ -174,6 +182,7 @@ it('allows active user to access the panel', function () {
 it('can assign roles to a user', function () {
     $role = Role::firstOrCreate(['name' => 'panel_user', 'guard_name' => 'web']);
     $department = Department::factory()->create();
+    $position = Position::factory()->create();
 
     Livewire::test(CreateUser::class)
         ->set('data.name', 'Role User')
@@ -181,6 +190,7 @@ it('can assign roles to a user', function () {
         ->set('data.password', 'password123')
         ->set('data.password_confirmation', 'password123')
         ->set('data.department_id', $department->id)
+        ->set('data.position_id', $position->id)
         ->set('data.is_active', true)
         ->set('data.roles', [$role->id])
         ->call('create')
@@ -245,6 +255,35 @@ it('does not show soft deleted departments in select', function () {
 
             $hasActive = collect($options)->contains('Depto Activo');
             $hasDeleted = collect($options)->contains('Depto Eliminado');
+
+            return $hasActive && ! $hasDeleted;
+        });
+});
+
+it('can edit position on a user', function () {
+    $user = User::factory()->create();
+    $newPosition = Position::factory()->create();
+
+    Livewire::test(EditUser::class, ['record' => $user->getRouteKey()])
+        ->set('data.position_id', $newPosition->id)
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $user->refresh();
+    expect($user->position_id)->toBe($newPosition->id);
+});
+
+it('does not show soft deleted positions in select', function () {
+    $activePosition = Position::factory()->create(['name' => 'Posición Activa']);
+    $deletedPosition = Position::factory()->create(['name' => 'Posición Eliminada']);
+    $deletedPosition->delete();
+
+    Livewire::test(CreateUser::class)
+        ->assertFormFieldExists('position_id', function ($field) {
+            $options = $field->getOptions();
+
+            $hasActive = collect($options)->contains('Posición Activa');
+            $hasDeleted = collect($options)->contains('Posición Eliminada');
 
             return $hasActive && ! $hasDeleted;
         });

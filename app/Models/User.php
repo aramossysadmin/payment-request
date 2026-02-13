@@ -42,6 +42,7 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'is_active',
         'department_id',
+        'position_id',
     ];
 
     /**
@@ -59,6 +60,11 @@ class User extends Authenticatable implements FilamentUser
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(Position::class);
     }
 
     public function paymentRequests(): HasMany
