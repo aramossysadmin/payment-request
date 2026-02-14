@@ -6,7 +6,9 @@
       "Bash(powershell.exe -Command \"php artisan migrate --force\")",
       "Bash(powershell.exe -Command \"php artisan make:filament-resource Currency --generate --soft-deletes --no-interaction\")",
       "Bash(powershell.exe -Command \"php artisan shield:generate --resource=CurrencyResource --option=policies_and_permissions --panel=admin --ignore-existing-policies --no-interaction\")",
-      "Bash(powershell.exe -Command \"php artisan make:test Filament/CurrencyResourceTest --pest --no-interaction\")"
+      "Bash(powershell.exe -Command \"php artisan make:test Filament/CurrencyResourceTest --pest --no-interaction\")",
+      "WebFetch(domain:spatie.be)",
+      "WebFetch(domain:github.com)"
     ]
   },
   "enableAllProjectMcpServers": true,
