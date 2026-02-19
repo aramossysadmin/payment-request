@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\PaymentRequestStatus;
 use App\Enums\PaymentType;
 use App\Filament\Resources\PaymentRequestResource\Pages\CreatePaymentRequest;
 use App\Filament\Resources\PaymentRequestResource\Pages\EditPaymentRequest;
@@ -10,6 +9,9 @@ use App\Models\Currency;
 use App\Models\ExpenseConcept;
 use App\Models\PaymentRequest;
 use App\Models\User;
+use App\States\PaymentRequest\Completed;
+use App\States\PaymentRequest\PendingAdministration;
+use App\States\PaymentRequest\PendingDepartment;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -56,7 +58,7 @@ it('can create a payment request', function () {
         ->set('data.iva', 160.00)
         ->set('data.retention', 0)
         ->set('data.total', 1160.00)
-        ->set('data.status', PaymentRequestStatus::Pending->value)
+        ->set('data.status', PendingDepartment::$name)
         ->call('create')
         ->assertHasNoFormErrors();
 
@@ -86,7 +88,7 @@ it('auto-assigns authenticated user on create', function () {
         ->set('data.iva', 80.00)
         ->set('data.retention', 0)
         ->set('data.total', 580.00)
-        ->set('data.status', PaymentRequestStatus::Pending->value)
+        ->set('data.status', PendingDepartment::$name)
         ->call('create')
         ->assertHasNoFormErrors();
 
@@ -143,18 +145,18 @@ it('can edit a payment request', function () {
     expect($paymentRequest->branch_id)->toBe($newBranch->id);
 });
 
-it('can change status of a payment request', function () {
+it('can change status of a payment request as super admin', function () {
     $paymentRequest = PaymentRequest::factory()->create([
-        'status' => PaymentRequestStatus::Pending,
+        'status' => PendingDepartment::$name,
     ]);
 
     Livewire::test(EditPaymentRequest::class, ['record' => $paymentRequest->getRouteKey()])
-        ->set('data.status', PaymentRequestStatus::Approved->value)
+        ->set('data.status', PendingAdministration::$name)
         ->call('save')
         ->assertHasNoFormErrors();
 
     $paymentRequest->refresh();
-    expect($paymentRequest->status)->toBe(PaymentRequestStatus::Approved);
+    expect($paymentRequest->status)->toBeInstanceOf(PendingAdministration::class);
 });
 
 it('can soft delete a payment request', function () {
@@ -178,13 +180,13 @@ it('can restore a soft deleted payment request', function () {
 });
 
 it('can filter by status', function () {
-    $pending = PaymentRequest::factory()->create(['status' => PaymentRequestStatus::Pending]);
-    $approved = PaymentRequest::factory()->create(['status' => PaymentRequestStatus::Approved]);
+    $pending = PaymentRequest::factory()->create(['status' => PendingDepartment::$name]);
+    $completed = PaymentRequest::factory()->create(['status' => Completed::$name]);
 
     Livewire::test(ListPaymentRequests::class)
-        ->filterTable('status', PaymentRequestStatus::Pending->value)
+        ->filterTable('status', PendingDepartment::$name)
         ->assertCanSeeTableRecords([$pending])
-        ->assertCanNotSeeTableRecords([$approved]);
+        ->assertCanNotSeeTableRecords([$completed]);
 });
 
 it('can filter by currency', function () {
@@ -267,7 +269,7 @@ it('can create a payment request with full payment type', function () {
         ->set('data.iva', 160.00)
         ->set('data.retention', 0)
         ->set('data.total', 1160.00)
-        ->set('data.status', PaymentRequestStatus::Pending->value)
+        ->set('data.status', PendingDepartment::$name)
         ->call('create')
         ->assertHasNoFormErrors();
 
@@ -293,7 +295,7 @@ it('can create a payment request with advance payment type', function () {
         ->set('data.iva', 800.00)
         ->set('data.retention', 0)
         ->set('data.total', 5800.00)
-        ->set('data.status', PaymentRequestStatus::Pending->value)
+        ->set('data.status', PendingDepartment::$name)
         ->call('create')
         ->assertHasNoFormErrors();
 
@@ -324,7 +326,7 @@ it('validates payment type is required', function () {
         ->set('data.iva', 160.00)
         ->set('data.retention', 0)
         ->set('data.total', 1160.00)
-        ->set('data.status', PaymentRequestStatus::Pending->value)
+        ->set('data.status', PendingDepartment::$name)
         ->call('create')
         ->assertHasFormErrors(['payment_type' => 'required']);
 });
@@ -341,4 +343,57 @@ it('can edit payment type on a payment request', function () {
 
     $paymentRequest->refresh();
     expect($paymentRequest->payment_type)->toBe(PaymentType::Advance);
+});
+
+it('shows the folio number column in the table', function () {
+    $paymentRequest = PaymentRequest::factory()->create();
+
+    Livewire::test(ListPaymentRequests::class)
+        ->assertCanSeeTableRecords([$paymentRequest])
+        ->assertTableColumnExists('folio_number');
+});
+
+it('can search payment requests by folio number', function () {
+    $paymentRequest = PaymentRequest::factory()->create(['folio_number' => 12345]);
+    $other = PaymentRequest::factory()->create(['folio_number' => 99999]);
+
+    Livewire::test(ListPaymentRequests::class)
+        ->searchTable('12345')
+        ->assertCanSeeTableRecords([$paymentRequest])
+        ->assertCanNotSeeTableRecords([$other]);
+});
+
+it('authorizer can see payment requests with assigned approvals from other departments', function () {
+    $requesterDept = \App\Models\Department::factory()->create(['name' => 'Ventas']);
+    $adminDept = \App\Models\Department::factory()->create(['name' => 'Administración']);
+
+    $requester = User::factory()->create(['department_id' => $requesterDept->id]);
+
+    $adminAuthorizer = User::factory()->create();
+    $adminDept->authorizers()->attach($adminAuthorizer);
+
+    $role = Role::firstOrCreate(['name' => 'Gerente', 'guard_name' => 'web']);
+    $permissions = ['view_any_payment::request', 'view_payment::request'];
+    foreach ($permissions as $perm) {
+        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
+    }
+    $role->syncPermissions($permissions);
+    $adminAuthorizer->assignRole($role);
+
+    $paymentRequest = PaymentRequest::factory()->create([
+        'user_id' => $requester->id,
+        'department_id' => $requesterDept->id,
+        'status' => PendingAdministration::$name,
+    ]);
+
+    $paymentRequest->approvals()->create([
+        'user_id' => $adminAuthorizer->id,
+        'stage' => 'administration',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($adminAuthorizer);
+
+    Livewire::test(ListPaymentRequests::class)
+        ->assertCanSeeTableRecords([$paymentRequest]);
 });

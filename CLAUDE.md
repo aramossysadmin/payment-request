@@ -1,3 +1,6 @@
+## Git Commits
+- NEVER create git commits unless the user explicitly asks for it. Only commit when directly instructed to do so.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

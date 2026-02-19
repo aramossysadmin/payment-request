@@ -3,7 +3,11 @@
     "allow": [
       "Bash(php.bat artisan *)",
       "WebFetch(domain:spatie.be)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(php artisan make:migration:*)",
+      "Bash(/c/Users/Administrador/.config/herd/bin/php.bat:*)",
+      "Bash(php artisan tinker:*)",
+      "Bash(where:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Enums\PaymentRequestStatus;
 use App\Enums\PaymentType;
 use App\Models\Branch;
 use App\Models\Currency;
+use App\Models\Department;
 use App\Models\ExpenseConcept;
 use App\Models\User;
+use App\States\PaymentRequest\PendingDepartment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -29,6 +30,8 @@ class PaymentRequestFactory extends Factory
 
         return [
             'user_id' => User::factory(),
+            'department_id' => Department::factory(),
+            'folio_number' => fake()->unique()->numberBetween(1, 99999),
             'provider' => fake()->company(),
             'invoice_folio' => fake()->unique()->bothify('FAC-####-??'),
             'currency_id' => Currency::factory(),
@@ -36,7 +39,7 @@ class PaymentRequestFactory extends Factory
             'expense_concept_id' => ExpenseConcept::factory(),
             'description' => fake()->optional()->sentence(),
             'payment_type' => PaymentType::Full,
-            'status' => PaymentRequestStatus::Pending,
+            'status' => PendingDepartment::$name,
             'subtotal' => $subtotal,
             'iva' => $iva,
             'retention' => $retention,

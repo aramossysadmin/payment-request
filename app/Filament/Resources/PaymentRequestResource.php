@@ -2,12 +2,18 @@
 
 namespace App\Filament\Resources;
 
-use App\Enums\PaymentRequestStatus;
 use App\Enums\PaymentType;
 use App\Filament\Resources\PaymentRequestResource\Pages;
+use App\Filament\Resources\PaymentRequestResource\RelationManagers\ApprovalsRelationManager;
 use App\Models\PaymentRequest;
+use App\Services\ApprovalService;
+use App\States\PaymentRequest\PaymentRequestState;
+use App\States\PaymentRequest\PendingAdministration;
+use App\States\PaymentRequest\PendingDepartment;
+use App\States\PaymentRequest\PendingTreasury;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -143,11 +149,15 @@ class PaymentRequestResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('status')
                             ->label('Estado')
-                            ->options(collect(PaymentRequestStatus::cases())->mapWithKeys(
-                                fn (PaymentRequestStatus $status) => [$status->value => $status->label()]
-                            ))
-                            ->default(PaymentRequestStatus::Pending->value)
-                            ->required(),
+                            ->options(
+                                collect(PaymentRequestState::all())
+                                    ->mapWithKeys(fn (string $stateClass) => [
+                                        $stateClass::$name => (new $stateClass(new PaymentRequest))->label(),
+                                    ])
+                            )
+                            ->default(PendingDepartment::$name)
+                            ->required()
+                            ->disabled(fn (): bool => ! auth()->user()?->hasRole('super_admin')),
                         Forms\Components\Select::make('user_id')
                             ->label('Solicitante')
                             ->relationship('user', 'name')
@@ -162,6 +172,10 @@ class PaymentRequestResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('folio_number')
+                    ->label('Folio')
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('provider')
                     ->label('Proveedor')
                     ->searchable()
@@ -199,13 +213,8 @@ class PaymentRequestResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
-                    ->color(fn (PaymentRequestStatus $state): string => match ($state) {
-                        PaymentRequestStatus::Pending => 'warning',
-                        PaymentRequestStatus::Approved => 'success',
-                        PaymentRequestStatus::Rejected => 'danger',
-                        PaymentRequestStatus::Paid => 'info',
-                    })
-                    ->formatStateUsing(fn (PaymentRequestStatus $state): string => $state->label()),
+                    ->color(fn (PaymentRequestState $state): string => $state->color())
+                    ->formatStateUsing(fn (PaymentRequestState $state): string => $state->label()),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Solicitante')
                     ->sortable(),
@@ -224,9 +233,12 @@ class PaymentRequestResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Estado')
-                    ->options(collect(PaymentRequestStatus::cases())->mapWithKeys(
-                        fn (PaymentRequestStatus $status) => [$status->value => $status->label()]
-                    )),
+                    ->options(
+                        collect(PaymentRequestState::all())
+                            ->mapWithKeys(fn (string $stateClass) => [
+                                $stateClass::$name => (new $stateClass(new PaymentRequest))->label(),
+                            ])
+                    ),
                 Tables\Filters\SelectFilter::make('currency')
                     ->relationship('currency', 'name')
                     ->label('Moneda')
@@ -245,6 +257,43 @@ class PaymentRequestResource extends Resource
                     ->preload(),
             ])
             ->actions([
+                Tables\Actions\Action::make('approve')
+                    ->label('Aprobar')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Aprobar Solicitud')
+                    ->modalDescription('¿Estás seguro de que deseas aprobar esta solicitud de pago?')
+                    ->visible(fn (PaymentRequest $record): bool => self::canApproveOrReject($record))
+                    ->action(function (PaymentRequest $record): void {
+                        app(ApprovalService::class)->approve($record, auth()->user());
+
+                        Notification::make()
+                            ->title('Solicitud aprobada')
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('reject')
+                    ->label('Rechazar')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Rechazar Solicitud')
+                    ->form([
+                        Forms\Components\Textarea::make('comments')
+                            ->label('Motivo del rechazo')
+                            ->required()
+                            ->rows(3),
+                    ])
+                    ->visible(fn (PaymentRequest $record): bool => self::canApproveOrReject($record))
+                    ->action(function (PaymentRequest $record, array $data): void {
+                        app(ApprovalService::class)->reject($record, auth()->user(), $data['comments']);
+
+                        Notification::make()
+                            ->title('Solicitud rechazada')
+                            ->danger()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),
@@ -260,7 +309,7 @@ class PaymentRequestResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            ApprovalsRelationManager::class,
         ];
     }
 
@@ -275,9 +324,72 @@ class PaymentRequestResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+
+        $user = auth()->user();
+
+        if (! $user) {
+            return $query;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('departments.id');
+
+        if ($authorizedDepartmentIds->isNotEmpty()) {
+            return $query->where(function (Builder $q) use ($user, $authorizedDepartmentIds): void {
+                $q->whereIn('department_id', $authorizedDepartmentIds)
+                    ->orWhereHas('approvals', function (Builder $q) use ($user): void {
+                        $q->where('user_id', $user->id);
+                    });
+            });
+        }
+
+        return $query->where('user_id', $user->id);
+    }
+
+    private static function canApproveOrReject(PaymentRequest $record): bool
+    {
+        if (! $record->status->equals(PendingDepartment::class)
+            && ! $record->status->equals(PendingAdministration::class)
+            && ! $record->status->equals(PendingTreasury::class)
+        ) {
+            return false;
+        }
+
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        $stageMap = [
+            PendingDepartment::class => 'department',
+            PendingAdministration::class => 'administration',
+            PendingTreasury::class => 'treasury',
+        ];
+
+        $currentStage = null;
+        foreach ($stageMap as $stateClass => $stage) {
+            if ($record->status->equals($stateClass)) {
+                $currentStage = $stage;
+                break;
+            }
+        }
+
+        if (! $currentStage) {
+            return false;
+        }
+
+        return $record->approvals()
+            ->where('user_id', $user->id)
+            ->where('stage', $currentStage)
+            ->where('status', 'pending')
+            ->exists();
     }
 }
