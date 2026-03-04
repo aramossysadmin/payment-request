@@ -60,18 +60,16 @@ class PaymentRequestController extends Controller
             $query->whereState('status', $request->string('status')->toString());
         }
 
-        if ($request->filled('status_group')) {
-            $group = $request->string('status_group')->toString();
+        $group = $request->string('status_group')->toString() ?: 'pending';
 
-            if ($group === 'pending') {
-                $query->whereIn('status', [
-                    PendingDepartment::$name,
-                    PendingAdministration::$name,
-                    PendingTreasury::$name,
-                ]);
-            } elseif ($group === 'completed') {
-                $query->whereState('status', Completed::$name);
-            }
+        if ($group === 'pending') {
+            $query->whereIn('status', [
+                PendingDepartment::$name,
+                PendingAdministration::$name,
+                PendingTreasury::$name,
+            ]);
+        } elseif ($group === 'completed') {
+            $query->whereState('status', Completed::$name);
         }
 
         $paymentRequests = $query->latest()->paginate(15)->withQueryString();
@@ -88,16 +86,16 @@ class PaymentRequestController extends Controller
                 ->first();
 
             if ($pendingApproval) {
-                $canApproveIds[] = $pr->id;
-                $approvalStages[$pr->id] = $pendingApproval->stage;
+                $canApproveIds[] = $pr->uuid;
+                $approvalStages[$pr->uuid] = $pendingApproval->stage;
             }
 
             if ($pr->approvals->where('user_id', $user->id)->where('stage', 'administration')->where('status', 'approved')->isNotEmpty()) {
-                $canEditPurchaseInvoicesIds[] = $pr->id;
+                $canEditPurchaseInvoicesIds[] = $pr->uuid;
             }
 
             if ($pr->approvals->where('user_id', $user->id)->where('stage', 'treasury')->where('status', 'approved')->isNotEmpty()) {
-                $canEditVendorPaymentsIds[] = $pr->id;
+                $canEditVendorPaymentsIds[] = $pr->uuid;
             }
         }
 
@@ -107,7 +105,10 @@ class PaymentRequestController extends Controller
             'approvalStages' => $approvalStages,
             'canEditPurchaseInvoicesIds' => $canEditPurchaseInvoicesIds,
             'canEditVendorPaymentsIds' => $canEditVendorPaymentsIds,
-            'filters' => $request->only(['search', 'status', 'status_group']),
+            'filters' => [
+                ...$request->only(['search', 'status']),
+                'status_group' => $request->string('status_group')->toString() ?: 'pending',
+            ],
         ]);
     }
 

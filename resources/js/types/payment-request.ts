@@ -44,6 +44,7 @@ export type PaymentRequestApproval = {
 
 export type PaymentRequest = {
     id: number;
+    uuid: string;
     folio_number: number;
     provider: string;
     invoice_folio: string;

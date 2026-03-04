@@ -28,12 +28,12 @@ class PaymentRequestCompleted extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Solicitud de Pago #'.$this->paymentRequest->id.' - Finalizada')
+            ->subject('Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Finalizada')
             ->greeting('Hola '.$notifiable->name)
             ->line('Tu solicitud de pago ha completado todas las etapas de aprobación.')
             ->line('**Proveedor:** '.$this->paymentRequest->provider)
             ->line('**Total:** $'.number_format($this->paymentRequest->total, 2))
-            ->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->id.'/edit'));
+            ->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'));
     }
 
     /**
@@ -43,13 +43,13 @@ class PaymentRequestCompleted extends Notification implements ShouldQueue
     {
         return FilamentNotification::make()
             ->title('Solicitud Finalizada')
-            ->body('La solicitud #'.$this->paymentRequest->id.' ha completado todas las aprobaciones.')
+            ->body('La solicitud #'.$this->paymentRequest->folio_number.' ha completado todas las aprobaciones.')
             ->icon('heroicon-o-check-badge')
             ->success()
             ->actions([
                 Action::make('view')
                     ->label('Ver Solicitud')
-                    ->url('/admin/payment-requests/'.$this->paymentRequest->id.'/edit')
+                    ->url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit')
                     ->markAsRead(),
             ])
             ->getDatabaseMessage();

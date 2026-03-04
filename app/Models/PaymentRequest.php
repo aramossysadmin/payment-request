@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Spatie\ModelStates\HasStates;
 
 class PaymentRequest extends Model
@@ -40,10 +41,19 @@ class PaymentRequest extends Model
     protected static function booted(): void
     {
         static::creating(function (PaymentRequest $paymentRequest) {
+            if (! $paymentRequest->uuid) {
+                $paymentRequest->uuid = (string) Str::uuid();
+            }
+
             if (! $paymentRequest->folio_number) {
                 $paymentRequest->folio_number = (static::max('folio_number') ?? 0) + 1;
             }
         });
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
     }
 
     /**

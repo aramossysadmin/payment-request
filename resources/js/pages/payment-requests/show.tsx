@@ -22,7 +22,7 @@ export default function Show() {
         { title: 'Solicitudes de Pago', href: '/payment-requests' },
         {
             title: `#${String(pr.folio_number).padStart(5, '0')}`,
-            href: `/payment-requests/${pr.id}`,
+            href: `/payment-requests/${pr.uuid}`,
         },
     ];
 

@@ -53,7 +53,7 @@ export function PaymentRequestDetail({
             data.number_vendor_payments = sapFieldValue;
         }
 
-        router.post(`/payment-requests/${pr.id}/approve`, data, {
+        router.post(`/payment-requests/${pr.uuid}/approve`, data, {
             onFinish: () => {
                 setProcessing(false);
                 setApproveDialogOpen(false);
@@ -65,7 +65,7 @@ export function PaymentRequestDetail({
     const handleReject = () => {
         setProcessing(true);
         router.post(
-            `/payment-requests/${pr.id}/reject`,
+            `/payment-requests/${pr.uuid}/reject`,
             { comments: rejectComments },
             {
                 onFinish: () => {
@@ -82,7 +82,7 @@ export function PaymentRequestDetail({
         const value = field === 'number_purchase_invoices' ? purchaseInvoicesValue : vendorPaymentsValue;
 
         router.patch(
-            `/payment-requests/${pr.id}/sap-folios`,
+            `/payment-requests/${pr.uuid}/sap-folios`,
             { [field]: value || null },
             {
                 onFinish: () => {
@@ -108,48 +108,51 @@ export function PaymentRequestDetail({
                 <Card className="border-l-4 border-l-primary">
                     <CardContent className="pt-6">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                <div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-3">
                                     <p className="font-mono text-3xl font-bold text-foreground">
                                         #{String(pr.folio_number).padStart(5, '0')}
                                     </p>
-                                    <div className="mt-2">
-                                        <StatusBadge status={pr.status} />
-                                    </div>
+                                    <StatusBadge status={pr.status} />
                                 </div>
-                                <div className="flex gap-2">
-                                    {isEditable && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => router.visit(`/payment-requests/${pr.id}/edit`)}
-                                        >
-                                            <Pencil className="size-4" />
-                                            Editar
-                                        </Button>
-                                    )}
-                                    {canApprove && (
-                                        <>
+                                <p className="font-mono text-xs text-muted-foreground">
+                                    {pr.uuid}
+                                </p>
+                                {(isEditable || canApprove) && (
+                                    <div className="flex gap-2 pt-1">
+                                        {isEditable && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-400 dark:hover:bg-red-950"
-                                                onClick={() => setRejectDialogOpen(true)}
+                                                onClick={() => router.visit(`/payment-requests/${pr.uuid}/edit`)}
                                             >
-                                                <XCircle className="size-4" />
-                                                Rechazar
+                                                <Pencil className="size-4" />
+                                                Editar
                                             </Button>
-                                            <Button
-                                                size="sm"
-                                                className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
-                                                onClick={() => setApproveDialogOpen(true)}
-                                            >
-                                                <CheckCircle className="size-4" />
-                                                Autorizar
-                                            </Button>
-                                        </>
-                                    )}
-                                </div>
+                                        )}
+                                        {canApprove && (
+                                            <>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-400 dark:hover:bg-red-950"
+                                                    onClick={() => setRejectDialogOpen(true)}
+                                                >
+                                                    <XCircle className="size-4" />
+                                                    Rechazar
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
+                                                    onClick={() => setApproveDialogOpen(true)}
+                                                >
+                                                    <CheckCircle className="size-4" />
+                                                    Autorizar
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="text-right">
                                 <div className="space-y-1 text-sm text-muted-foreground">

@@ -65,7 +65,7 @@ test('normal users only see their own payment requests', function () {
         ->assertInertia(fn ($page) => $page
             ->component('payment-requests/index')
             ->has('paymentRequests.data', 1)
-            ->where('paymentRequests.data.0.id', $ownPr->id)
+            ->where('paymentRequests.data.0.uuid', $ownPr->uuid)
         );
 });
 
@@ -98,7 +98,7 @@ test('authorizers see their department payment requests', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('paymentRequests.data', 1)
-            ->where('paymentRequests.data.0.id', $deptPr->id)
+            ->where('paymentRequests.data.0.uuid', $deptPr->uuid)
         );
 });
 
@@ -140,7 +140,7 @@ test('authorizers see payment requests from other departments when they have an 
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('paymentRequests.data', 1)
-            ->where('paymentRequests.data.0.id', $pr->id)
+            ->where('paymentRequests.data.0.uuid', $pr->uuid)
         );
 });
 
@@ -517,4 +517,124 @@ test('status_group completed filter returns only completed statuses', function (
         ->assertInertia(fn ($page) => $page
             ->has('paymentRequests.data', 1)
         );
+});
+
+test('index defaults to pending filter when no status_group is provided', function () {
+    $user = User::factory()->create(['department_id' => $this->department->id]);
+
+    PaymentRequest::factory()->create([
+        'user_id' => $user->id,
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => PendingDepartment::$name,
+    ]);
+
+    PaymentRequest::factory()->create([
+        'user_id' => $user->id,
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => Completed::$name,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('payment-requests.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('paymentRequests.data', 1)
+            ->where('filters.status_group', 'pending')
+        );
+});
+
+test('status_group all filter returns all payment requests', function () {
+    $user = User::factory()->create(['department_id' => $this->department->id]);
+
+    PaymentRequest::factory()->create([
+        'user_id' => $user->id,
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => PendingDepartment::$name,
+    ]);
+
+    PaymentRequest::factory()->create([
+        'user_id' => $user->id,
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => Completed::$name,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('payment-requests.index', ['status_group' => 'all']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('paymentRequests.data', 2)
+            ->where('filters.status_group', 'all')
+        );
+});
+
+test('uuid is automatically generated when creating a payment request', function () {
+    $user = User::factory()->create(['department_id' => $this->department->id]);
+    $this->department->authorizers()->attach($user->id);
+
+    $data = [
+        'provider' => 'UUID Test Provider',
+        'invoice_folio' => 'FAC-UUID',
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'payment_type' => 'full',
+        'subtotal' => 1000,
+        'iva' => 160,
+        'retention' => false,
+        'total' => 1160,
+    ];
+
+    $this->actingAs($user)
+        ->post(route('payment-requests.store'), $data);
+
+    $pr = PaymentRequest::where('provider', 'UUID Test Provider')->first();
+
+    expect($pr->uuid)->not->toBeNull();
+    expect($pr->uuid)->toMatch('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/');
+});
+
+test('route model binding resolves by uuid', function () {
+    $user = User::factory()->create(['department_id' => $this->department->id]);
+    $user->assignRole('Colaborador');
+
+    $pr = PaymentRequest::factory()->create([
+        'user_id' => $user->id,
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get("/payment-requests/{$pr->uuid}")
+        ->assertOk();
+});
+
+test('accessing payment request by integer id returns 404', function () {
+    $user = User::factory()->create(['department_id' => $this->department->id]);
+    $user->assignRole('Colaborador');
+
+    $pr = PaymentRequest::factory()->create([
+        'user_id' => $user->id,
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get("/payment-requests/{$pr->id}")
+        ->assertNotFound();
 });

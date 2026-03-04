@@ -29,6 +29,7 @@ class PaymentRequestFactory extends Factory
         $total = round($subtotal + $iva, 2);
 
         return [
+            'uuid' => fake()->uuid(),
             'user_id' => User::factory(),
             'department_id' => Department::factory(),
             'folio_number' => fake()->unique()->numberBetween(1, 99999),

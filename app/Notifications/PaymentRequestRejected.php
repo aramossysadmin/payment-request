@@ -32,13 +32,13 @@ class PaymentRequestRejected extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Solicitud de Pago #'.$this->paymentRequest->id.' - Rechazada')
+            ->subject('Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Rechazada')
             ->greeting('Hola '.$notifiable->name)
             ->line($this->rejector->name.' ha rechazado la solicitud de pago.')
             ->line('**Motivo:** '.$this->comments)
             ->line('**Proveedor:** '.$this->paymentRequest->provider)
             ->line('**Total:** $'.number_format($this->paymentRequest->total, 2))
-            ->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->id.'/edit'));
+            ->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'));
     }
 
     /**
@@ -48,13 +48,13 @@ class PaymentRequestRejected extends Notification implements ShouldQueue
     {
         return FilamentNotification::make()
             ->title('Solicitud Rechazada')
-            ->body($this->rejector->name.' rechazó la solicitud #'.$this->paymentRequest->id.': '.$this->comments)
+            ->body($this->rejector->name.' rechazó la solicitud #'.$this->paymentRequest->folio_number.': '.$this->comments)
             ->icon('heroicon-o-x-circle')
             ->danger()
             ->actions([
                 Action::make('view')
                     ->label('Ver Solicitud')
-                    ->url('/admin/payment-requests/'.$this->paymentRequest->id.'/edit')
+                    ->url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit')
                     ->markAsRead(),
             ])
             ->getDatabaseMessage();

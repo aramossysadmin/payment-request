@@ -31,13 +31,13 @@ class PaymentRequestApproved extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Solicitud de Pago #'.$this->paymentRequest->id.' - Requiere tu Autorización')
+            ->subject('Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Requiere tu Autorización')
             ->greeting('Hola '.$notifiable->name)
             ->line('La solicitud de pago fue aprobada por '.$this->approver->name.' y ahora requiere tu autorización.')
             ->line('**Proveedor:** '.$this->paymentRequest->provider)
             ->line('**Total:** $'.number_format($this->paymentRequest->total, 2))
             ->line('**Solicitante:** '.$this->paymentRequest->user->name)
-            ->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->id.'/edit'));
+            ->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'));
     }
 
     /**
@@ -47,13 +47,13 @@ class PaymentRequestApproved extends Notification implements ShouldQueue
     {
         return FilamentNotification::make()
             ->title('Solicitud Requiere tu Autorización')
-            ->body('Solicitud #'.$this->paymentRequest->id.' aprobada por '.$this->approver->name.'. Requiere tu autorización.')
+            ->body('Solicitud #'.$this->paymentRequest->folio_number.' aprobada por '.$this->approver->name.'. Requiere tu autorización.')
             ->icon('heroicon-o-check-circle')
             ->warning()
             ->actions([
                 Action::make('view')
                     ->label('Ver Solicitud')
-                    ->url('/admin/payment-requests/'.$this->paymentRequest->id.'/edit')
+                    ->url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit')
                     ->markAsRead(),
             ])
             ->getDatabaseMessage();

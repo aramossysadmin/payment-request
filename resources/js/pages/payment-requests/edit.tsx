@@ -50,11 +50,11 @@ export default function Edit() {
         { title: 'Solicitudes de Pago', href: '/payment-requests' },
         {
             title: `#${String(pr.folio_number).padStart(5, '0')}`,
-            href: `/payment-requests/${pr.id}`,
+            href: `/payment-requests/${pr.uuid}`,
         },
         {
             title: 'Editar',
-            href: `/payment-requests/${pr.id}/edit`,
+            href: `/payment-requests/${pr.uuid}/edit`,
         },
     ];
 
@@ -105,7 +105,7 @@ export default function Edit() {
             formData.append('advance_documents[]', file);
         });
 
-        router.post(`/payment-requests/${pr.id}`, formData, {
+        router.post(`/payment-requests/${pr.uuid}`, formData, {
             forceFormData: true,
             onFinish: () => setProcessing(false),
         });
@@ -422,7 +422,7 @@ export default function Edit() {
                             type="button"
                             variant="outline"
                             onClick={() =>
-                                router.visit(`/payment-requests/${pr.id}`)
+                                router.visit(`/payment-requests/${pr.uuid}`)
                             }
                         >
                             Cancelar

@@ -17,10 +17,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 type PageProps = {
     paymentRequests: PaginatedData<PaymentRequest>;
-    canApproveIds: number[];
-    approvalStages: Record<number, string>;
-    canEditPurchaseInvoicesIds: number[];
-    canEditVendorPaymentsIds: number[];
+    canApproveIds: string[];
+    approvalStages: Record<string, string>;
+    canEditPurchaseInvoicesIds: string[];
+    canEditVendorPaymentsIds: string[];
     filters: { search?: string; status?: string; status_group?: string };
 };
 
@@ -29,14 +29,14 @@ export default function Index() {
         usePage<PageProps>().props;
 
     const isMobile = useIsMobile();
-    const [selectedId, setSelectedId] = useState<number | null>(
-        paymentRequests.data[0]?.id ?? null,
+    const [selectedId, setSelectedId] = useState<string | null>(
+        paymentRequests.data[0]?.uuid ?? null,
     );
     const [search, setSearch] = useState(filters.search ?? '');
     const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
 
     const selectedRequest = paymentRequests.data.find(
-        (pr) => pr.id === selectedId,
+        (pr) => pr.uuid === selectedId,
     );
     const canApproveSelected = selectedId
         ? canApproveIds.includes(selectedId)
@@ -72,14 +72,14 @@ export default function Index() {
     const handleTabChange = useCallback(
         (value: string) => {
             applyFilters({
-                status_group: value === 'all' ? '' : value,
+                status_group: value,
                 status: '',
             });
         },
         [applyFilters],
     );
 
-    const handleSelectItem = (id: number) => {
+    const handleSelectItem = (id: string) => {
         setSelectedId(id);
         if (isMobile) {
             setMobileView('detail');
@@ -90,7 +90,7 @@ export default function Index() {
         setMobileView('list');
     };
 
-    const currentTab = filters.status_group || 'all';
+    const currentTab = filters.status_group || 'pending';
 
     // --- List Panel ---
     const listPanel = (
@@ -140,9 +140,9 @@ export default function Index() {
             <div className="px-4 pb-2">
                 <Tabs value={currentTab} onValueChange={handleTabChange}>
                     <TabsList className="w-full">
-                        <TabsTrigger value="all">Todos</TabsTrigger>
                         <TabsTrigger value="pending">Pendientes</TabsTrigger>
                         <TabsTrigger value="completed">Finalizados</TabsTrigger>
+                        <TabsTrigger value="all">Todos</TabsTrigger>
                     </TabsList>
                 </Tabs>
             </div>
@@ -157,10 +157,10 @@ export default function Index() {
                 ) : (
                     paymentRequests.data.map((pr) => (
                         <RequestListItem
-                            key={pr.id}
+                            key={pr.uuid}
                             paymentRequest={pr}
-                            isSelected={pr.id === selectedId}
-                            onClick={() => handleSelectItem(pr.id)}
+                            isSelected={pr.uuid === selectedId}
+                            onClick={() => handleSelectItem(pr.uuid)}
                         />
                     ))
                 )}
@@ -181,8 +181,8 @@ export default function Index() {
                     paymentRequest={selectedRequest}
                     canApprove={canApproveSelected}
                     approvalStage={(selectedId ? approvalStages[selectedId] : null) as 'department' | 'administration' | 'treasury' | null}
-                    canEditPurchaseInvoices={selectedId ? canEditPurchaseInvoicesIds.includes(selectedId) : false}
-                    canEditVendorPayments={selectedId ? canEditVendorPaymentsIds.includes(selectedId) : false}
+                    canEditPurchaseInvoices={selectedId !== null && canEditPurchaseInvoicesIds.includes(selectedId)}
+                    canEditVendorPayments={selectedId !== null && canEditVendorPaymentsIds.includes(selectedId)}
                 />
             ) : (
                 <div className="flex h-full flex-col items-center justify-center text-muted-foreground">

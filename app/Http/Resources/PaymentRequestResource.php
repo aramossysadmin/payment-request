@@ -15,6 +15,7 @@ class PaymentRequestResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'uuid' => $this->uuid,
             'folio_number' => $this->folio_number,
             'provider' => $this->provider,
             'invoice_folio' => $this->invoice_folio,

@@ -198,6 +198,10 @@ class PaymentRequestResource extends Resource
                     ->label('Folio')
                     ->sortable()
                     ->searchable(),
+                Tables\Columns\TextColumn::make('uuid')
+                    ->label('UUID')
+                    ->copyable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('provider')
                     ->label('Proveedor')
                     ->searchable()
