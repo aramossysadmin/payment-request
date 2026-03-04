@@ -77,6 +77,10 @@ class PaymentRequestController extends Controller
         $paymentRequests = $query->latest()->paginate(15)->withQueryString();
 
         $canApproveIds = [];
+        $approvalStages = [];
+        $canEditPurchaseInvoicesIds = [];
+        $canEditVendorPaymentsIds = [];
+
         foreach ($paymentRequests->items() as $pr) {
             $pendingApproval = $pr->approvals
                 ->where('user_id', $user->id)
@@ -85,12 +89,24 @@ class PaymentRequestController extends Controller
 
             if ($pendingApproval) {
                 $canApproveIds[] = $pr->id;
+                $approvalStages[$pr->id] = $pendingApproval->stage;
+            }
+
+            if ($pr->approvals->where('user_id', $user->id)->where('stage', 'administration')->where('status', 'approved')->isNotEmpty()) {
+                $canEditPurchaseInvoicesIds[] = $pr->id;
+            }
+
+            if ($pr->approvals->where('user_id', $user->id)->where('stage', 'treasury')->where('status', 'approved')->isNotEmpty()) {
+                $canEditVendorPaymentsIds[] = $pr->id;
             }
         }
 
         return Inertia::render('payment-requests/index', [
             'paymentRequests' => PaymentRequestResource::collection($paymentRequests),
             'canApproveIds' => $canApproveIds,
+            'approvalStages' => $approvalStages,
+            'canEditPurchaseInvoicesIds' => $canEditPurchaseInvoicesIds,
+            'canEditVendorPaymentsIds' => $canEditVendorPaymentsIds,
             'filters' => $request->only(['search', 'status', 'status_group']),
         ]);
     }
@@ -141,9 +157,29 @@ class PaymentRequestController extends Controller
             ->where('status', 'pending')
             ->isNotEmpty();
 
+        $canEditPurchaseInvoices = $paymentRequest->approvals
+            ->where('user_id', $user->id)
+            ->where('stage', 'administration')
+            ->where('status', 'approved')
+            ->isNotEmpty();
+
+        $canEditVendorPayments = $paymentRequest->approvals
+            ->where('user_id', $user->id)
+            ->where('stage', 'treasury')
+            ->where('status', 'approved')
+            ->isNotEmpty();
+
+        $pendingApproval = $paymentRequest->approvals
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->first();
+
         return Inertia::render('payment-requests/show', [
             'paymentRequest' => new PaymentRequestResource($paymentRequest),
             'canApprove' => $canApprove,
+            'approvalStage' => $pendingApproval?->stage,
+            'canEditPurchaseInvoices' => $canEditPurchaseInvoices,
+            'canEditVendorPayments' => $canEditVendorPayments,
         ]);
     }
 

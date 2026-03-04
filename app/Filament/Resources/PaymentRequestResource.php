@@ -119,6 +119,22 @@ class PaymentRequestResource extends Resource
                     ])
                     ->columns(4),
 
+                Forms\Components\Section::make('Folios SAP')
+                    ->schema([
+                        Forms\Components\TextInput::make('number_purchase_invoices')
+                            ->label('Folio SAP Factura Proveedores')
+                            ->numeric()
+                            ->minValue(1)
+                            ->disabled(fn (): bool => ! self::canEditSapField('administration')),
+                        Forms\Components\TextInput::make('number_vendor_payments')
+                            ->label('Folio SAP Pago Efectuado')
+                            ->numeric()
+                            ->minValue(1)
+                            ->disabled(fn (): bool => ! self::canEditSapField('treasury')),
+                    ])
+                    ->columns(2)
+                    ->visibleOn('edit'),
+
                 Forms\Components\Section::make('Montos')
                     ->schema([
                         Forms\Components\TextInput::make('subtotal')
@@ -264,9 +280,10 @@ class PaymentRequestResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Aprobar Solicitud')
                     ->modalDescription('¿Estás seguro de que deseas aprobar esta solicitud de pago?')
+                    ->form(fn (PaymentRequest $record): array => self::getSapFieldsForApproval($record))
                     ->visible(fn (PaymentRequest $record): bool => self::canApproveOrReject($record))
-                    ->action(function (PaymentRequest $record): void {
-                        app(ApprovalService::class)->approve($record, auth()->user());
+                    ->action(function (PaymentRequest $record, array $data): void {
+                        app(ApprovalService::class)->approve($record, auth()->user(), $data);
 
                         Notification::make()
                             ->title('Solicitud aprobada')
@@ -351,6 +368,51 @@ class PaymentRequestResource extends Resource
         }
 
         return $query->where('user_id', $user->id);
+    }
+
+    /**
+     * @return array<int, Forms\Components\Component>
+     */
+    private static function getSapFieldsForApproval(PaymentRequest $record): array
+    {
+        if ($record->status->equals(PendingAdministration::class)) {
+            return [
+                Forms\Components\TextInput::make('number_purchase_invoices')
+                    ->label('Folio SAP Factura Proveedores')
+                    ->numeric()
+                    ->minValue(1),
+            ];
+        }
+
+        if ($record->status->equals(PendingTreasury::class)) {
+            return [
+                Forms\Components\TextInput::make('number_vendor_payments')
+                    ->label('Folio SAP Pago Efectuado')
+                    ->numeric()
+                    ->minValue(1),
+            ];
+        }
+
+        return [];
+    }
+
+    private static function canEditSapField(string $stage): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return \App\Models\PaymentRequestApproval::query()
+            ->where('user_id', $user->id)
+            ->where('stage', $stage)
+            ->where('status', 'approved')
+            ->exists();
     }
 
     private static function canApproveOrReject(PaymentRequest $record): bool

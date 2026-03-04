@@ -55,6 +55,8 @@ export type PaymentRequest = {
     iva: string;
     retention: string;
     total: string;
+    number_purchase_invoices: number | null;
+    number_vendor_payments: number | null;
     user: {
         id: number;
         name: string;

@@ -8,10 +8,13 @@ import type { BreadcrumbItem, PaymentRequest } from '@/types';
 type PageProps = {
     paymentRequest: { data: PaymentRequest };
     canApprove: boolean;
+    approvalStage: 'department' | 'administration' | 'treasury' | null;
+    canEditPurchaseInvoices: boolean;
+    canEditVendorPayments: boolean;
 };
 
 export default function Show() {
-    const { paymentRequest: resource, canApprove } =
+    const { paymentRequest: resource, canApprove, approvalStage, canEditPurchaseInvoices, canEditVendorPayments } =
         usePage<PageProps>().props;
     const pr = resource.data;
 
@@ -46,6 +49,9 @@ export default function Show() {
                 <PaymentRequestDetail
                     paymentRequest={pr}
                     canApprove={canApprove}
+                    approvalStage={approvalStage}
+                    canEditPurchaseInvoices={canEditPurchaseInvoices}
+                    canEditVendorPayments={canEditVendorPayments}
                 />
             </div>
         </AppLayout>

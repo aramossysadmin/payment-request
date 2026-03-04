@@ -33,6 +33,8 @@ class PaymentRequestResource extends JsonResource
             'iva' => (string) $this->iva,
             'retention' => (string) $this->retention,
             'total' => (string) $this->total,
+            'number_purchase_invoices' => $this->number_purchase_invoices,
+            'number_vendor_payments' => $this->number_vendor_payments,
             'user' => [
                 'id' => $this->user?->id,
                 'name' => $this->user?->name,

@@ -18,11 +18,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 type PageProps = {
     paymentRequests: PaginatedData<PaymentRequest>;
     canApproveIds: number[];
+    approvalStages: Record<number, string>;
+    canEditPurchaseInvoicesIds: number[];
+    canEditVendorPaymentsIds: number[];
     filters: { search?: string; status?: string; status_group?: string };
 };
 
 export default function Index() {
-    const { paymentRequests, canApproveIds, filters } =
+    const { paymentRequests, canApproveIds, approvalStages, canEditPurchaseInvoicesIds, canEditVendorPaymentsIds, filters } =
         usePage<PageProps>().props;
 
     const isMobile = useIsMobile();
@@ -177,6 +180,9 @@ export default function Index() {
                 <PaymentRequestDetail
                     paymentRequest={selectedRequest}
                     canApprove={canApproveSelected}
+                    approvalStage={(selectedId ? approvalStages[selectedId] : null) as 'department' | 'administration' | 'treasury' | null}
+                    canEditPurchaseInvoices={selectedId ? canEditPurchaseInvoicesIds.includes(selectedId) : false}
+                    canEditVendorPayments={selectedId ? canEditVendorPaymentsIds.includes(selectedId) : false}
                 />
             ) : (
                 <div className="flex h-full flex-col items-center justify-center text-muted-foreground">

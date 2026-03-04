@@ -7,8 +7,10 @@ use App\Models\ExpenseConcept;
 use App\Models\PaymentRequest;
 use App\Models\PaymentRequestApproval;
 use App\Models\User;
+use App\States\PaymentRequest\Completed;
 use App\States\PaymentRequest\PendingAdministration;
 use App\States\PaymentRequest\PendingDepartment;
+use App\States\PaymentRequest\PendingTreasury;
 
 beforeEach(function () {
     $this->department = Department::factory()->create();
@@ -141,4 +143,197 @@ test('cannot approve already approved stage', function () {
     $this->actingAs($authorizer)
         ->post(route('payment-requests.approve', $pr))
         ->assertForbidden();
+});
+
+test('approval at administration stage saves number_purchase_invoices', function () {
+    $authorizer = User::factory()->create(['department_id' => $this->department->id]);
+
+    $pr = PaymentRequest::factory()->create([
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => PendingAdministration::$name,
+    ]);
+
+    PaymentRequestApproval::factory()->create([
+        'payment_request_id' => $pr->id,
+        'user_id' => $authorizer->id,
+        'stage' => 'administration',
+        'status' => 'pending',
+    ]);
+
+    Department::factory()->create(['name' => 'Tesorería']);
+
+    $this->actingAs($authorizer)
+        ->post(route('payment-requests.approve', $pr), [
+            'number_purchase_invoices' => 12345,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('payment_requests', [
+        'id' => $pr->id,
+        'number_purchase_invoices' => 12345,
+    ]);
+});
+
+test('approval at treasury stage saves number_vendor_payments', function () {
+    $authorizer = User::factory()->create(['department_id' => $this->department->id]);
+
+    $pr = PaymentRequest::factory()->create([
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => PendingTreasury::$name,
+    ]);
+
+    PaymentRequestApproval::factory()->create([
+        'payment_request_id' => $pr->id,
+        'user_id' => $authorizer->id,
+        'stage' => 'treasury',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($authorizer)
+        ->post(route('payment-requests.approve', $pr), [
+            'number_vendor_payments' => 67890,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('payment_requests', [
+        'id' => $pr->id,
+        'number_vendor_payments' => 67890,
+    ]);
+});
+
+test('approval without sap fields still works', function () {
+    $authorizer = User::factory()->create(['department_id' => $this->department->id]);
+
+    $pr = PaymentRequest::factory()->create([
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => PendingAdministration::$name,
+    ]);
+
+    PaymentRequestApproval::factory()->create([
+        'payment_request_id' => $pr->id,
+        'user_id' => $authorizer->id,
+        'stage' => 'administration',
+        'status' => 'pending',
+    ]);
+
+    Department::factory()->create(['name' => 'Tesorería']);
+
+    $this->actingAs($authorizer)
+        ->post(route('payment-requests.approve', $pr))
+        ->assertRedirect();
+
+    $pr->refresh();
+    expect($pr->number_purchase_invoices)->toBeNull();
+});
+
+test('administration authorizer can update purchase invoices sap folio', function () {
+    $authorizer = User::factory()->create(['department_id' => $this->department->id]);
+
+    $pr = PaymentRequest::factory()->create([
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => PendingTreasury::$name,
+    ]);
+
+    PaymentRequestApproval::factory()->approved()->create([
+        'payment_request_id' => $pr->id,
+        'user_id' => $authorizer->id,
+        'stage' => 'administration',
+    ]);
+
+    $this->actingAs($authorizer)
+        ->patch(route('payment-requests.sap-folios', $pr), [
+            'number_purchase_invoices' => 99999,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('payment_requests', [
+        'id' => $pr->id,
+        'number_purchase_invoices' => 99999,
+    ]);
+});
+
+test('treasury authorizer can update vendor payments sap folio', function () {
+    $authorizer = User::factory()->create(['department_id' => $this->department->id]);
+
+    $pr = PaymentRequest::factory()->create([
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => Completed::$name,
+    ]);
+
+    PaymentRequestApproval::factory()->approved()->create([
+        'payment_request_id' => $pr->id,
+        'user_id' => $authorizer->id,
+        'stage' => 'treasury',
+    ]);
+
+    $this->actingAs($authorizer)
+        ->patch(route('payment-requests.sap-folios', $pr), [
+            'number_vendor_payments' => 11111,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('payment_requests', [
+        'id' => $pr->id,
+        'number_vendor_payments' => 11111,
+    ]);
+});
+
+test('non-authorized user cannot update sap folios', function () {
+    $outsider = User::factory()->create(['department_id' => $this->department->id]);
+
+    $pr = PaymentRequest::factory()->create([
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => PendingTreasury::$name,
+    ]);
+
+    $this->actingAs($outsider)
+        ->patch(route('payment-requests.sap-folios', $pr), [
+            'number_purchase_invoices' => 12345,
+        ])
+        ->assertForbidden();
+});
+
+test('administration authorizer cannot update vendor payments field', function () {
+    $authorizer = User::factory()->create(['department_id' => $this->department->id]);
+
+    $pr = PaymentRequest::factory()->create([
+        'department_id' => $this->department->id,
+        'currency_id' => $this->currency->id,
+        'branch_id' => $this->branch->id,
+        'expense_concept_id' => $this->expenseConcept->id,
+        'status' => PendingTreasury::$name,
+    ]);
+
+    PaymentRequestApproval::factory()->approved()->create([
+        'payment_request_id' => $pr->id,
+        'user_id' => $authorizer->id,
+        'stage' => 'administration',
+    ]);
+
+    $this->actingAs($authorizer)
+        ->patch(route('payment-requests.sap-folios', $pr), [
+            'number_vendor_payments' => 12345,
+        ])
+        ->assertRedirect();
+
+    $pr->refresh();
+    expect($pr->number_vendor_payments)->toBeNull();
 });

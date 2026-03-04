@@ -23,7 +23,12 @@ class PaymentRequestApprovalController extends Controller
 
         abort_unless($pendingApproval, 403);
 
-        $this->approvalService->approve($paymentRequest, $user);
+        $validated = $request->validate([
+            'number_purchase_invoices' => ['nullable', 'integer', 'min:1'],
+            'number_vendor_payments' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $this->approvalService->approve($paymentRequest, $user, $validated);
 
         return redirect()->back()->with('success', 'Solicitud aprobada exitosamente.');
     }
@@ -42,5 +47,45 @@ class PaymentRequestApprovalController extends Controller
         $this->approvalService->reject($paymentRequest, $user, $request->validated('comments'));
 
         return redirect()->back()->with('success', 'Solicitud rechazada exitosamente.');
+    }
+
+    public function updateSapFolios(Request $request, PaymentRequest $paymentRequest): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'number_purchase_invoices' => ['nullable', 'integer', 'min:1'],
+            'number_vendor_payments' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $canEditPurchaseInvoices = $this->canEditField($paymentRequest, $user, 'administration');
+        $canEditVendorPayments = $this->canEditField($paymentRequest, $user, 'treasury');
+
+        abort_unless($canEditPurchaseInvoices || $canEditVendorPayments, 403);
+
+        $data = [];
+
+        if ($canEditPurchaseInvoices && array_key_exists('number_purchase_invoices', $validated)) {
+            $data['number_purchase_invoices'] = $validated['number_purchase_invoices'];
+        }
+
+        if ($canEditVendorPayments && array_key_exists('number_vendor_payments', $validated)) {
+            $data['number_vendor_payments'] = $validated['number_vendor_payments'];
+        }
+
+        if (! empty($data)) {
+            $paymentRequest->update($data);
+        }
+
+        return redirect()->back()->with('success', 'Folios SAP actualizados exitosamente.');
+    }
+
+    private function canEditField(PaymentRequest $paymentRequest, mixed $user, string $stage): bool
+    {
+        return $paymentRequest->approvals()
+            ->where('user_id', $user->id)
+            ->where('stage', $stage)
+            ->where('status', 'approved')
+            ->exists();
     }
 }

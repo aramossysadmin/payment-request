@@ -74,8 +74,10 @@ class ApprovalService
 
     /**
      * Record the current stage's approval, transition to next state, and create next approval.
+     *
+     * @param  array<string, mixed>  $data
      */
-    public function approve(PaymentRequest $paymentRequest, User $authorizer): void
+    public function approve(PaymentRequest $paymentRequest, User $authorizer, array $data = []): void
     {
         $currentStage = $this->getCurrentStage($paymentRequest);
 
@@ -93,6 +95,12 @@ class ApprovalService
             'status' => 'approved',
             'responded_at' => now(),
         ]);
+
+        $sapFields = array_intersect_key($data, array_flip(['number_purchase_invoices', 'number_vendor_payments']));
+
+        if (! empty($sapFields)) {
+            $paymentRequest->update($sapFields);
+        }
 
         $paymentRequest->status->transitionTo($currentStage['next_state']);
         $paymentRequest->refresh();

@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('payment-requests', PaymentRequestController::class);
     Route::post('payment-requests/{payment_request}/approve', [PaymentRequestApprovalController::class, 'approve'])->name('payment-requests.approve');
     Route::post('payment-requests/{payment_request}/reject', [PaymentRequestApprovalController::class, 'reject'])->name('payment-requests.reject');
+    Route::patch('payment-requests/{payment_request}/sap-folios', [PaymentRequestApprovalController::class, 'updateSapFolios'])->name('payment-requests.sap-folios');
 
     Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');

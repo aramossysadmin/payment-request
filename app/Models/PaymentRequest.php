@@ -33,6 +33,8 @@ class PaymentRequest extends Model
         'iva',
         'retention',
         'total',
+        'number_purchase_invoices',
+        'number_vendor_payments',
     ];
 
     protected static function booted(): void

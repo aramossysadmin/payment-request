@@ -1,31 +1,63 @@
 import { router } from '@inertiajs/react';
-import { CheckCircle, Download, Pencil, XCircle } from 'lucide-react';
+import { Check, CheckCircle, Download, Pencil, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { ApprovalTimeline } from '@/components/approval-timeline';
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/currency';
 import type { PaymentRequest } from '@/types';
 
 type PaymentRequestDetailProps = {
     paymentRequest: PaymentRequest;
     canApprove: boolean;
+    approvalStage?: 'department' | 'administration' | 'treasury' | null;
+    canEditPurchaseInvoices?: boolean;
+    canEditVendorPayments?: boolean;
 };
 
-export function PaymentRequestDetail({ paymentRequest: pr, canApprove }: PaymentRequestDetailProps) {
+export function PaymentRequestDetail({
+    paymentRequest: pr,
+    canApprove,
+    approvalStage = null,
+    canEditPurchaseInvoices = false,
+    canEditVendorPayments = false,
+}: PaymentRequestDetailProps) {
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
     const [rejectComments, setRejectComments] = useState('');
     const [processing, setProcessing] = useState(false);
 
+    const [sapFieldValue, setSapFieldValue] = useState('');
+
+    const [editPurchaseInvoices, setEditPurchaseInvoices] = useState(false);
+    const [editVendorPayments, setEditVendorPayments] = useState(false);
+    const [purchaseInvoicesValue, setPurchaseInvoicesValue] = useState(
+        pr.number_purchase_invoices?.toString() ?? '',
+    );
+    const [vendorPaymentsValue, setVendorPaymentsValue] = useState(
+        pr.number_vendor_payments?.toString() ?? '',
+    );
+    const [savingSapFolios, setSavingSapFolios] = useState(false);
+
     const handleApprove = () => {
         setProcessing(true);
-        router.post(`/payment-requests/${pr.id}/approve`, {}, {
+
+        const data: Record<string, string> = {};
+        if (approvalStage === 'administration' && sapFieldValue) {
+            data.number_purchase_invoices = sapFieldValue;
+        } else if (approvalStage === 'treasury' && sapFieldValue) {
+            data.number_vendor_payments = sapFieldValue;
+        }
+
+        router.post(`/payment-requests/${pr.id}/approve`, data, {
             onFinish: () => {
                 setProcessing(false);
                 setApproveDialogOpen(false);
+                setSapFieldValue('');
             },
         });
     };
@@ -45,7 +77,30 @@ export function PaymentRequestDetail({ paymentRequest: pr, canApprove }: Payment
         );
     };
 
+    const handleSaveSapFolio = (field: 'number_purchase_invoices' | 'number_vendor_payments') => {
+        setSavingSapFolios(true);
+        const value = field === 'number_purchase_invoices' ? purchaseInvoicesValue : vendorPaymentsValue;
+
+        router.patch(
+            `/payment-requests/${pr.id}/sap-folios`,
+            { [field]: value || null },
+            {
+                onFinish: () => {
+                    setSavingSapFolios(false);
+                    if (field === 'number_purchase_invoices') {
+                        setEditPurchaseInvoices(false);
+                    } else {
+                        setEditVendorPayments(false);
+                    }
+                },
+            },
+        );
+    };
+
     const isEditable = pr.status.name === 'pending_department';
+    const showSapSection = pr.status.name !== 'pending_department';
+
+    const showSapFieldInModal = approvalStage === 'administration' || approvalStage === 'treasury';
 
     return (
         <>
@@ -163,6 +218,114 @@ export function PaymentRequestDetail({ paymentRequest: pr, canApprove }: Payment
                     </Card>
                 </div>
 
+                {showSapSection && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Folios SAP</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <dl className="space-y-4 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-muted-foreground">Folio SAP Factura Proveedores</dt>
+                                    <dd className="font-mono font-medium text-foreground">
+                                        {editPurchaseInvoices ? (
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    type="number"
+                                                    min={1}
+                                                    value={purchaseInvoicesValue}
+                                                    onChange={(e) => setPurchaseInvoicesValue(e.target.value)}
+                                                    className="h-8 w-32"
+                                                />
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    disabled={savingSapFolios}
+                                                    onClick={() => handleSaveSapFolio('number_purchase_invoices')}
+                                                >
+                                                    <Check className="size-4" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    disabled={savingSapFolios}
+                                                    onClick={() => {
+                                                        setEditPurchaseInvoices(false);
+                                                        setPurchaseInvoicesValue(pr.number_purchase_invoices?.toString() ?? '');
+                                                    }}
+                                                >
+                                                    <XCircle className="size-4" />
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <span className="flex items-center gap-2">
+                                                {pr.number_purchase_invoices ?? '—'}
+                                                {canEditPurchaseInvoices && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => setEditPurchaseInvoices(true)}
+                                                    >
+                                                        <Pencil className="size-3" />
+                                                    </Button>
+                                                )}
+                                            </span>
+                                        )}
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-muted-foreground">Folio SAP Pago Efectuado</dt>
+                                    <dd className="font-mono font-medium text-foreground">
+                                        {editVendorPayments ? (
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    type="number"
+                                                    min={1}
+                                                    value={vendorPaymentsValue}
+                                                    onChange={(e) => setVendorPaymentsValue(e.target.value)}
+                                                    className="h-8 w-32"
+                                                />
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    disabled={savingSapFolios}
+                                                    onClick={() => handleSaveSapFolio('number_vendor_payments')}
+                                                >
+                                                    <Check className="size-4" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    disabled={savingSapFolios}
+                                                    onClick={() => {
+                                                        setEditVendorPayments(false);
+                                                        setVendorPaymentsValue(pr.number_vendor_payments?.toString() ?? '');
+                                                    }}
+                                                >
+                                                    <XCircle className="size-4" />
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <span className="flex items-center gap-2">
+                                                {pr.number_vendor_payments ?? '—'}
+                                                {canEditVendorPayments && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => setEditVendorPayments(true)}
+                                                    >
+                                                        <Pencil className="size-3" />
+                                                    </Button>
+                                                )}
+                                            </span>
+                                        )}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {pr.advance_documents && pr.advance_documents.length > 0 && (
                     <Card>
                         <CardHeader>
@@ -246,7 +409,25 @@ export function PaymentRequestDetail({ paymentRequest: pr, canApprove }: Payment
                 confirmLabel="Aprobar"
                 onConfirm={handleApprove}
                 processing={processing}
-            />
+            >
+                {showSapFieldInModal && (
+                    <div className="space-y-2 py-2">
+                        <Label htmlFor="sap-field">
+                            {approvalStage === 'administration'
+                                ? 'Folio SAP Factura Proveedores'
+                                : 'Folio SAP Pago Efectuado'}
+                        </Label>
+                        <Input
+                            id="sap-field"
+                            type="number"
+                            min={1}
+                            placeholder="Opcional"
+                            value={sapFieldValue}
+                            onChange={(e) => setSapFieldValue(e.target.value)}
+                        />
+                    </div>
+                )}
+            </ConfirmationDialog>
 
             <ConfirmationDialog
                 open={rejectDialogOpen}
