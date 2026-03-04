@@ -7,7 +7,8 @@
       "Bash(php artisan make:migration:*)",
       "Bash(/c/Users/Administrador/.config/herd/bin/php.bat:*)",
       "Bash(php artisan tinker:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(cd /c/Users/Administrador/Herd/payment-request && php vendor/bin/pint --dirty 2>&1)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -26,7 +26,7 @@ class PaymentRequestResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-currency-dollar';
 
-    protected static ?string $navigationGroup = 'Solicitudes';
+    protected static ?string $navigationGroup = 'Operaciones';
 
     protected static ?int $navigationSort = 1;
 

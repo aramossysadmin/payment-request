@@ -1,0 +1,203 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\StorePaymentRequestRequest;
+use App\Http\Requests\UpdatePaymentRequestRequest;
+use App\Http\Resources\PaymentRequestResource;
+use App\Models\Branch;
+use App\Models\Currency;
+use App\Models\ExpenseConcept;
+use App\Models\PaymentRequest;
+use App\Services\ApprovalService;
+use App\States\PaymentRequest\Completed;
+use App\States\PaymentRequest\PendingAdministration;
+use App\States\PaymentRequest\PendingDepartment;
+use App\States\PaymentRequest\PendingTreasury;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class PaymentRequestController extends Controller
+{
+    public function __construct(private ApprovalService $approvalService) {}
+
+    public function index(Request $request): Response
+    {
+        $user = $request->user();
+
+        $query = PaymentRequest::query()
+            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user']);
+
+        if ($user->hasRole('super_admin')) {
+            // Super admin sees all
+        } elseif ($user->authorizedDepartments()->exists()) {
+            $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('departments.id');
+            $query->where(function ($q) use ($user, $authorizedDepartmentIds) {
+                $q->whereIn('department_id', $authorizedDepartmentIds)
+                    ->orWhere('user_id', $user->id)
+                    ->orWhereHas('approvals', function ($approvalQuery) use ($user) {
+                        $approvalQuery->where('user_id', $user->id);
+                    });
+            });
+        } else {
+            $query->where('user_id', $user->id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->string('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('provider', 'like', "%{$search}%")
+                    ->orWhere('invoice_folio', 'like', "%{$search}%")
+                    ->orWhere('folio_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->whereState('status', $request->string('status')->toString());
+        }
+
+        if ($request->filled('status_group')) {
+            $group = $request->string('status_group')->toString();
+
+            if ($group === 'pending') {
+                $query->whereIn('status', [
+                    PendingDepartment::$name,
+                    PendingAdministration::$name,
+                    PendingTreasury::$name,
+                ]);
+            } elseif ($group === 'completed') {
+                $query->whereState('status', Completed::$name);
+            }
+        }
+
+        $paymentRequests = $query->latest()->paginate(15)->withQueryString();
+
+        $canApproveIds = [];
+        foreach ($paymentRequests->items() as $pr) {
+            $pendingApproval = $pr->approvals
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->first();
+
+            if ($pendingApproval) {
+                $canApproveIds[] = $pr->id;
+            }
+        }
+
+        return Inertia::render('payment-requests/index', [
+            'paymentRequests' => PaymentRequestResource::collection($paymentRequests),
+            'canApproveIds' => $canApproveIds,
+            'filters' => $request->only(['search', 'status', 'status_group']),
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('payment-requests/create', [
+            'currencies' => Currency::all(['id', 'name']),
+            'branches' => Branch::all(['id', 'name']),
+            'expenseConcepts' => ExpenseConcept::all(['id', 'name']),
+        ]);
+    }
+
+    public function store(StorePaymentRequestRequest $request): RedirectResponse
+    {
+        $user = $request->user();
+        $validated = $request->validated();
+
+        $advanceDocuments = [];
+        if ($request->hasFile('advance_documents')) {
+            foreach ($request->file('advance_documents') as $file) {
+                $advanceDocuments[] = $file->store('advance-documents', 'public');
+            }
+        }
+
+        $paymentRequest = PaymentRequest::create([
+            ...$validated,
+            'user_id' => $user->id,
+            'department_id' => $user->department_id,
+            'advance_documents' => $advanceDocuments ?: null,
+        ]);
+
+        $this->approvalService->createApprovals($paymentRequest);
+
+        return redirect()->route('payment-requests.index')
+            ->with('success', 'Solicitud de pago creada exitosamente.');
+    }
+
+    public function show(Request $request, PaymentRequest $paymentRequest): Response
+    {
+        Gate::authorize('view', $paymentRequest);
+
+        $paymentRequest->load(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user']);
+
+        $user = $request->user();
+        $canApprove = $paymentRequest->approvals
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->isNotEmpty();
+
+        return Inertia::render('payment-requests/show', [
+            'paymentRequest' => new PaymentRequestResource($paymentRequest),
+            'canApprove' => $canApprove,
+        ]);
+    }
+
+    public function edit(PaymentRequest $paymentRequest): Response
+    {
+        Gate::authorize('update', $paymentRequest);
+
+        abort_unless($paymentRequest->status->equals(PendingDepartment::class), 403);
+
+        $paymentRequest->load(['currency', 'branch', 'expenseConcept']);
+
+        return Inertia::render('payment-requests/edit', [
+            'paymentRequest' => new PaymentRequestResource($paymentRequest),
+            'currencies' => Currency::all(['id', 'name']),
+            'branches' => Branch::all(['id', 'name']),
+            'expenseConcepts' => ExpenseConcept::all(['id', 'name']),
+        ]);
+    }
+
+    public function update(UpdatePaymentRequestRequest $request, PaymentRequest $paymentRequest): RedirectResponse
+    {
+        Gate::authorize('update', $paymentRequest);
+
+        abort_unless($paymentRequest->status->equals(PendingDepartment::class), 403);
+
+        $validated = $request->validated();
+
+        $advanceDocuments = $paymentRequest->advance_documents ?? [];
+        if ($request->hasFile('advance_documents')) {
+            foreach ($advanceDocuments as $oldPath) {
+                Storage::disk('public')->delete($oldPath);
+            }
+            $advanceDocuments = [];
+            foreach ($request->file('advance_documents') as $file) {
+                $advanceDocuments[] = $file->store('advance-documents', 'public');
+            }
+        }
+
+        $paymentRequest->update([
+            ...$validated,
+            'advance_documents' => $advanceDocuments ?: null,
+        ]);
+
+        return redirect()->route('payment-requests.show', $paymentRequest)
+            ->with('success', 'Solicitud de pago actualizada exitosamente.');
+    }
+
+    public function destroy(PaymentRequest $paymentRequest): RedirectResponse
+    {
+        Gate::authorize('delete', $paymentRequest);
+
+        $paymentRequest->delete();
+
+        return redirect()->route('payment-requests.index')
+            ->with('success', 'Solicitud de pago eliminada exitosamente.');
+    }
+}
