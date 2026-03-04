@@ -108,12 +108,47 @@ export function PaymentRequestDetail({
                 <Card className="border-l-4 border-l-primary">
                     <CardContent className="pt-6">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                                <p className="font-mono text-3xl font-bold text-foreground">
-                                    #{String(pr.folio_number).padStart(5, '0')}
-                                </p>
-                                <div className="mt-2">
-                                    <StatusBadge status={pr.status} />
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <div>
+                                    <p className="font-mono text-3xl font-bold text-foreground">
+                                        #{String(pr.folio_number).padStart(5, '0')}
+                                    </p>
+                                    <div className="mt-2">
+                                        <StatusBadge status={pr.status} />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    {isEditable && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => router.visit(`/payment-requests/${pr.id}/edit`)}
+                                        >
+                                            <Pencil className="size-4" />
+                                            Editar
+                                        </Button>
+                                    )}
+                                    {canApprove && (
+                                        <>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-400 dark:hover:bg-red-950"
+                                                onClick={() => setRejectDialogOpen(true)}
+                                            >
+                                                <XCircle className="size-4" />
+                                                Rechazar
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
+                                                onClick={() => setApproveDialogOpen(true)}
+                                            >
+                                                <CheckCircle className="size-4" />
+                                                Autorizar
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                             <div className="text-right">
@@ -132,8 +167,8 @@ export function PaymentRequestDetail({
                                     </p>
                                     <p>
                                         Retención:{' '}
-                                        <span className="font-mono font-medium text-foreground">
-                                            {formatCurrency(pr.retention)}
+                                        <span className="font-medium text-foreground">
+                                            {pr.retention ? 'Sí' : 'No'}
                                         </span>
                                     </p>
                                     <p className="border-t border-border pt-1 text-base">
@@ -367,38 +402,6 @@ export function PaymentRequestDetail({
                     </CardContent>
                 </Card>
 
-                <div className="flex items-center justify-between">
-                    <div>
-                        {isEditable && (
-                            <Button
-                                variant="outline"
-                                onClick={() => router.visit(`/payment-requests/${pr.id}/edit`)}
-                            >
-                                <Pencil className="size-4" />
-                                Editar
-                            </Button>
-                        )}
-                    </div>
-                    {canApprove && (
-                        <div className="flex gap-3">
-                            <Button
-                                variant="outline"
-                                className="text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-400 dark:hover:bg-red-950"
-                                onClick={() => setRejectDialogOpen(true)}
-                            >
-                                <XCircle className="size-4" />
-                                Rechazar
-                            </Button>
-                            <Button
-                                className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
-                                onClick={() => setApproveDialogOpen(true)}
-                            >
-                                <CheckCircle className="size-4" />
-                                Autorizar
-                            </Button>
-                        </div>
-                    )}
-                </div>
             </div>
 
             <ConfirmationDialog
