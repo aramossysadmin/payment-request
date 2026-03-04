@@ -57,7 +57,7 @@ class PaymentRequest extends Model
             'advance_documents' => 'array',
             'subtotal' => 'decimal:2',
             'iva' => 'decimal:2',
-            'retention' => 'decimal:2',
+            'retention' => 'boolean',
             'total' => 'decimal:2',
         ];
     }

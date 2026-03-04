@@ -4,6 +4,7 @@ import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -47,7 +48,7 @@ export default function Create() {
         payment_type: 'full',
         subtotal: '',
         iva: '',
-        retention: '',
+        retention: false,
         total: '',
     });
 
@@ -55,6 +56,18 @@ export default function Create() {
     const [processing, setProcessing] = useState(false);
 
     const handleChange = (field: string, value: string) => {
+        if (field === 'subtotal') {
+            const subtotal = parseFloat(value) || 0;
+            const iva = Math.round(subtotal * 0.16 * 100) / 100;
+            const total = Math.round((subtotal + iva) * 100) / 100;
+            setValues((prev) => ({
+                ...prev,
+                subtotal: value,
+                iva: iva.toFixed(2),
+                total: total.toFixed(2),
+            }));
+            return;
+        }
         setValues((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -64,7 +77,7 @@ export default function Create() {
 
         const formData = new FormData();
         Object.entries(values).forEach(([key, val]) => {
-            formData.append(key, val);
+            formData.append(key, String(val));
         });
 
         files.forEach((file) => {
@@ -306,7 +319,7 @@ export default function Create() {
                                     <InputError message={errors.subtotal} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="iva">IVA</Label>
+                                    <Label htmlFor="iva">IVA (16%)</Label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
                                             $
@@ -316,41 +329,29 @@ export default function Create() {
                                             type="number"
                                             step="0.01"
                                             min="0"
-                                            className="pl-7"
+                                            className="pl-7 bg-gray-50 dark:bg-gray-800"
                                             value={values.iva}
-                                            onChange={(e) =>
-                                                handleChange(
-                                                    'iva',
-                                                    e.target.value,
-                                                )
-                                            }
+                                            readOnly
+                                            tabIndex={-1}
                                             placeholder="0.00"
                                         />
                                     </div>
                                     <InputError message={errors.iva} />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="retention">Retención</Label>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                                            $
-                                        </span>
-                                        <Input
-                                            id="retention"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            className="pl-7"
-                                            value={values.retention}
-                                            onChange={(e) =>
-                                                handleChange(
-                                                    'retention',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="0.00"
-                                        />
-                                    </div>
+                                <div className="flex items-center gap-2 self-end pb-2">
+                                    <Checkbox
+                                        id="retention"
+                                        checked={values.retention as boolean}
+                                        onCheckedChange={(checked) =>
+                                            setValues((prev) => ({
+                                                ...prev,
+                                                retention: checked === true,
+                                            }))
+                                        }
+                                    />
+                                    <Label htmlFor="retention" className="cursor-pointer">
+                                        Aplica retención
+                                    </Label>
                                     <InputError message={errors.retention} />
                                 </div>
                                 <div className="space-y-2">
@@ -364,14 +365,10 @@ export default function Create() {
                                             type="number"
                                             step="0.01"
                                             min="0"
-                                            className="pl-7"
+                                            className="pl-7 bg-gray-50 dark:bg-gray-800"
                                             value={values.total}
-                                            onChange={(e) =>
-                                                handleChange(
-                                                    'total',
-                                                    e.target.value,
-                                                )
-                                            }
+                                            readOnly
+                                            tabIndex={-1}
                                             placeholder="0.00"
                                         />
                                     </div>

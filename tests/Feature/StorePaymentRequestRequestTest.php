@@ -20,7 +20,7 @@ beforeEach(function () {
         'payment_type' => 'full',
         'subtotal' => 1000.00,
         'iva' => 160.00,
-        'retention' => 0.00,
+        'retention' => false,
         'total' => 1160.00,
     ];
 });

@@ -250,7 +250,7 @@ test('store creates a payment request with valid data', function () {
         'payment_type' => 'full',
         'subtotal' => 1000.00,
         'iva' => 160.00,
-        'retention' => 0,
+        'retention' => false,
         'total' => 1160.00,
     ];
 
@@ -278,7 +278,7 @@ test('store auto-assigns user_id and department_id', function () {
         'payment_type' => 'full',
         'subtotal' => 500,
         'iva' => 80,
-        'retention' => 0,
+        'retention' => false,
         'total' => 580,
     ];
 
@@ -305,7 +305,7 @@ test('store creates initial approval', function () {
         'payment_type' => 'full',
         'subtotal' => 500,
         'iva' => 80,
-        'retention' => 0,
+        'retention' => false,
         'total' => 580,
     ];
 
@@ -331,7 +331,7 @@ test('store validates required fields', function (string $field) {
         'payment_type' => 'full',
         'subtotal' => 1000,
         'iva' => 160,
-        'retention' => 0,
+        'retention' => false,
         'total' => 1160,
     ];
 
@@ -349,7 +349,6 @@ test('store validates required fields', function (string $field) {
     'payment_type',
     'subtotal',
     'iva',
-    'retention',
     'total',
 ]);
 
@@ -425,7 +424,7 @@ test('update modifies the payment request', function () {
             'payment_type' => 'full',
             'subtotal' => 1000,
             'iva' => 160,
-            'retention' => 0,
+            'retention' => false,
             'total' => 1160,
         ])
         ->assertRedirect(route('payment-requests.show', $pr));

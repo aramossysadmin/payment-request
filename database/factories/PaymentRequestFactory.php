@@ -25,8 +25,8 @@ class PaymentRequestFactory extends Factory
     {
         $subtotal = fake()->randomFloat(2, 100, 50000);
         $iva = round($subtotal * 0.16, 2);
-        $retention = fake()->boolean(30) ? round($subtotal * 0.0125, 2) : 0;
-        $total = round($subtotal + $iva - $retention, 2);
+        $retention = fake()->boolean(30);
+        $total = round($subtotal + $iva, 2);
 
         return [
             'user_id' => User::factory(),

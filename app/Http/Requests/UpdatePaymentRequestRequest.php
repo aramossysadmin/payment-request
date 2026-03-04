@@ -30,7 +30,7 @@ class UpdatePaymentRequestRequest extends FormRequest
             'advance_documents.*' => ['file', 'mimes:xml,pdf', 'max:10240'],
             'subtotal' => ['required', 'numeric', 'min:0'],
             'iva' => ['required', 'numeric', 'min:0'],
-            'retention' => ['required', 'numeric', 'min:0'],
+            'retention' => ['boolean'],
             'total' => ['required', 'numeric', 'min:0'],
         ];
     }
@@ -56,7 +56,7 @@ class UpdatePaymentRequestRequest extends FormRequest
             'subtotal.required' => 'El subtotal es obligatorio.',
             'subtotal.min' => 'El subtotal debe ser mayor o igual a 0.',
             'iva.required' => 'El IVA es obligatorio.',
-            'retention.required' => 'La retención es obligatoria.',
+            'retention.boolean' => 'El campo retención debe ser verdadero o falso.',
             'total.required' => 'El total es obligatorio.',
             'total.min' => 'El total debe ser mayor o igual a 0.',
         ];

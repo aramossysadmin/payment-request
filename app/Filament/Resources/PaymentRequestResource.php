@@ -141,23 +141,29 @@ class PaymentRequestResource extends Resource
                             ->label('Subtotal')
                             ->numeric()
                             ->required()
-                            ->prefix('$'),
+                            ->prefix('$')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set): void {
+                                $subtotal = (float) $get('subtotal');
+                                $iva = round($subtotal * 0.16, 2);
+                                $set('iva', number_format($iva, 2, '.', ''));
+                                $set('total', number_format($subtotal + $iva, 2, '.', ''));
+                            }),
                         Forms\Components\TextInput::make('iva')
-                            ->label('IVA')
+                            ->label('IVA (16%)')
                             ->numeric()
                             ->required()
-                            ->prefix('$'),
-                        Forms\Components\TextInput::make('retention')
-                            ->label('Retención')
-                            ->numeric()
-                            ->required()
-                            ->default(0)
-                            ->prefix('$'),
+                            ->prefix('$')
+                            ->readOnly(),
+                        Forms\Components\Checkbox::make('retention')
+                            ->label('Aplica retención')
+                            ->default(false),
                         Forms\Components\TextInput::make('total')
                             ->label('Total')
                             ->numeric()
                             ->required()
-                            ->prefix('$'),
+                            ->prefix('$')
+                            ->readOnly(),
                     ])
                     ->columns(4),
 

@@ -53,7 +53,7 @@ export type PaymentRequest = {
     status: PaymentRequestStatus;
     subtotal: string;
     iva: string;
-    retention: string;
+    retention: boolean;
     total: string;
     number_purchase_invoices: number | null;
     number_vendor_payments: number | null;
