@@ -98,7 +98,7 @@ export default function Edit() {
         const formData = new FormData();
         formData.append('_method', 'PUT');
         Object.entries(values).forEach(([key, val]) => {
-            formData.append(key, String(val));
+            formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
 
         files.forEach((file) => {
