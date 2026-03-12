@@ -24,8 +24,15 @@ import type {
 } from '@/types';
 
 const paymentTypeOptions = [
-    { value: 'full', label: 'Completo' },
+    { value: 'invoice', label: 'Pago con Factura' },
     { value: 'advance', label: 'Anticipo' },
+    { value: 'investment', label: 'Inversiones' },
+];
+
+const ivaRateOptions = [
+    { value: '0.00', label: 'IVA 0%' },
+    { value: '0.08', label: 'IVA 8%' },
+    { value: '0.16', label: 'IVA 16%' },
 ];
 
 type PageProps = {
@@ -60,6 +67,7 @@ export default function Edit() {
 
     const [values, setValues] = useState({
         provider: pr.provider,
+        rfc: pr.rfc ?? '',
         invoice_folio: pr.invoice_folio,
         currency_id: String(pr.currency?.id ?? ''),
         branch_id: String(pr.branch?.id ?? ''),
@@ -67,26 +75,50 @@ export default function Edit() {
         description: pr.description ?? '',
         payment_type: pr.payment_type.value,
         subtotal: pr.subtotal,
+        iva_rate: pr.iva_rate.value,
         iva: pr.iva,
         retention: pr.retention,
         total: pr.total,
     });
 
     const [files, setFiles] = useState<File[]>([]);
+    const [invoicePdf, setInvoicePdf] = useState<File | null>(null);
+    const [invoiceXml, setInvoiceXml] = useState<File | null>(null);
     const [processing, setProcessing] = useState(false);
+
+    const recalculate = (subtotal: number, ivaRate: number) => {
+        const iva = Math.round(subtotal * ivaRate * 100) / 100;
+        const total = Math.round((subtotal + iva) * 100) / 100;
+        return { iva: iva.toFixed(2), total: total.toFixed(2) };
+    };
 
     const handleChange = (field: string, value: string) => {
         if (field === 'subtotal') {
             const subtotal = parseFloat(value) || 0;
-            const iva = Math.round(subtotal * 0.16 * 100) / 100;
-            const total = Math.round((subtotal + iva) * 100) / 100;
+            const { iva, total } = recalculate(subtotal, parseFloat(values.iva_rate) || 0);
             setValues((prev) => ({
                 ...prev,
                 subtotal: value,
-                iva: iva.toFixed(2),
-                total: total.toFixed(2),
+                iva,
+                total,
             }));
             return;
+        }
+        if (field === 'iva_rate') {
+            const subtotal = parseFloat(values.subtotal) || 0;
+            const { iva, total } = recalculate(subtotal, parseFloat(value) || 0);
+            setValues((prev) => ({
+                ...prev,
+                iva_rate: value,
+                iva,
+                total,
+            }));
+            return;
+        }
+        if (field === 'payment_type') {
+            setFiles([]);
+            setInvoicePdf(null);
+            setInvoiceXml(null);
         }
         setValues((prev) => ({ ...prev, [field]: value }));
     };
@@ -101,9 +133,18 @@ export default function Edit() {
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
 
-        files.forEach((file) => {
-            formData.append('advance_documents[]', file);
-        });
+        if (values.payment_type === 'invoice') {
+            if (invoicePdf) {
+                formData.append('advance_documents[]', invoicePdf);
+            }
+            if (invoiceXml) {
+                formData.append('advance_documents[]', invoiceXml);
+            }
+        } else {
+            files.forEach((file) => {
+                formData.append('advance_documents[]', file);
+            });
+        }
 
         router.post(`/payment-requests/${pr.uuid}`, formData, {
             forceFormData: true,
@@ -130,7 +171,7 @@ export default function Edit() {
                         <CardContent className="space-y-4">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label htmlFor="provider">Proveedor</Label>
+                                    <Label htmlFor="provider">Razón Social</Label>
                                     <Input
                                         id="provider"
                                         value={values.provider}
@@ -143,6 +184,24 @@ export default function Edit() {
                                     />
                                     <InputError message={errors.provider} />
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="rfc">RFC</Label>
+                                    <Input
+                                        id="rfc"
+                                        value={values.rfc}
+                                        onChange={(e) =>
+                                            handleChange(
+                                                'rfc',
+                                                e.target.value.toUpperCase(),
+                                            )
+                                        }
+                                        placeholder="RFC"
+                                        maxLength={13}
+                                    />
+                                    <InputError message={errors.rfc} />
+                                </div>
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="invoice_folio">
                                         Folio de Factura
@@ -181,7 +240,7 @@ export default function Edit() {
                                                     key={c.id}
                                                     value={String(c.id)}
                                                 >
-                                                    {c.name}
+                                                    {c.prefix}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -292,43 +351,66 @@ export default function Edit() {
                         </CardContent>
                     </Card>
 
-                    {values.payment_type === 'advance' && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Documentos de Anticipo</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {pr.advance_documents &&
-                                    pr.advance_documents.length > 0 && (
-                                        <div className="mb-4">
-                                            <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                                Documentos actuales:
-                                            </p>
-                                            <ul className="space-y-1">
-                                                {pr.advance_documents.map(
-                                                    (doc, i) => (
-                                                        <li
-                                                            key={i}
-                                                            className="text-sm text-gray-700 dark:text-gray-300"
-                                                        >
-                                                            {doc
-                                                                .split('/')
-                                                                .pop()}
-                                                        </li>
-                                                    ),
-                                                )}
-                                            </ul>
-                                        </div>
-                                    )}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Documentos Solicitudes de Pago</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {pr.advance_documents &&
+                                pr.advance_documents.length > 0 && (
+                                    <div className="mb-4">
+                                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                            Documentos actuales:
+                                        </p>
+                                        <ul className="space-y-1">
+                                            {pr.advance_documents.map(
+                                                (doc, i) => (
+                                                    <li
+                                                        key={i}
+                                                        className="text-sm text-gray-700 dark:text-gray-300"
+                                                    >
+                                                        {doc
+                                                            .split('/')
+                                                            .pop()}
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
+                            {values.payment_type === 'invoice' ? (
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label>Factura PDF <span className="text-red-500">*</span></Label>
+                                        <FileUpload
+                                            files={invoicePdf ? [invoicePdf] : []}
+                                            onChange={(f) => setInvoicePdf(f[0] ?? null)}
+                                            maxFiles={1}
+                                            accept=".pdf"
+                                            error={errors['advance_documents'] || errors['advance_documents.0']}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Factura XML <span className="text-red-500">*</span></Label>
+                                        <FileUpload
+                                            files={invoiceXml ? [invoiceXml] : []}
+                                            onChange={(f) => setInvoiceXml(f[0] ?? null)}
+                                            maxFiles={1}
+                                            accept=".xml"
+                                            error={errors['advance_documents.1']}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
                                 <FileUpload
                                     files={files}
                                     onChange={setFiles}
-                                    maxFiles={2}
-                                    error={errors.advance_documents || errors['advance_documents.0'] || errors['advance_documents.1']}
+                                    maxFiles={10}
+                                    error={errors.advance_documents || errors['advance_documents.0']}
                                 />
-                            </CardContent>
-                        </Card>
-                    )}
+                            )}
+                        </CardContent>
+                    </Card>
 
                     <Card>
                         <CardHeader>
@@ -360,7 +442,31 @@ export default function Edit() {
                                     <InputError message={errors.subtotal} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="iva">IVA (16%)</Label>
+                                    <Label>Tasa de IVA</Label>
+                                    <Select
+                                        value={values.iva_rate}
+                                        onValueChange={(v) =>
+                                            handleChange('iva_rate', v)
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seleccionar" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {ivaRateOptions.map((opt) => (
+                                                <SelectItem
+                                                    key={opt.value}
+                                                    value={opt.value}
+                                                >
+                                                    {opt.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.iva_rate} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="iva">{ivaRateOptions.find((o) => o.value === values.iva_rate)?.label ?? 'IVA'}</Label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
                                             $

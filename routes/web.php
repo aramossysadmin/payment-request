@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestApprovalController;
 use App\Http\Controllers\PaymentRequestController;
@@ -14,10 +15,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    }
-    )->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::resource('payment-requests', PaymentRequestController::class);
     Route::post('payment-requests/{payment_request}/approve', [PaymentRequestApprovalController::class, 'approve'])->name('payment-requests.approve');

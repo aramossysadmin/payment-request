@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\IvaRate;
 use App\Enums\PaymentType;
 use App\States\PaymentRequest\PaymentRequestState;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +24,7 @@ class PaymentRequest extends Model
         'department_id',
         'folio_number',
         'provider',
+        'rfc',
         'invoice_folio',
         'currency_id',
         'branch_id',
@@ -31,6 +34,7 @@ class PaymentRequest extends Model
         'advance_documents',
         'status',
         'subtotal',
+        'iva_rate',
         'iva',
         'retention',
         'total',
@@ -64,6 +68,7 @@ class PaymentRequest extends Model
         return [
             'status' => PaymentRequestState::class,
             'payment_type' => PaymentType::class,
+            'iva_rate' => IvaRate::class,
             'advance_documents' => 'array',
             'subtotal' => 'decimal:2',
             'iva' => 'decimal:2',
@@ -100,5 +105,26 @@ class PaymentRequest extends Model
     public function approvals(): HasMany
     {
         return $this->hasMany(PaymentRequestApproval::class);
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        if ($user->authorizedDepartments()->exists()) {
+            $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('departments.id');
+
+            return $query->where(function ($q) use ($user, $authorizedDepartmentIds) {
+                $q->whereIn('department_id', $authorizedDepartmentIds)
+                    ->orWhere('user_id', $user->id)
+                    ->orWhereHas('approvals', function ($approvalQuery) use ($user) {
+                        $approvalQuery->where('user_id', $user->id);
+                    });
+            });
+        }
+
+        return $query->where('user_id', $user->id);
     }
 }

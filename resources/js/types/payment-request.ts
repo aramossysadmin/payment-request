@@ -12,6 +12,7 @@ export type PaymentTypeOption = {
 export type Currency = {
     id: number;
     name: string;
+    prefix: string;
 };
 
 export type Branch = {
@@ -47,11 +48,13 @@ export type PaymentRequest = {
     uuid: string;
     folio_number: number;
     provider: string;
+    rfc: string | null;
     invoice_folio: string;
     description: string | null;
     payment_type: PaymentTypeOption;
     advance_documents: string[] | null;
     status: PaymentRequestStatus;
+    iva_rate: { value: string; label: string };
     subtotal: string;
     iva: string;
     retention: boolean;

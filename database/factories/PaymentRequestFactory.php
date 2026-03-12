@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\IvaRate;
 use App\Enums\PaymentType;
 use App\Models\Branch;
 use App\Models\Currency;
@@ -24,7 +25,8 @@ class PaymentRequestFactory extends Factory
     public function definition(): array
     {
         $subtotal = fake()->randomFloat(2, 100, 50000);
-        $iva = round($subtotal * 0.16, 2);
+        $ivaRate = fake()->randomElement(IvaRate::cases());
+        $iva = round($subtotal * $ivaRate->rate(), 2);
         $retention = fake()->boolean(30);
         $total = round($subtotal + $iva, 2);
 
@@ -39,9 +41,10 @@ class PaymentRequestFactory extends Factory
             'branch_id' => Branch::factory(),
             'expense_concept_id' => ExpenseConcept::factory(),
             'description' => fake()->optional()->sentence(),
-            'payment_type' => PaymentType::Full,
+            'payment_type' => PaymentType::Invoice,
             'status' => PendingDepartment::$name,
             'subtotal' => $subtotal,
+            'iva_rate' => $ivaRate->value,
             'iva' => $iva,
             'retention' => $retention,
             'total' => $total,

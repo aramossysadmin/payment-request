@@ -14,8 +14,8 @@ type FileUploadProps = {
 export function FileUpload({
     files,
     onChange,
-    maxFiles = 2,
-    accept = '.xml,.pdf',
+    maxFiles,
+    accept,
     error,
 }: FileUploadProps) {
     const [isDragging, setIsDragging] = useState(false);
@@ -26,13 +26,11 @@ export function FileUpload({
                 return;
             }
 
-            const validFiles = Array.from(newFiles).filter((file) => {
-                const ext = file.name.split('.').pop()?.toLowerCase();
+            const validFiles = Array.from(newFiles);
 
-                return ext === 'xml' || ext === 'pdf';
-            });
-
-            const combined = [...files, ...validFiles].slice(0, maxFiles);
+            const combined = maxFiles
+                ? [...files, ...validFiles].slice(0, maxFiles)
+                : [...files, ...validFiles];
             onChange(combined);
         },
         [files, maxFiles, onChange],
@@ -66,7 +64,7 @@ export function FileUpload({
                     isDragging
                         ? 'border-primary bg-primary/5'
                         : 'border-gray-300 dark:border-gray-600',
-                    files.length >= maxFiles && 'pointer-events-none opacity-50',
+                    maxFiles && files.length >= maxFiles && 'pointer-events-none opacity-50',
                 )}
             >
                 <Upload className="mb-2 size-8 text-gray-400" />
@@ -80,12 +78,12 @@ export function FileUpload({
                             accept={accept}
                             multiple
                             onChange={(e) => handleFiles(e.target.files)}
-                            disabled={files.length >= maxFiles}
+                            disabled={maxFiles ? files.length >= maxFiles : false}
                         />
                     </label>
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
-                    XML o PDF, máximo {maxFiles} archivos
+                    Máximo 10MB por archivo
                 </p>
             </div>
 

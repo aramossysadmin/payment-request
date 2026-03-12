@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\IvaRate;
 use App\Enums\PaymentType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,21 +19,62 @@ class UpdatePaymentRequestRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isInvoice = $this->input('payment_type') === PaymentType::Invoice->value;
+
         return [
             'provider' => ['required', 'string', 'max:255'],
+            'rfc' => ['nullable', 'string', 'alpha_num', 'min:12', 'max:13'],
             'invoice_folio' => ['required', 'string', 'max:255'],
             'currency_id' => ['required', 'integer', Rule::exists('currencies', 'id')],
             'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')],
             'expense_concept_id' => ['required', 'integer', Rule::exists('expense_concepts', 'id')],
             'description' => ['nullable', 'string', 'max:1000'],
             'payment_type' => ['required', Rule::enum(PaymentType::class)],
-            'advance_documents' => ['nullable', 'array', 'max:2'],
-            'advance_documents.*' => ['file', 'mimes:xml,pdf', 'max:10240'],
+            'advance_documents' => ['nullable', 'array', $isInvoice ? 'max:2' : 'max:10'],
+            'advance_documents.*' => ['file', 'max:10240'],
+            'iva_rate' => ['required', Rule::enum(IvaRate::class)],
             'subtotal' => ['required', 'numeric', 'min:0'],
             'iva' => ['required', 'numeric', 'min:0'],
             'retention' => ['boolean'],
             'total' => ['required', 'numeric', 'min:0'],
         ];
+    }
+
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    {
+        $validator->after(function (\Illuminate\Validation\Validator $validator) {
+            if ($this->input('payment_type') !== PaymentType::Invoice->value) {
+                return;
+            }
+
+            $files = $this->file('advance_documents');
+            if (! is_array($files) || count($files) === 0) {
+                return;
+            }
+
+            if (count($files) !== 2) {
+                $validator->errors()->add(
+                    'advance_documents',
+                    'Para Pago con Factura debe subir exactamente 1 archivo PDF y 1 archivo XML.',
+                );
+
+                return;
+            }
+
+            $extensions = array_map(
+                fn ($file) => strtolower($file->getClientOriginalExtension()),
+                $files,
+            );
+
+            sort($extensions);
+
+            if ($extensions !== ['pdf', 'xml']) {
+                $validator->errors()->add(
+                    'advance_documents',
+                    'Para Pago con Factura debe subir exactamente 1 archivo PDF y 1 archivo XML.',
+                );
+            }
+        });
     }
 
     /**
@@ -41,7 +83,10 @@ class UpdatePaymentRequestRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'provider.required' => 'El proveedor es obligatorio.',
+            'provider.required' => 'La razón social es obligatoria.',
+            'rfc.alpha_num' => 'El RFC solo debe contener letras y números.',
+            'rfc.min' => 'El RFC debe tener al menos 12 caracteres.',
+            'rfc.max' => 'El RFC no debe exceder 13 caracteres.',
             'invoice_folio.required' => 'El folio de factura es obligatorio.',
             'currency_id.required' => 'La moneda es obligatoria.',
             'currency_id.exists' => 'La moneda seleccionada no es válida.',
@@ -50,9 +95,9 @@ class UpdatePaymentRequestRequest extends FormRequest
             'expense_concept_id.required' => 'El concepto de gasto es obligatorio.',
             'expense_concept_id.exists' => 'El concepto de gasto seleccionado no es válido.',
             'payment_type.required' => 'El tipo de pago es obligatorio.',
-            'advance_documents.max' => 'Solo se permiten máximo 2 documentos.',
-            'advance_documents.*.mimes' => 'Los documentos deben ser archivos XML o PDF.',
+            'advance_documents.max' => 'No se permiten más de 10 documentos.',
             'advance_documents.*.max' => 'Cada documento no debe superar los 10MB.',
+            'iva_rate.required' => 'La tasa de IVA es obligatoria.',
             'subtotal.required' => 'El subtotal es obligatorio.',
             'subtotal.min' => 'El subtotal debe ser mayor o igual a 0.',
             'iva.required' => 'El IVA es obligatorio.',

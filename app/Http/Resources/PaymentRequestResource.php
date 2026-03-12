@@ -30,6 +30,10 @@ class PaymentRequestResource extends JsonResource
                 'label' => $this->status->label(),
                 'color' => $this->status->color(),
             ],
+            'iva_rate' => [
+                'value' => $this->iva_rate->value,
+                'label' => $this->iva_rate->label(),
+            ],
             'subtotal' => (string) $this->subtotal,
             'iva' => (string) $this->iva,
             'retention' => (string) $this->retention,
@@ -47,6 +51,7 @@ class PaymentRequestResource extends JsonResource
             'currency' => [
                 'id' => $this->currency?->id,
                 'name' => $this->currency?->name,
+                'prefix' => $this->currency?->prefix,
             ],
             'branch' => [
                 'id' => $this->branch?->id,

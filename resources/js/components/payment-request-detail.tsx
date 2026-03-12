@@ -163,7 +163,7 @@ export function PaymentRequestDetail({
                                         </span>
                                     </p>
                                     <p>
-                                        IVA:{' '}
+                                        IVA ({pr.iva_rate.label}):{' '}
                                         <span className="font-mono font-medium text-foreground">
                                             {formatCurrency(pr.iva)}
                                         </span>
@@ -194,8 +194,12 @@ export function PaymentRequestDetail({
                         <CardContent>
                             <dl className="space-y-3 text-sm">
                                 <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">Proveedor</dt>
+                                    <dt className="text-muted-foreground">Razón Social</dt>
                                     <dd className="font-medium text-foreground">{pr.provider}</dd>
+                                </div>
+                                <div className="flex justify-between">
+                                    <dt className="text-muted-foreground">RFC</dt>
+                                    <dd className="font-mono font-medium text-foreground">{pr.rfc ?? '—'}</dd>
                                 </div>
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Folio Factura</dt>
@@ -203,7 +207,7 @@ export function PaymentRequestDetail({
                                 </div>
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Moneda</dt>
-                                    <dd className="font-medium text-foreground">{pr.currency?.name ?? '—'}</dd>
+                                    <dd className="font-medium text-foreground">{pr.currency?.prefix ?? '—'}</dd>
                                 </div>
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Sucursal</dt>
@@ -367,7 +371,7 @@ export function PaymentRequestDetail({
                 {pr.advance_documents && pr.advance_documents.length > 0 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Documentos</CardTitle>
+                            <CardTitle>Documentos Solicitudes de Pago</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <ul className="space-y-2">

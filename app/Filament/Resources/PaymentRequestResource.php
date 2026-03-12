@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\IvaRate;
 use App\Enums\PaymentType;
 use App\Filament\Resources\PaymentRequestResource\Pages;
 use App\Filament\Resources\PaymentRequestResource\RelationManagers\ApprovalsRelationManager;
@@ -41,9 +42,14 @@ class PaymentRequestResource extends Resource
                 Forms\Components\Section::make('Información General')
                     ->schema([
                         Forms\Components\TextInput::make('provider')
-                            ->label('Proveedor')
+                            ->label('Razón Social')
                             ->required()
                             ->maxLength(255),
+                        Forms\Components\TextInput::make('rfc')
+                            ->label('RFC')
+                            ->alphaNum()
+                            ->minLength(12)
+                            ->maxLength(13),
                         Forms\Components\TextInput::make('invoice_folio')
                             ->label('Folio Factura')
                             ->required()
@@ -80,41 +86,10 @@ class PaymentRequestResource extends Resource
                             ->required()
                             ->live(),
                         Forms\Components\FileUpload::make('advance_documents')
-                            ->label('Documentos de Anticipo')
-                            ->helperText('Máximo 1 archivo XML y 1 archivo PDF.')
-                            ->acceptedFileTypes(['application/xml', 'text/xml', 'application/pdf'])
+                            ->label('Documentos Solicitudes de Pago')
                             ->multiple()
-                            ->maxFiles(2)
                             ->directory('advance-documents')
                             ->visibility('private')
-                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') === PaymentType::Advance->value)
-                            ->validationMessages([
-                                'advance_documents_no_duplicates' => 'No se pueden subir dos archivos con la misma extensión.',
-                            ])
-                            ->rules([
-                                fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
-                                    if (! is_array($value) || count($value) <= 1) {
-                                        return;
-                                    }
-
-                                    $extensions = [];
-                                    foreach ($value as $file) {
-                                        $extension = strtolower(
-                                            $file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile
-                                                ? $file->getClientOriginalExtension()
-                                                : pathinfo($file, PATHINFO_EXTENSION)
-                                        );
-
-                                        if (in_array($extension, $extensions)) {
-                                            $fail('No se pueden subir dos archivos con la misma extensión.');
-
-                                            return;
-                                        }
-
-                                        $extensions[] = $extension;
-                                    }
-                                },
-                            ])
                             ->columnSpanFull(),
                     ])
                     ->columns(4),
@@ -145,12 +120,28 @@ class PaymentRequestResource extends Resource
                             ->live(onBlur: true)
                             ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set): void {
                                 $subtotal = (float) $get('subtotal');
-                                $iva = round($subtotal * 0.16, 2);
+                                $rate = (float) ($get('iva_rate') ?? '0.16');
+                                $iva = round($subtotal * $rate, 2);
+                                $set('iva', number_format($iva, 2, '.', ''));
+                                $set('total', number_format($subtotal + $iva, 2, '.', ''));
+                            }),
+                        Forms\Components\Select::make('iva_rate')
+                            ->label('Tasa de IVA')
+                            ->options(collect(IvaRate::cases())->mapWithKeys(
+                                fn (IvaRate $rate) => [$rate->value => $rate->label()]
+                            ))
+                            ->required()
+                            ->default('0.16')
+                            ->live()
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set): void {
+                                $subtotal = (float) $get('subtotal');
+                                $rate = (float) ($get('iva_rate') ?? '0.16');
+                                $iva = round($subtotal * $rate, 2);
                                 $set('iva', number_format($iva, 2, '.', ''));
                                 $set('total', number_format($subtotal + $iva, 2, '.', ''));
                             }),
                         Forms\Components\TextInput::make('iva')
-                            ->label('IVA (16%)')
+                            ->label('IVA')
                             ->numeric()
                             ->required()
                             ->prefix('$')
@@ -203,9 +194,13 @@ class PaymentRequestResource extends Resource
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('provider')
-                    ->label('Proveedor')
+                    ->label('Razón Social')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('rfc')
+                    ->label('RFC')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('invoice_folio')
                     ->label('Folio Factura')
                     ->searchable(),
@@ -223,7 +218,7 @@ class PaymentRequestResource extends Resource
                     ->label('Tipo de Pago')
                     ->badge()
                     ->color(fn (PaymentType $state): string => match ($state) {
-                        PaymentType::Full => 'success',
+                        PaymentType::Invoice => 'success',
                         PaymentType::Advance => 'warning',
                     })
                     ->formatStateUsing(fn (PaymentType $state): string => $state->label())

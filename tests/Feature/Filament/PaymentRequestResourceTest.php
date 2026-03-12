@@ -53,7 +53,7 @@ it('can create a payment request', function () {
         ->set('data.branch_id', $branch->id)
         ->set('data.expense_concept_id', $expenseConcept->id)
         ->set('data.description', 'Descripción de prueba')
-        ->set('data.payment_type', PaymentType::Full->value)
+        ->set('data.payment_type', PaymentType::Invoice->value)
         ->set('data.subtotal', 1000.00)
         ->set('data.iva', 160.00)
         ->set('data.retention', false)
@@ -83,7 +83,7 @@ it('auto-assigns authenticated user on create', function () {
         ->set('data.currency_id', $currency->id)
         ->set('data.branch_id', $branch->id)
         ->set('data.expense_concept_id', $expenseConcept->id)
-        ->set('data.payment_type', PaymentType::Full->value)
+        ->set('data.payment_type', PaymentType::Invoice->value)
         ->set('data.subtotal', 500.00)
         ->set('data.iva', 80.00)
         ->set('data.retention', false)
@@ -264,7 +264,7 @@ it('can create a payment request with full payment type', function () {
         ->set('data.currency_id', $currency->id)
         ->set('data.branch_id', $branch->id)
         ->set('data.expense_concept_id', $expenseConcept->id)
-        ->set('data.payment_type', PaymentType::Full->value)
+        ->set('data.payment_type', PaymentType::Invoice->value)
         ->set('data.subtotal', 1000.00)
         ->set('data.iva', 160.00)
         ->set('data.retention', false)
@@ -275,7 +275,7 @@ it('can create a payment request with full payment type', function () {
 
     $this->assertDatabaseHas('payment_requests', [
         'invoice_folio' => 'FAC-FULL-001',
-        'payment_type' => PaymentType::Full->value,
+        'payment_type' => PaymentType::Invoice->value,
     ]);
 });
 
@@ -333,7 +333,7 @@ it('validates payment type is required', function () {
 
 it('can edit payment type on a payment request', function () {
     $paymentRequest = PaymentRequest::factory()->create([
-        'payment_type' => PaymentType::Full,
+        'payment_type' => PaymentType::Invoice,
     ]);
 
     Livewire::test(EditPaymentRequest::class, ['record' => $paymentRequest->getRouteKey()])

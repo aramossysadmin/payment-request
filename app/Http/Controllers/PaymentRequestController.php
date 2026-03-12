@@ -30,22 +30,8 @@ class PaymentRequestController extends Controller
         $user = $request->user();
 
         $query = PaymentRequest::query()
-            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user']);
-
-        if ($user->hasRole('super_admin')) {
-            // Super admin sees all
-        } elseif ($user->authorizedDepartments()->exists()) {
-            $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('departments.id');
-            $query->where(function ($q) use ($user, $authorizedDepartmentIds) {
-                $q->whereIn('department_id', $authorizedDepartmentIds)
-                    ->orWhere('user_id', $user->id)
-                    ->orWhereHas('approvals', function ($approvalQuery) use ($user) {
-                        $approvalQuery->where('user_id', $user->id);
-                    });
-            });
-        } else {
-            $query->where('user_id', $user->id);
-        }
+            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user'])
+            ->visibleTo($user);
 
         if ($request->filled('search')) {
             $search = $request->string('search');
@@ -115,7 +101,7 @@ class PaymentRequestController extends Controller
     public function create(): Response
     {
         return Inertia::render('payment-requests/create', [
-            'currencies' => Currency::all(['id', 'name']),
+            'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::all(['id', 'name']),
             'expenseConcepts' => ExpenseConcept::all(['id', 'name']),
         ]);
@@ -194,7 +180,7 @@ class PaymentRequestController extends Controller
 
         return Inertia::render('payment-requests/edit', [
             'paymentRequest' => new PaymentRequestResource($paymentRequest),
-            'currencies' => Currency::all(['id', 'name']),
+            'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::all(['id', 'name']),
             'expenseConcepts' => ExpenseConcept::all(['id', 'name']),
         ]);
