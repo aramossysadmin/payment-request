@@ -35,13 +35,15 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('name')
                             ->label('Nombre')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->autocomplete('off'),
                         Forms\Components\TextInput::make('email')
                             ->label('Correo electrónico')
                             ->email()
                             ->required()
                             ->maxLength(255)
-                            ->unique(ignoreRecord: true),
+                            ->unique(ignoreRecord: true)
+                            ->autocomplete('off'),
                         Forms\Components\TextInput::make('password')
                             ->label('Contraseña')
                             ->password()
@@ -49,13 +51,15 @@ class UserResource extends Resource
                             ->required(fn (string $operation): bool => $operation === 'create')
                             ->dehydrated(fn (?string $state): bool => filled($state))
                             ->minLength(8)
-                            ->confirmed(),
+                            ->confirmed()
+                            ->autocomplete('new-password'),
                         Forms\Components\TextInput::make('password_confirmation')
                             ->label('Confirmar contraseña')
                             ->password()
                             ->revealable()
                             ->required(fn (string $operation): bool => $operation === 'create')
-                            ->dehydrated(false),
+                            ->dehydrated(false)
+                            ->autocomplete('new-password'),
                     ])
                     ->columns(2),
                 Forms\Components\Section::make('Asignación')
@@ -80,8 +84,7 @@ class UserResource extends Resource
                             ->label('Roles')
                             ->columns(2),
                         Forms\Components\Toggle::make('is_active')
-                            ->label('Activo')
-                            ->default(true),
+                            ->label('Activo'),
                     ]),
             ]);
     }

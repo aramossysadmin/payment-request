@@ -8,7 +8,21 @@
       "Bash(/c/Users/Administrador/.config/herd/bin/php.bat:*)",
       "Bash(php artisan tinker:*)",
       "Bash(where:*)",
-      "Bash(cd /c/Users/Administrador/Herd/payment-request && php vendor/bin/pint --dirty 2>&1)"
+      "Bash(cd /c/Users/Administrador/Herd/payment-request && php vendor/bin/pint --dirty 2>&1)",
+      "Bash(composer install:*)",
+      "Bash(sudo add-apt-repository:*)",
+      "Bash(php artisan:*)",
+      "Bash(chmod -R 775 /var/www/paymentrequest.linking.com.mx/storage && chown -R ssh:www-data /var/www/paymentrequest.linking.com.mx/storage && chown ssh:www-data /var/www/paymentrequest.linking.com.mx/storage/logs/worker.log 2>/dev/null; ls -la /var/www/paymentrequest.linking.com.mx/storage/logs/ && ls -la /var/www/paymentrequest.linking.com.mx/database/database.sqlite && ls -ld /var/www/paymentrequest.linking.com.mx/database/)",
+      "Bash(npx vite:*)",
+      "Bash(find /var/www/paymentrequest.linking.com.mx/resources/js/components -type f -name \"*logo*\" -o -name \"*icon*\" 2>/dev/null | head -20)",
+      "Bash(find /var/www/sap-treasury.linking.com.mx/resources -type f \\\\\\( -name \"*logo*\" -o -name \"*icon*\" -o -name \"*.css\" -o -name \"*.tsx\" -o -name \"*.jsx\" \\\\\\) 2>/dev/null | grep -v node_modules)",
+      "Bash(ls -la /var/www/paymentrequest.linking.com.mx/public/ | grep -E \"\\\\.\\(svg|png|jpg|ico\\)$\")",
+      "Bash(cp /var/www/sap-treasury.linking.com.mx/public/images/logo_white.svg /var/www/paymentrequest.linking.com.mx/public/images/logo_white.svg && cp /var/www/sap-treasury.linking.com.mx/public/images/logo_dark.svg /var/www/paymentrequest.linking.com.mx/public/images/logo_dark.svg && cp /var/www/sap-treasury.linking.com.mx/public/images/favicon.svg /var/www/paymentrequest.linking.com.mx/public/images/favicon.svg)",
+      "Bash(composer show:*)",
+      "Bash(grep \"function viteTheme\\\\|function theme\" /var/www/paymentrequest.linking.com.mx/vendor/filament/filament/src/Panel.php 2>/dev/null || grep -r \"viteTheme\" /var/www/paymentrequest.linking.com.mx/vendor/filament/ --include=\"*.php\" -l 2>/dev/null | head -5)",
+      "Bash(mkdir -p /var/www/paymentrequest.linking.com.mx/public/css/filament/admin && npx tailwindcss@3 --input ./resources/css/filament/admin/theme.css --output ./public/css/filament/admin/theme.css --config ./resources/css/filament/admin/tailwind.config.js --minify 2>&1)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss@3 --input ./resources/css/filament/admin/theme.css --output ./public/css/filament/admin/theme.css --config ./resources/css/filament/admin/tailwind.config.js --minify 2>&1)"
     ]
   },
   "enableAllProjectMcpServers": true,

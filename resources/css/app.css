@@ -7,6 +7,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+|--------------------------------------------------------------------------
+| Costeño Brand Design System
+|--------------------------------------------------------------------------
+|
+| Brand Colors:
+| - Navy: #191731 (primary dark)
+| - Cream: #EBDFC7 (primary light)
+| - Gold: #C5A059 (accent)
+|
+| Typography: Open Sans
+|
+*/
+
 @theme {
     --font-sans:
         'Open Sans', ui-sans-serif, system-ui, sans-serif,
@@ -59,8 +73,14 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Costeño Brand Colors */
+    --color-navy: #191731;
+    --color-cream: #EBDFC7;
+    --color-gold: #C5A059;
 }
 
+/* Light Mode - Cream background, Navy text */
 :root {
     --background: #F8F6F1;
     --foreground: #191731;
@@ -72,31 +92,32 @@
     --primary-foreground: #FFFFFF;
     --secondary: #EFE9DD;
     --secondary-foreground: #191731;
-    --muted: #F5EFE6;
-    --muted-foreground: #6B6660;
+    --muted: #EFE9DD;
+    --muted-foreground: #4A4670;
     --accent: #EFE9DD;
     --accent-foreground: #191731;
-    --destructive: #DC2626;
+    --destructive: oklch(0.577 0.245 27.325);
     --destructive-foreground: #FFFFFF;
-    --border: #E8E6E3;
-    --input: #E8E6E3;
+    --border: transparent;
+    --input: #191731;
     --ring: #C5A059;
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
+    --chart-1: #C5A059;
+    --chart-2: #191731;
+    --chart-3: #3D3870;
+    --chart-4: #EBDFC7;
+    --chart-5: #D4C9A9;
     --radius: 0.625rem;
-    --sidebar: #F8F6F1;
+    --sidebar: #F5EFE6;
     --sidebar-foreground: #191731;
-    --sidebar-primary: #3D3870;
-    --sidebar-primary-foreground: #FFFFFF;
-    --sidebar-accent: #EFE9DD;
+    --sidebar-primary: #191731;
+    --sidebar-primary-foreground: #EBDFC7;
+    --sidebar-accent: #EBDFC7;
     --sidebar-accent-foreground: #191731;
-    --sidebar-border: #E8E6E3;
+    --sidebar-border: #D4C9A9;
     --sidebar-ring: #C5A059;
 }
 
+/* Dark Mode - Navy background, Cream text */
 .dark {
     --background: #0D0F1A;
     --foreground: #EBDFC7;
@@ -106,27 +127,27 @@
     --popover-foreground: #EBDFC7;
     --primary: #EBDFC7;
     --primary-foreground: #191731;
-    --secondary: #2A2650;
+    --secondary: #1E1B3D;
     --secondary-foreground: #EBDFC7;
-    --muted: #2A2650;
-    --muted-foreground: #9CA3AF;
-    --accent: #2A2650;
+    --muted: #1E1B3D;
+    --muted-foreground: #A8A8C0;
+    --accent: #1E1B3D;
     --accent-foreground: #EBDFC7;
-    --destructive: #7F1D1D;
-    --destructive-foreground: #FCA5A5;
+    --destructive: oklch(0.396 0.141 25.723);
+    --destructive-foreground: #EBDFC7;
     --border: #2A2650;
     --input: #2A2650;
     --ring: #C5A059;
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
+    --chart-1: #C5A059;
+    --chart-2: #EBDFC7;
+    --chart-3: #A8A8C0;
+    --chart-4: #3D3870;
+    --chart-5: #D4C9A9;
     --sidebar: #0D0F1A;
     --sidebar-foreground: #EBDFC7;
     --sidebar-primary: #EBDFC7;
     --sidebar-primary-foreground: #191731;
-    --sidebar-accent: #2A2650;
+    --sidebar-accent: #1E1B3D;
     --sidebar-accent-foreground: #EBDFC7;
     --sidebar-border: #2A2650;
     --sidebar-ring: #C5A059;

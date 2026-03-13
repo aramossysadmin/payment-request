@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -10,7 +11,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
+use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -26,36 +27,70 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->theme(asset('css/filament/admin/theme.css'))
             ->login()
-            ->homeUrl('/admin/payment-requests')
-            ->colors([
-                'primary' => [
-                    50 => '#EFE9DD',
-                    100 => '#E8DFD0',
-                    200 => '#D5C9B3',
-                    300 => '#C5A059',
-                    400 => '#B08A3E',
-                    500 => '#9A7530',
-                    600 => '#7D5F27',
-                    700 => '#614A1F',
-                    800 => '#453516',
-                    900 => '#3D3870',
-                    950 => '#191731',
-                ],
-                'purple' => Color::Purple,
-            ])
+            ->brandLogo(asset('images/logo_white.svg'))
+            ->darkModeBrandLogo(asset('images/logo_dark.svg'))
+            ->brandLogoHeight('2rem')
+            ->favicon(asset('images/favicon.svg'))
             ->font('Open Sans')
-            ->navigationGroups([
-                NavigationGroup::make('Operaciones'),
-                NavigationGroup::make('Organización')->collapsible(),
-                NavigationGroup::make('Catálogos')->collapsible(),
-                NavigationGroup::make('Accesos')->collapsible(),
+            ->defaultThemeMode(ThemeMode::Dark)
+            ->colors([
+                // Costeño Brand - Primary: Cream (#EBDFC7)
+                'primary' => [
+                    50 => '#FDFCFA',
+                    100 => '#FAF7F2',
+                    200 => '#F5EFE6',
+                    300 => '#EBDFC7', // CREAM_OFFICIAL
+                    400 => '#E0D4B8',
+                    500 => '#D4C9A9',
+                    600 => '#B8A88E',
+                    700 => '#968568',
+                    800 => '#746550',
+                    900 => '#584C3D',
+                    950 => '#3D352A',
+                ],
+                // Gray scale → Navy tones (Navy Official: #191731)
+                'gray' => [
+                    50 => '#FDFCFA',   // Light backgrounds (cream tint)
+                    100 => '#F5EFE6',
+                    200 => '#E0D4B8',
+                    300 => '#A8A8C0',
+                    400 => '#6B6B90',
+                    500 => '#3D3870',
+                    600 => '#2A2650',
+                    700 => '#1E1B3D',
+                    800 => '#191731', // NAVY_OFFICIAL
+                    900 => '#121025',
+                    950 => '#0D0F1A', // NAVY_DARKER
+                ],
+                // Warning/Accent: Gold (#C5A059)
+                'warning' => [
+                    50 => '#FDF9F0',
+                    100 => '#FAF0DC',
+                    200 => '#F5E0B8',
+                    300 => '#EDCB8A',
+                    400 => '#D4AD6A',
+                    500 => '#C5A059', // GOLD_ACCENT
+                    600 => '#A88545',
+                    700 => '#8A6A36',
+                    800 => '#6B512A',
+                    900 => '#4D3A1F',
+                    950 => '#2F2313',
+                ],
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->navigationGroups([
+                NavigationGroup::make('Administración')
+                    ->collapsible(),
+            ])
             ->pages([])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->widgets([])
+            ->widgets([
+                Widgets\AccountWidget::class,
+                Widgets\FilamentInfoWidget::class,
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -67,12 +102,11 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            ->authMiddleware([
-                Authenticate::class,
-            ])
-            ->databaseNotifications()
             ->plugins([
                 FilamentShieldPlugin::make(),
+            ])
+            ->authMiddleware([
+                Authenticate::class,
             ]);
     }
 }

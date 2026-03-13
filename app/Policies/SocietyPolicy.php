@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\Society;
 use App\Models\User;
+use App\Models\Society;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class SocietyPolicy

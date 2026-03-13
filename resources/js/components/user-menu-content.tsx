@@ -41,7 +41,7 @@ export function UserMenuContent({ user }: Props) {
                         rel="noopener noreferrer"
                     >
                         <ExternalLink className="mr-2" />
-                        Admin
+                        Administración
                     </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -52,7 +52,7 @@ export function UserMenuContent({ user }: Props) {
                         onClick={cleanup}
                     >
                         <Settings className="mr-2" />
-                        Settings
+                        Configuración
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -66,7 +66,7 @@ export function UserMenuContent({ user }: Props) {
                     data-test="logout-button"
                 >
                     <LogOut className="mr-2" />
-                    Log out
+                    Cerrar sesión
                 </Link>
             </DropdownMenuItem>
         </>

@@ -1,0 +1,156 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@config 'tailwind.config.js';
+
+/*
+|--------------------------------------------------------------------------
+| Costeño Brand Design System - Filament Admin Theme
+|--------------------------------------------------------------------------
+|
+| Brand Colors (Official):
+| - Navy: #191731 (primary dark)
+| - Cream: #EBDFC7 (primary light)
+| - Gold: #C5A059 (accent)
+|
+| Typography: Open Sans
+|
+*/
+
+/* Primary Button Enhancements */
+.fi-btn-primary {
+    transition: all 0.3s ease;
+}
+
+.fi-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(235, 223, 199, 0.3);
+}
+
+/* Sidebar Branding */
+.fi-sidebar {
+    border-right-color: rgba(235, 223, 199, 0.1);
+}
+
+/* Navigation Items - Elegant Hover */
+.fi-sidebar-item-button:hover {
+    background-color: rgba(235, 223, 199, 0.08);
+}
+
+/* Active Navigation State */
+.fi-sidebar-item-active .fi-sidebar-item-button {
+    background-color: rgba(235, 223, 199, 0.12);
+    border-left: 2px solid #EBDFC7;
+}
+
+/* Cards - Luxury Surface Treatment */
+.fi-section,
+.fi-card {
+    border-color: rgba(235, 223, 199, 0.1);
+}
+
+/* Dark Mode Card Enhancement */
+.dark .fi-section,
+.dark .fi-card {
+    background-color: rgba(25, 23, 49, 0.6);
+    backdrop-filter: blur(8px);
+}
+
+/* Table Header - Refined Style */
+.fi-ta-header-cell {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Input Fields - Elegant Focus */
+.fi-input:focus,
+.fi-select:focus {
+    border-color: #EBDFC7;
+    box-shadow: 0 0 0 2px rgba(235, 223, 199, 0.2);
+}
+
+/* Modal Overlay - Premium Feel */
+.fi-modal-window {
+    backdrop-filter: blur(4px);
+}
+
+/* Badge Refinements */
+.fi-badge {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.65rem;
+}
+
+/* Dropdown Menu - Luxury */
+.fi-dropdown-panel {
+    border-color: rgba(235, 223, 199, 0.15);
+}
+
+.dark .fi-dropdown-panel {
+    background-color: #0D0F1A;
+}
+
+/* Login Page Branding */
+.fi-simple-layout {
+    background: linear-gradient(135deg, #0D0F1A 0%, #191731 100%);
+}
+
+/* Footer Links */
+.fi-simple-footer a {
+    color: #EBDFC7;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.fi-simple-footer a:hover {
+    opacity: 1;
+}
+
+/* Scrollbar Styling (Webkit) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0D0F1A;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(235, 223, 199, 0.2);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(235, 223, 199, 0.3);
+}
+
+/* Notification Toasts */
+.fi-notification {
+    border-left: 3px solid #EBDFC7;
+}
+
+/* Stats Widget Enhancement */
+.fi-wi-stats-overview-stat {
+    border-color: rgba(235, 223, 199, 0.1);
+}
+
+/* Form Section Headers */
+.fi-section-header {
+    border-bottom-color: rgba(235, 223, 199, 0.1);
+}
+
+/* Empty State Styling */
+.fi-ta-empty-state {
+    color: rgba(235, 223, 199, 0.5);
+}
+
+/* Pagination Styling */
+.fi-pagination-item-button {
+    border-color: rgba(235, 223, 199, 0.2);
+}
+
+.fi-pagination-item-button:hover {
+    background-color: rgba(235, 223, 199, 0.1);
+}
