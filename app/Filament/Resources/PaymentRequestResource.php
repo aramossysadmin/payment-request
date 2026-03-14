@@ -7,6 +7,7 @@ use App\Enums\PaymentType;
 use App\Filament\Resources\PaymentRequestResource\Pages;
 use App\Filament\Resources\PaymentRequestResource\RelationManagers\ApprovalsRelationManager;
 use App\Models\PaymentRequest;
+use App\Models\PaymentRequestApproval;
 use App\Services\ApprovalService;
 use App\States\PaymentRequest\PaymentRequestState;
 use App\States\PaymentRequest\PendingAdministration;
@@ -44,12 +45,53 @@ class PaymentRequestResource extends Resource
                         Forms\Components\TextInput::make('provider')
                             ->label('Razón Social')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->datalist(fn (): array => PaymentRequest::query()
+                                ->select('provider')
+                                ->whereNotNull('provider')
+                                ->where('provider', '!=', '')
+                                ->distinct()
+                                ->orderBy('provider')
+                                ->pluck('provider')
+                                ->toArray()
+                            )
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Forms\Set $set, ?string $state): void {
+                                if ($state) {
+                                    $rfc = PaymentRequest::where('provider', $state)
+                                        ->whereNotNull('rfc')
+                                        ->where('rfc', '!=', '')
+                                        ->value('rfc');
+                                    if ($rfc) {
+                                        $set('rfc', $rfc);
+                                    }
+                                }
+                            }),
                         Forms\Components\TextInput::make('rfc')
                             ->label('RFC')
                             ->alphaNum()
                             ->minLength(12)
-                            ->maxLength(13),
+                            ->maxLength(13)
+                            ->datalist(fn (): array => PaymentRequest::query()
+                                ->select('rfc')
+                                ->whereNotNull('rfc')
+                                ->where('rfc', '!=', '')
+                                ->distinct()
+                                ->orderBy('rfc')
+                                ->pluck('rfc')
+                                ->toArray()
+                            )
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Forms\Set $set, ?string $state): void {
+                                if ($state) {
+                                    $provider = PaymentRequest::where('rfc', $state)
+                                        ->whereNotNull('provider')
+                                        ->value('provider');
+                                    if ($provider) {
+                                        $set('provider', $provider);
+                                    }
+                                }
+                            }),
                         Forms\Components\TextInput::make('invoice_folio')
                             ->label('Folio Factura')
                             ->required()
@@ -413,7 +455,7 @@ class PaymentRequestResource extends Resource
             return true;
         }
 
-        return \App\Models\PaymentRequestApproval::query()
+        return PaymentRequestApproval::query()
             ->where('user_id', $user->id)
             ->where('stage', $stage)
             ->where('status', 'approved')

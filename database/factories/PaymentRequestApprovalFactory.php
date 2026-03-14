@@ -3,11 +3,13 @@
 namespace Database\Factories;
 
 use App\Models\PaymentRequest;
+use App\Models\PaymentRequestApproval;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\PaymentRequestApproval>
+ * @extends Factory<PaymentRequestApproval>
  */
 class PaymentRequestApprovalFactory extends Factory
 {
@@ -42,6 +44,22 @@ class PaymentRequestApprovalFactory extends Factory
             'status' => 'rejected',
             'comments' => fake()->sentence(),
             'responded_at' => now(),
+        ]);
+    }
+
+    public function withToken(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'approval_token' => Str::uuid()->toString(),
+            'approval_token_expires_at' => now()->addHours(48),
+        ]);
+    }
+
+    public function withExpiredToken(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'approval_token' => Str::uuid()->toString(),
+            'approval_token_expires_at' => now()->subHour(),
         ]);
     }
 }

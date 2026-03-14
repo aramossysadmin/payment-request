@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\PaymentRequestApprovalFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PaymentRequestApproval extends Model
 {
-    /** @use HasFactory<\Database\Factories\PaymentRequestApprovalFactory> */
+    /** @use HasFactory<PaymentRequestApprovalFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -18,6 +19,8 @@ class PaymentRequestApproval extends Model
         'status',
         'comments',
         'responded_at',
+        'approval_token',
+        'approval_token_expires_at',
     ];
 
     /**
@@ -27,7 +30,21 @@ class PaymentRequestApproval extends Model
     {
         return [
             'responded_at' => 'datetime',
+            'approval_token_expires_at' => 'datetime',
         ];
+    }
+
+    public function hasValidToken(): bool
+    {
+        return $this->approval_token
+            && $this->approval_token_expires_at
+            && $this->approval_token_expires_at->isFuture();
+    }
+
+    public function isTokenExpired(): bool
+    {
+        return $this->approval_token_expires_at
+            && $this->approval_token_expires_at->isPast();
     }
 
     public function paymentRequest(): BelongsTo

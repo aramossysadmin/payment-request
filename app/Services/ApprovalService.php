@@ -14,6 +14,7 @@ use App\States\PaymentRequest\Completed;
 use App\States\PaymentRequest\PendingAdministration;
 use App\States\PaymentRequest\PendingDepartment;
 use App\States\PaymentRequest\PendingTreasury;
+use Illuminate\Support\Str;
 
 class ApprovalService
 {
@@ -56,7 +57,7 @@ class ApprovalService
             return;
         }
 
-        PaymentRequestApproval::updateOrCreate(
+        $approval = PaymentRequestApproval::updateOrCreate(
             [
                 'payment_request_id' => $paymentRequest->id,
                 'user_id' => $authorizer->id,
@@ -66,10 +67,12 @@ class ApprovalService
                 'status' => 'pending',
                 'comments' => null,
                 'responded_at' => null,
+                'approval_token' => Str::uuid()->toString(),
+                'approval_token_expires_at' => now()->addHours(48),
             ]
         );
 
-        $authorizer->notify(new PaymentRequestCreated($paymentRequest));
+        $authorizer->notify(new PaymentRequestCreated($paymentRequest, $approval->approval_token));
     }
 
     /**
@@ -94,6 +97,8 @@ class ApprovalService
         $approval->update([
             'status' => 'approved',
             'responded_at' => now(),
+            'approval_token' => null,
+            'approval_token_expires_at' => null,
         ]);
 
         $sapFields = array_intersect_key($data, array_flip(['number_purchase_invoices', 'number_vendor_payments']));
@@ -137,6 +142,8 @@ class ApprovalService
             'status' => 'rejected',
             'comments' => $comments,
             'responded_at' => now(),
+            'approval_token' => null,
+            'approval_token_expires_at' => null,
         ]);
 
         $paymentRequest->user->notify(
@@ -183,7 +190,7 @@ class ApprovalService
             return;
         }
 
-        PaymentRequestApproval::updateOrCreate(
+        $approval = PaymentRequestApproval::updateOrCreate(
             [
                 'payment_request_id' => $paymentRequest->id,
                 'user_id' => $authorizer->id,
@@ -193,11 +200,13 @@ class ApprovalService
                 'status' => 'pending',
                 'comments' => null,
                 'responded_at' => null,
+                'approval_token' => Str::uuid()->toString(),
+                'approval_token_expires_at' => now()->addHours(48),
             ]
         );
 
         $authorizer->notify(
-            new PaymentRequestApproved($paymentRequest, $previousApprover)
+            new PaymentRequestApproved($paymentRequest, $previousApprover, $approval->approval_token)
         );
     }
 

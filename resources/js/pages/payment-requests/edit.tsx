@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
+import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -172,31 +173,42 @@ export default function Edit() {
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="provider">Razón Social</Label>
-                                    <Input
+                                    <ProviderAutocomplete
                                         id="provider"
                                         value={values.provider}
-                                        onChange={(e) =>
-                                            handleChange(
-                                                'provider',
-                                                e.target.value,
-                                            )
+                                        field="provider"
+                                        placeholder="Razón Social"
+                                        onChange={(v) =>
+                                            handleChange('provider', v)
                                         }
+                                        onSelect={(s) => {
+                                            setValues((prev) => ({
+                                                ...prev,
+                                                provider: s.provider,
+                                                rfc: s.rfc ?? prev.rfc,
+                                            }));
+                                        }}
                                     />
                                     <InputError message={errors.provider} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="rfc">RFC</Label>
-                                    <Input
+                                    <ProviderAutocomplete
                                         id="rfc"
                                         value={values.rfc}
-                                        onChange={(e) =>
-                                            handleChange(
-                                                'rfc',
-                                                e.target.value.toUpperCase(),
-                                            )
-                                        }
+                                        field="rfc"
                                         placeholder="RFC"
                                         maxLength={13}
+                                        onChange={(v) =>
+                                            handleChange('rfc', v)
+                                        }
+                                        onSelect={(s) => {
+                                            setValues((prev) => ({
+                                                ...prev,
+                                                provider: s.provider,
+                                                rfc: s.rfc ?? prev.rfc,
+                                            }));
+                                        }}
                                     />
                                     <InputError message={errors.rfc} />
                                 </div>

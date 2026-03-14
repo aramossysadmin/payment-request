@@ -1,20 +1,27 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmailApprovalController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestApprovalController;
 use App\Http\Controllers\PaymentRequestController;
+use App\Http\Controllers\ProviderSearchController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
 Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
+Route::middleware('throttle:10,1')->group(function () {
+    Route::get('/approval/{token}', [EmailApprovalController::class, 'show'])->name('approval.show');
+    Route::post('/approval/{token}/approve', [EmailApprovalController::class, 'approve'])->name('approval.approve');
+    Route::post('/approval/{token}/reject', [EmailApprovalController::class, 'reject'])->name('approval.reject');
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
+    Route::get('providers/search', ProviderSearchController::class)->name('providers.search');
     Route::resource('payment-requests', PaymentRequestController::class);
     Route::post('payment-requests/{payment_request}/approve', [PaymentRequestApprovalController::class, 'approve'])->name('payment-requests.approve');
     Route::post('payment-requests/{payment_request}/reject', [PaymentRequestApprovalController::class, 'reject'])->name('payment-requests.reject');
