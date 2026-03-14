@@ -33,11 +33,15 @@ class PaymentRequestCreated extends Notification implements ShouldQueue
         $mail = (new MailMessage)
             ->subject('Nueva Solicitud de Pago #'.$this->paymentRequest->folio_number)
             ->greeting('Hola '.$notifiable->name)
+            ->salutation('Saludos, '.config('app.name'))
             ->line('Se ha creado una nueva solicitud de pago que requiere tu autorización.')
+            ->line('**Solicitante:** '.$this->paymentRequest->user->name)
+            ->line('**Sucursal:** '.($this->paymentRequest->branch->name ?? '-'))
+            ->line('**Concepto de Gasto:** '.($this->paymentRequest->expenseConcept->name ?? '-'))
+            ->line('**Tipo de Pago:** '.$this->paymentRequest->payment_type->label())
             ->line('**Proveedor:** '.$this->paymentRequest->provider)
             ->line('**Folio:** '.$this->paymentRequest->invoice_folio)
-            ->line('**Total:** $'.number_format($this->paymentRequest->total, 2))
-            ->line('**Solicitante:** '.$this->paymentRequest->user->name);
+            ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'));
 
         if ($this->approvalToken) {
             $mail->action('Autorizar / Rechazar Solicitud', url('/approval/'.$this->approvalToken))

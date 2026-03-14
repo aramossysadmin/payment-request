@@ -34,10 +34,11 @@ class PaymentRequestRejected extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Rechazada')
             ->greeting('Hola '.$notifiable->name)
+            ->salutation('Saludos, '.config('app.name'))
             ->line($this->rejector->name.' ha rechazado la solicitud de pago.')
             ->line('**Motivo:** '.$this->comments)
             ->line('**Proveedor:** '.$this->paymentRequest->provider)
-            ->line('**Total:** $'.number_format($this->paymentRequest->total, 2))
+            ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'))
             ->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'));
     }
 

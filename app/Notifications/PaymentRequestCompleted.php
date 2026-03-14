@@ -30,9 +30,10 @@ class PaymentRequestCompleted extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Finalizada')
             ->greeting('Hola '.$notifiable->name)
+            ->salutation('Saludos, '.config('app.name'))
             ->line('Tu solicitud de pago ha completado todas las etapas de aprobación.')
             ->line('**Proveedor:** '.$this->paymentRequest->provider)
-            ->line('**Total:** $'.number_format($this->paymentRequest->total, 2))
+            ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'))
             ->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'));
     }
 
