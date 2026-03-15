@@ -269,11 +269,11 @@ class PaymentRequestResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('subtotal')
                     ->label('Subtotal')
-                    ->money()
+                    ->numeric(decimalPlaces: 2, thousandsSeparator: ',', decimalSeparator: '.')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
-                    ->money()
+                    ->numeric(decimalPlaces: 2, thousandsSeparator: ',', decimalSeparator: '.')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
