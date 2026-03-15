@@ -37,6 +37,10 @@ class ExpenseConceptResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Activo')
+                            ->default(true)
+                            ->helperText('Los conceptos inactivos no estarán disponibles para nuevas solicitudes de pago.'),
                     ]),
             ]);
     }
@@ -48,6 +52,14 @@ class ExpenseConceptResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Estado')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
@@ -62,8 +74,19 @@ class ExpenseConceptResource extends Resource
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label('Estado')
+                    ->trueLabel('Activos')
+                    ->falseLabel('Inactivos')
+                    ->placeholder('Todos'),
             ])
             ->actions([
+                Tables\Actions\Action::make('toggleActive')
+                    ->label(fn (ExpenseConcept $record): string => $record->is_active ? 'Desactivar' : 'Activar')
+                    ->icon(fn (ExpenseConcept $record): string => $record->is_active ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
+                    ->color(fn (ExpenseConcept $record): string => $record->is_active ? 'danger' : 'success')
+                    ->requiresConfirmation()
+                    ->action(fn (ExpenseConcept $record) => $record->update(['is_active' => ! $record->is_active])),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),

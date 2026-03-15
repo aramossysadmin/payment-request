@@ -41,7 +41,19 @@ it('can create an expense concept', function () {
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('expense_concepts', [
-        'name' => 'Viáticos',
+        'name' => 'VIÁTICOS',
+        'is_active' => true,
+    ]);
+});
+
+it('normalizes name to uppercase and trimmed on create', function () {
+    Livewire::test(CreateExpenseConcept::class)
+        ->set('data.name', '  papelería  ')
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $this->assertDatabaseHas('expense_concepts', [
+        'name' => 'PAPELERÍA',
     ]);
 });
 
@@ -57,10 +69,10 @@ it('validates required fields on create', function () {
 });
 
 it('validates unique name on create', function () {
-    ExpenseConcept::factory()->create(['name' => 'Transporte']);
+    ExpenseConcept::factory()->create(['name' => 'TRANSPORTE']);
 
     Livewire::test(CreateExpenseConcept::class)
-        ->set('data.name', 'Transporte')
+        ->set('data.name', 'TRANSPORTE')
         ->call('create')
         ->assertHasFormErrors(['name']);
 });
@@ -81,7 +93,7 @@ it('can edit an expense concept', function () {
         ->assertHasNoFormErrors();
 
     $expenseConcept->refresh();
-    expect($expenseConcept->name)->toBe('Concepto Editado');
+    expect($expenseConcept->name)->toBe('CONCEPTO EDITADO');
 });
 
 it('can soft delete an expense concept', function () {
@@ -105,11 +117,53 @@ it('can restore a soft deleted expense concept', function () {
 });
 
 it('can search expense concepts by name', function () {
-    $expenseConcept = ExpenseConcept::factory()->create(['name' => 'Hospedaje']);
-    $other = ExpenseConcept::factory()->create(['name' => 'Alimentación']);
+    $expenseConcept = ExpenseConcept::factory()->create(['name' => 'HOSPEDAJE']);
+    $other = ExpenseConcept::factory()->create(['name' => 'ALIMENTACION']);
 
     Livewire::test(ListExpenseConcepts::class)
-        ->searchTable('Hospedaje')
+        ->searchTable('HOSPEDAJE')
         ->assertCanSeeTableRecords([$expenseConcept])
         ->assertCanNotSeeTableRecords([$other]);
+});
+
+it('creates expense concept with is_active true by default', function () {
+    Livewire::test(CreateExpenseConcept::class)
+        ->set('data.name', 'NUEVO CONCEPTO')
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $this->assertDatabaseHas('expense_concepts', [
+        'name' => 'NUEVO CONCEPTO',
+        'is_active' => true,
+    ]);
+});
+
+it('can toggle expense concept active status', function () {
+    $expenseConcept = ExpenseConcept::factory()->create(['is_active' => true]);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->callTableAction('toggleActive', $expenseConcept);
+
+    $expenseConcept->refresh();
+    expect($expenseConcept->is_active)->toBeFalse();
+});
+
+it('can filter by active status', function () {
+    $active = ExpenseConcept::factory()->create(['is_active' => true]);
+    $inactive = ExpenseConcept::factory()->create(['is_active' => false]);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->filterTable('is_active', true)
+        ->assertCanSeeTableRecords([$active])
+        ->assertCanNotSeeTableRecords([$inactive]);
+});
+
+it('can filter by inactive status', function () {
+    $active = ExpenseConcept::factory()->create(['is_active' => true]);
+    $inactive = ExpenseConcept::factory()->create(['is_active' => false]);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->filterTable('is_active', false)
+        ->assertCanSeeTableRecords([$inactive])
+        ->assertCanNotSeeTableRecords([$active]);
 });

@@ -103,7 +103,7 @@ class PaymentRequestController extends Controller
         return Inertia::render('payment-requests/create', [
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::all(['id', 'name']),
-            'expenseConcepts' => ExpenseConcept::all(['id', 'name']),
+            'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
         ]);
     }
 
@@ -182,7 +182,7 @@ class PaymentRequestController extends Controller
             'paymentRequest' => new PaymentRequestResource($paymentRequest),
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::all(['id', 'name']),
-            'expenseConcepts' => ExpenseConcept::all(['id', 'name']),
+            'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
         ]);
     }
 

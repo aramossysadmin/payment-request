@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\ExpenseConcept;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ExpenseConcept>
+ * @extends Factory<ExpenseConcept>
  */
 class ExpenseConceptFactory extends Factory
 {
@@ -18,6 +19,7 @@ class ExpenseConceptFactory extends Factory
     {
         return [
             'name' => fake()->unique()->word(),
+            'is_active' => true,
         ];
     }
 }
