@@ -42,7 +42,7 @@ it('can create a currency', function () {
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('currencies', [
-        'name' => 'Peso Mexicano',
+        'name' => 'PESO MEXICANO',
         'prefix' => 'MXN',
     ]);
 });
@@ -61,10 +61,10 @@ it('validates required fields on create', function () {
 });
 
 it('validates unique name on create', function () {
-    Currency::factory()->create(['name' => 'Dólar']);
+    Currency::factory()->create(['name' => 'DÓLAR']);
 
     Livewire::test(CreateCurrency::class)
-        ->set('data.name', 'Dólar')
+        ->set('data.name', 'DÓLAR')
         ->set('data.prefix', 'USD')
         ->call('create')
         ->assertHasFormErrors(['name']);
@@ -87,7 +87,7 @@ it('can edit a currency', function () {
         ->assertHasNoFormErrors();
 
     $currency->refresh();
-    expect($currency->name)->toBe('Euro');
+    expect($currency->name)->toBe('EURO');
     expect($currency->prefix)->toBe('EUR');
 });
 
@@ -112,11 +112,11 @@ it('can restore a soft deleted currency', function () {
 });
 
 it('can search currencies by name', function () {
-    $currency = Currency::factory()->create(['name' => 'Peso Mexicano']);
-    $other = Currency::factory()->create(['name' => 'Euro']);
+    $currency = Currency::factory()->create(['name' => 'PESO MEXICANO']);
+    $other = Currency::factory()->create(['name' => 'EURO']);
 
     Livewire::test(ListCurrencies::class)
-        ->searchTable('Peso Mexicano')
+        ->searchTable('PESO MEXICANO')
         ->assertCanSeeTableRecords([$currency])
         ->assertCanNotSeeTableRecords([$other]);
 });
