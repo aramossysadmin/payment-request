@@ -5,6 +5,8 @@ use App\Filament\Resources\ExpenseConceptResource\Pages\EditExpenseConcept;
 use App\Filament\Resources\ExpenseConceptResource\Pages\ListExpenseConcepts;
 use App\Models\ExpenseConcept;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -166,4 +168,113 @@ it('can filter by inactive status', function () {
         ->filterTable('is_active', false)
         ->assertCanSeeTableRecords([$inactive])
         ->assertCanNotSeeTableRecords([$active]);
+});
+
+it('imports new concepts from csv', function () {
+    Storage::fake('local');
+
+    $csv = "Nombre\nPAPELERIA\nTRANSPORTE\nLIMPIEZA";
+    $file = UploadedFile::fake()->createWithContent('conceptos.csv', $csv);
+
+    $component = Livewire::test(ListExpenseConcepts::class);
+    $component->callAction('importCsv', [
+        'csv_file' => $file,
+    ]);
+
+    $this->assertDatabaseHas('expense_concepts', ['name' => 'PAPELERIA']);
+    $this->assertDatabaseHas('expense_concepts', ['name' => 'TRANSPORTE']);
+    $this->assertDatabaseHas('expense_concepts', ['name' => 'LIMPIEZA']);
+});
+
+it('skips duplicate concepts during csv import', function () {
+    Storage::fake('local');
+    ExpenseConcept::factory()->create(['name' => 'PAPELERIA']);
+
+    $csv = "Nombre\nPAPELERIA\nTRANSPORTE";
+    $file = UploadedFile::fake()->createWithContent('conceptos.csv', $csv);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->callAction('importCsv', [
+            'csv_file' => $file,
+        ]);
+
+    expect(ExpenseConcept::where('name', 'PAPELERIA')->count())->toBe(1);
+    $this->assertDatabaseHas('expense_concepts', ['name' => 'TRANSPORTE']);
+});
+
+it('skips example rows during csv import', function () {
+    Storage::fake('local');
+
+    $csv = "Nombre\nPAPELERIA (EJEMPLO - ELIMINAR ESTA FILA ANTES DE IMPORTAR)\nSEGUROS";
+    $file = UploadedFile::fake()->createWithContent('conceptos.csv', $csv);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->callAction('importCsv', [
+            'csv_file' => $file,
+        ]);
+
+    $this->assertDatabaseMissing('expense_concepts', ['name' => 'PAPELERIA (EJEMPLO - ELIMINAR ESTA FILA ANTES DE IMPORTAR)']);
+    $this->assertDatabaseHas('expense_concepts', ['name' => 'SEGUROS']);
+});
+
+it('normalizes names to uppercase during csv import', function () {
+    Storage::fake('local');
+
+    $csv = "Nombre\n  papelería  \ntransporte";
+    $file = UploadedFile::fake()->createWithContent('conceptos.csv', $csv);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->callAction('importCsv', [
+            'csv_file' => $file,
+        ]);
+
+    $this->assertDatabaseHas('expense_concepts', ['name' => 'PAPELERÍA']);
+    $this->assertDatabaseHas('expense_concepts', ['name' => 'TRANSPORTE']);
+});
+
+it('rejects csv without nombre column', function () {
+    Storage::fake('local');
+
+    $csv = "Concepto\nPAPELERIA";
+    $file = UploadedFile::fake()->createWithContent('conceptos.csv', $csv);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->callAction('importCsv', [
+            'csv_file' => $file,
+        ]);
+
+    $this->assertDatabaseMissing('expense_concepts', ['name' => 'PAPELERIA']);
+});
+
+it('skips inactive existing concepts during csv import', function () {
+    Storage::fake('local');
+    ExpenseConcept::factory()->create(['name' => 'PAPELERIA', 'is_active' => false]);
+
+    $csv = "Nombre\nPAPELERIA\nTRANSPORTE";
+    $file = UploadedFile::fake()->createWithContent('conceptos.csv', $csv);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->callAction('importCsv', [
+            'csv_file' => $file,
+        ]);
+
+    expect(ExpenseConcept::where('name', 'PAPELERIA')->count())->toBe(1);
+    $this->assertDatabaseHas('expense_concepts', ['name' => 'TRANSPORTE']);
+});
+
+it('skips soft deleted concepts during csv import', function () {
+    Storage::fake('local');
+    $concept = ExpenseConcept::factory()->create(['name' => 'PAPELERIA']);
+    $concept->delete();
+
+    $csv = "Nombre\nPAPELERIA\nTRANSPORTE";
+    $file = UploadedFile::fake()->createWithContent('conceptos.csv', $csv);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->callAction('importCsv', [
+            'csv_file' => $file,
+        ]);
+
+    expect(ExpenseConcept::withTrashed()->where('name', 'PAPELERIA')->count())->toBe(1);
+    $this->assertDatabaseHas('expense_concepts', ['name' => 'TRANSPORTE']);
 });
