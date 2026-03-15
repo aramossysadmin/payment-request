@@ -18,6 +18,7 @@ class PaymentRequestResource extends JsonResource
             'uuid' => $this->uuid,
             'folio_number' => $this->folio_number,
             'provider' => $this->provider,
+            'rfc' => $this->rfc,
             'invoice_folio' => $this->invoice_folio,
             'description' => $this->description,
             'payment_type' => [
