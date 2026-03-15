@@ -219,7 +219,7 @@ export function PaymentRequestDetail({
                                 </div>
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Tipo de Pago</dt>
-                                    <dd className="font-medium text-foreground">{pr.payment_type.label}</dd>
+                                    <dd className="font-medium text-foreground">{pr.payment_type?.name ?? '—'}</dd>
                                 </div>
                                 {pr.description && (
                                     <div>

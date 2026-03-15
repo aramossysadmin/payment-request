@@ -38,7 +38,7 @@ class PaymentRequestCreated extends Notification implements ShouldQueue
             ->line('**Solicitante:** '.$this->paymentRequest->user->name)
             ->line('**Sucursal:** '.($this->paymentRequest->branch->name ?? '-'))
             ->line('**Concepto de Gasto:** '.($this->paymentRequest->expenseConcept->name ?? '-'))
-            ->line('**Tipo de Pago:** '.$this->paymentRequest->payment_type->label())
+            ->line('**Tipo de Pago:** '.($this->paymentRequest->paymentType->name ?? '-'))
             ->line('**Proveedor:** '.$this->paymentRequest->provider)
             ->line('**Folio:** '.$this->paymentRequest->invoice_folio)
             ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'));

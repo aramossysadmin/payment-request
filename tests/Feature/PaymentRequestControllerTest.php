@@ -6,12 +6,14 @@ use App\Models\Department;
 use App\Models\ExpenseConcept;
 use App\Models\PaymentRequest;
 use App\Models\PaymentRequestApproval;
+use App\Models\PaymentType;
 use App\Models\User;
 use App\States\PaymentRequest\Completed;
 use App\States\PaymentRequest\PendingAdministration;
 use App\States\PaymentRequest\PendingDepartment;
 use App\States\PaymentRequest\PendingTreasury;
 use Database\Seeders\RoleAndPermissionSeeder;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -22,6 +24,7 @@ beforeEach(function () {
     $this->currency = Currency::factory()->create();
     $this->branch = Branch::factory()->create();
     $this->expenseConcept = ExpenseConcept::factory()->create();
+    $this->paymentType = PaymentType::factory()->create();
 });
 
 test('guests are redirected to the login page', function () {
@@ -247,7 +250,7 @@ test('store creates a payment request with valid data', function () {
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
         'expense_concept_id' => $this->expenseConcept->id,
-        'payment_type' => 'advance',
+        'payment_type_id' => $this->paymentType->id,
         'subtotal' => 1000.00,
         'iva_rate' => '0.16',
         'iva' => 160.00,
@@ -276,7 +279,7 @@ test('store auto-assigns user_id and department_id', function () {
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
         'expense_concept_id' => $this->expenseConcept->id,
-        'payment_type' => 'advance',
+        'payment_type_id' => $this->paymentType->id,
         'subtotal' => 500,
         'iva_rate' => '0.16',
         'iva' => 80,
@@ -304,7 +307,7 @@ test('store creates initial approval', function () {
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
         'expense_concept_id' => $this->expenseConcept->id,
-        'payment_type' => 'advance',
+        'payment_type_id' => $this->paymentType->id,
         'subtotal' => 500,
         'iva_rate' => '0.16',
         'iva' => 80,
@@ -331,7 +334,7 @@ test('store validates required fields', function (string $field) {
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
         'expense_concept_id' => $this->expenseConcept->id,
-        'payment_type' => 'advance',
+        'payment_type_id' => $this->paymentType->id,
         'subtotal' => 1000,
         'iva_rate' => '0.16',
         'iva' => 160,
@@ -350,7 +353,7 @@ test('store validates required fields', function (string $field) {
     'currency_id',
     'branch_id',
     'expense_concept_id',
-    'payment_type',
+    'payment_type_id',
     'subtotal',
     'iva',
     'total',
@@ -425,7 +428,7 @@ test('update modifies the payment request', function () {
             'currency_id' => $this->currency->id,
             'branch_id' => $this->branch->id,
             'expense_concept_id' => $this->expenseConcept->id,
-            'payment_type' => 'advance',
+            'payment_type_id' => $this->paymentType->id,
             'subtotal' => 1000,
             'iva_rate' => '0.16',
             'iva' => 160,
@@ -439,7 +442,7 @@ test('update modifies the payment request', function () {
 
 test('soft delete works', function () {
     $user = User::factory()->create(['department_id' => $this->department->id]);
-    $role = Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+    $role = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
     $user->assignRole($role);
 
     $pr = PaymentRequest::factory()->create([
@@ -594,7 +597,7 @@ test('uuid is automatically generated when creating a payment request', function
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
         'expense_concept_id' => $this->expenseConcept->id,
-        'payment_type' => 'advance',
+        'payment_type_id' => $this->paymentType->id,
         'subtotal' => 1000,
         'iva_rate' => '0.16',
         'iva' => 160,

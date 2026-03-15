@@ -3,9 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Enums\IvaRate;
-use App\Enums\PaymentType;
+use App\Models\PaymentType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdatePaymentRequestRequest extends FormRequest
 {
@@ -19,7 +20,8 @@ class UpdatePaymentRequestRequest extends FormRequest
      */
     public function rules(): array
     {
-        $isInvoice = $this->input('payment_type') === PaymentType::Invoice->value;
+        $paymentType = PaymentType::find($this->input('payment_type_id'));
+        $isInvoice = $paymentType?->requires_invoice_documents ?? false;
 
         return [
             'provider' => ['required', 'string', 'max:255'],
@@ -29,7 +31,7 @@ class UpdatePaymentRequestRequest extends FormRequest
             'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')],
             'expense_concept_id' => ['required', 'integer', Rule::exists('expense_concepts', 'id')],
             'description' => ['nullable', 'string', 'max:1000'],
-            'payment_type' => ['required', Rule::enum(PaymentType::class)],
+            'payment_type_id' => ['required', 'integer', Rule::exists('payment_types', 'id')],
             'advance_documents' => ['nullable', 'array', $isInvoice ? 'max:2' : 'max:10'],
             'advance_documents.*' => ['file', 'max:10240'],
             'iva_rate' => ['required', Rule::enum(IvaRate::class)],
@@ -40,10 +42,12 @@ class UpdatePaymentRequestRequest extends FormRequest
         ];
     }
 
-    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    public function withValidator(Validator $validator): void
     {
-        $validator->after(function (\Illuminate\Validation\Validator $validator) {
-            if ($this->input('payment_type') !== PaymentType::Invoice->value) {
+        $validator->after(function (Validator $validator) {
+            $paymentType = PaymentType::find($this->input('payment_type_id'));
+
+            if (! $paymentType?->requires_invoice_documents) {
                 return;
             }
 
@@ -55,7 +59,7 @@ class UpdatePaymentRequestRequest extends FormRequest
             if (count($files) !== 2) {
                 $validator->errors()->add(
                     'advance_documents',
-                    'Para Pago con Factura debe subir exactamente 1 archivo PDF y 1 archivo XML.',
+                    'Para este tipo de pago debe subir exactamente 1 archivo PDF y 1 archivo XML.',
                 );
 
                 return;
@@ -71,7 +75,7 @@ class UpdatePaymentRequestRequest extends FormRequest
             if ($extensions !== ['pdf', 'xml']) {
                 $validator->errors()->add(
                     'advance_documents',
-                    'Para Pago con Factura debe subir exactamente 1 archivo PDF y 1 archivo XML.',
+                    'Para este tipo de pago debe subir exactamente 1 archivo PDF y 1 archivo XML.',
                 );
             }
         });
@@ -94,7 +98,8 @@ class UpdatePaymentRequestRequest extends FormRequest
             'branch_id.exists' => 'La sucursal seleccionada no es válida.',
             'expense_concept_id.required' => 'El concepto de gasto es obligatorio.',
             'expense_concept_id.exists' => 'El concepto de gasto seleccionado no es válido.',
-            'payment_type.required' => 'El tipo de pago es obligatorio.',
+            'payment_type_id.required' => 'El tipo de pago es obligatorio.',
+            'payment_type_id.exists' => 'El tipo de pago seleccionado no es válido.',
             'advance_documents.max' => 'No se permiten más de 10 documentos.',
             'advance_documents.*.max' => 'Cada documento no debe superar los 10MB.',
             'iva_rate.required' => 'La tasa de IVA es obligatoria.',

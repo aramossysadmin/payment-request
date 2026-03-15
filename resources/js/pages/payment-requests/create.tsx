@@ -16,17 +16,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Branch, Currency, ExpenseConcept } from '@/types';
+import type { BreadcrumbItem, Branch, Currency, ExpenseConcept, PaymentTypeOption } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Solicitudes de Pago', href: '/payment-requests' },
     { title: 'Nueva Solicitud', href: '/payment-requests/create' },
-];
-
-const paymentTypeOptions = [
-    { value: 'invoice', label: 'Pago con Factura' },
-    { value: 'advance', label: 'Anticipo' },
-    { value: 'investment', label: 'Inversiones' },
 ];
 
 const ivaRateOptions = [
@@ -39,11 +33,12 @@ type PageProps = {
     currencies: Currency[];
     branches: Branch[];
     expenseConcepts: ExpenseConcept[];
+    paymentTypes: PaymentTypeOption[];
     errors: Record<string, string>;
 };
 
 export default function Create() {
-    const { currencies, branches, expenseConcepts, errors } =
+    const { currencies, branches, expenseConcepts, paymentTypes, errors } =
         usePage<PageProps>().props;
 
     const [values, setValues] = useState({
@@ -54,7 +49,7 @@ export default function Create() {
         branch_id: '',
         expense_concept_id: '',
         description: '',
-        payment_type: '',
+        payment_type_id: '',
         subtotal: '',
         iva_rate: '',
         iva: '',
@@ -96,7 +91,7 @@ export default function Create() {
             }));
             return;
         }
-        if (field === 'payment_type') {
+        if (field === 'payment_type_id') {
             setFiles([]);
             setInvoicePdf(null);
             setInvoiceXml(null);
@@ -113,7 +108,8 @@ export default function Create() {
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
 
-        if (values.payment_type === 'invoice') {
+        const selectedType = paymentTypes.find((pt) => String(pt.id) === values.payment_type_id);
+        if (selectedType?.requires_invoice_documents) {
             if (invoicePdf) {
                 formData.append('advance_documents[]', invoicePdf);
             }
@@ -295,26 +291,26 @@ export default function Create() {
                             <div className="space-y-2">
                                 <Label>Tipo de Pago</Label>
                                 <Select
-                                    value={values.payment_type}
+                                    value={values.payment_type_id}
                                     onValueChange={(v) =>
-                                        handleChange('payment_type', v)
+                                        handleChange('payment_type_id', v)
                                     }
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Seleccionar" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {paymentTypeOptions.map((opt) => (
+                                        {paymentTypes.map((pt) => (
                                             <SelectItem
-                                                key={opt.value}
-                                                value={opt.value}
+                                                key={pt.id}
+                                                value={String(pt.id)}
                                             >
-                                                {opt.label}
+                                                {pt.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <InputError message={errors.payment_type} />
+                                <InputError message={errors.payment_type_id} />
                             </div>
 
                             <div className="space-y-2">
@@ -347,7 +343,7 @@ export default function Create() {
                             <CardTitle>Documentos Solicitudes de Pago</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {values.payment_type === 'invoice' ? (
+                            {paymentTypes.find((pt) => String(pt.id) === values.payment_type_id)?.requires_invoice_documents ? (
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label>Factura PDF <span className="text-red-500">*</span></Label>

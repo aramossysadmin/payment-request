@@ -1,18 +1,20 @@
 <?php
 
-use App\Enums\PaymentType;
 use App\Filament\Resources\PaymentRequestResource\Pages\CreatePaymentRequest;
 use App\Filament\Resources\PaymentRequestResource\Pages\EditPaymentRequest;
 use App\Filament\Resources\PaymentRequestResource\Pages\ListPaymentRequests;
 use App\Models\Branch;
 use App\Models\Currency;
+use App\Models\Department;
 use App\Models\ExpenseConcept;
 use App\Models\PaymentRequest;
+use App\Models\PaymentType;
 use App\Models\User;
 use App\States\PaymentRequest\Completed;
 use App\States\PaymentRequest\PendingAdministration;
 use App\States\PaymentRequest\PendingDepartment;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -45,6 +47,7 @@ it('can create a payment request', function () {
     $currency = Currency::factory()->create();
     $branch = Branch::factory()->create();
     $expenseConcept = ExpenseConcept::factory()->create();
+    $paymentType = PaymentType::factory()->create();
 
     Livewire::test(CreatePaymentRequest::class)
         ->set('data.provider', 'Proveedor Test')
@@ -53,7 +56,7 @@ it('can create a payment request', function () {
         ->set('data.branch_id', $branch->id)
         ->set('data.expense_concept_id', $expenseConcept->id)
         ->set('data.description', 'Descripción de prueba')
-        ->set('data.payment_type', PaymentType::Invoice->value)
+        ->set('data.payment_type_id', $paymentType->id)
         ->set('data.subtotal', 1000.00)
         ->set('data.iva', 160.00)
         ->set('data.retention', false)
@@ -76,6 +79,7 @@ it('auto-assigns authenticated user on create', function () {
     $currency = Currency::factory()->create();
     $branch = Branch::factory()->create();
     $expenseConcept = ExpenseConcept::factory()->create();
+    $paymentType = PaymentType::factory()->create();
 
     Livewire::test(CreatePaymentRequest::class)
         ->set('data.provider', 'Proveedor Auto')
@@ -83,7 +87,7 @@ it('auto-assigns authenticated user on create', function () {
         ->set('data.currency_id', $currency->id)
         ->set('data.branch_id', $branch->id)
         ->set('data.expense_concept_id', $expenseConcept->id)
-        ->set('data.payment_type', PaymentType::Invoice->value)
+        ->set('data.payment_type_id', $paymentType->id)
         ->set('data.subtotal', 500.00)
         ->set('data.iva', 80.00)
         ->set('data.retention', false)
@@ -253,10 +257,11 @@ it('can search payment requests by invoice folio', function () {
         ->assertCanNotSeeTableRecords([$other]);
 });
 
-it('can create a payment request with full payment type', function () {
+it('can create a payment request with invoice payment type', function () {
     $currency = Currency::factory()->create();
     $branch = Branch::factory()->create();
     $expenseConcept = ExpenseConcept::factory()->create();
+    $paymentType = PaymentType::factory()->create(['requires_invoice_documents' => true]);
 
     Livewire::test(CreatePaymentRequest::class)
         ->set('data.provider', 'Proveedor Completo')
@@ -264,7 +269,7 @@ it('can create a payment request with full payment type', function () {
         ->set('data.currency_id', $currency->id)
         ->set('data.branch_id', $branch->id)
         ->set('data.expense_concept_id', $expenseConcept->id)
-        ->set('data.payment_type', PaymentType::Invoice->value)
+        ->set('data.payment_type_id', $paymentType->id)
         ->set('data.subtotal', 1000.00)
         ->set('data.iva', 160.00)
         ->set('data.retention', false)
@@ -275,7 +280,7 @@ it('can create a payment request with full payment type', function () {
 
     $this->assertDatabaseHas('payment_requests', [
         'invoice_folio' => 'FAC-FULL-001',
-        'payment_type' => PaymentType::Invoice->value,
+        'payment_type_id' => $paymentType->id,
     ]);
 });
 
@@ -283,6 +288,7 @@ it('can create a payment request with advance payment type', function () {
     $currency = Currency::factory()->create();
     $branch = Branch::factory()->create();
     $expenseConcept = ExpenseConcept::factory()->create();
+    $paymentType = PaymentType::factory()->create(['requires_invoice_documents' => false]);
 
     Livewire::test(CreatePaymentRequest::class)
         ->set('data.provider', 'Proveedor Anticipo')
@@ -290,7 +296,7 @@ it('can create a payment request with advance payment type', function () {
         ->set('data.currency_id', $currency->id)
         ->set('data.branch_id', $branch->id)
         ->set('data.expense_concept_id', $expenseConcept->id)
-        ->set('data.payment_type', PaymentType::Advance->value)
+        ->set('data.payment_type_id', $paymentType->id)
         ->set('data.subtotal', 5000.00)
         ->set('data.iva', 800.00)
         ->set('data.retention', false)
@@ -301,13 +307,13 @@ it('can create a payment request with advance payment type', function () {
 
     $this->assertDatabaseHas('payment_requests', [
         'invoice_folio' => 'FAC-ADV-001',
-        'payment_type' => PaymentType::Advance->value,
+        'payment_type_id' => $paymentType->id,
     ]);
 });
 
 it('requires payment type to be selected', function () {
     Livewire::test(CreatePaymentRequest::class)
-        ->assertSet('data.payment_type', null);
+        ->assertSet('data.payment_type_id', null);
 });
 
 it('validates payment type is required', function () {
@@ -321,28 +327,30 @@ it('validates payment type is required', function () {
         ->set('data.currency_id', $currency->id)
         ->set('data.branch_id', $branch->id)
         ->set('data.expense_concept_id', $expenseConcept->id)
-        ->set('data.payment_type', null)
+        ->set('data.payment_type_id', null)
         ->set('data.subtotal', 1000.00)
         ->set('data.iva', 160.00)
         ->set('data.retention', false)
         ->set('data.total', 1160.00)
         ->set('data.status', PendingDepartment::$name)
         ->call('create')
-        ->assertHasFormErrors(['payment_type' => 'required']);
+        ->assertHasFormErrors(['payment_type_id' => 'required']);
 });
 
 it('can edit payment type on a payment request', function () {
+    $invoiceType = PaymentType::factory()->create(['requires_invoice_documents' => true]);
+    $advanceType = PaymentType::factory()->create(['requires_invoice_documents' => false]);
     $paymentRequest = PaymentRequest::factory()->create([
-        'payment_type' => PaymentType::Invoice,
+        'payment_type_id' => $invoiceType->id,
     ]);
 
     Livewire::test(EditPaymentRequest::class, ['record' => $paymentRequest->getRouteKey()])
-        ->set('data.payment_type', PaymentType::Advance->value)
+        ->set('data.payment_type_id', $advanceType->id)
         ->call('save')
         ->assertHasNoFormErrors();
 
     $paymentRequest->refresh();
-    expect($paymentRequest->payment_type)->toBe(PaymentType::Advance);
+    expect($paymentRequest->payment_type_id)->toBe($advanceType->id);
 });
 
 it('shows the folio number column in the table', function () {
@@ -364,8 +372,8 @@ it('can search payment requests by folio number', function () {
 });
 
 it('authorizer can see payment requests with assigned approvals from other departments', function () {
-    $requesterDept = \App\Models\Department::factory()->create(['name' => 'Ventas']);
-    $adminDept = \App\Models\Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
+    $requesterDept = Department::factory()->create(['name' => 'Ventas']);
+    $adminDept = Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
 
     $requester = User::factory()->create(['department_id' => $requesterDept->id]);
 
@@ -375,7 +383,7 @@ it('authorizer can see payment requests with assigned approvals from other depar
     $role = Role::firstOrCreate(['name' => 'Gerente', 'guard_name' => 'web']);
     $permissions = ['view_any_payment::request', 'view_payment::request'];
     foreach ($permissions as $perm) {
-        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
     }
     $role->syncPermissions($permissions);
     $adminAuthorizer->assignRole($role);

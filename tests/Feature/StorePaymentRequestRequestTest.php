@@ -4,12 +4,17 @@ use App\Models\Branch;
 use App\Models\Currency;
 use App\Models\Department;
 use App\Models\ExpenseConcept;
+use App\Models\PaymentType;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 
 beforeEach(function () {
     $this->department = Department::factory()->create();
     $this->user = User::factory()->create(['department_id' => $this->department->id]);
     $this->department->authorizers()->attach($this->user->id);
+
+    $this->advanceType = PaymentType::factory()->create(['requires_invoice_documents' => false]);
+    $this->invoiceType = PaymentType::factory()->create(['requires_invoice_documents' => true]);
 
     $this->validData = [
         'provider' => 'Test Provider',
@@ -17,7 +22,7 @@ beforeEach(function () {
         'currency_id' => Currency::factory()->create()->id,
         'branch_id' => Branch::factory()->create()->id,
         'expense_concept_id' => ExpenseConcept::factory()->create()->id,
-        'payment_type' => 'advance',
+        'payment_type_id' => $this->advanceType->id,
         'subtotal' => 1000.00,
         'iva_rate' => '0.16',
         'iva' => 160.00,
@@ -68,66 +73,57 @@ test('expense_concept_id must exist in expense_concepts table', function () {
         ->assertSessionHasErrors('expense_concept_id');
 });
 
-test('payment_type must be a valid enum value', function (string $invalidType) {
+test('payment_type_id must exist in payment_types table', function (mixed $invalidId) {
     $this->actingAs($this->user)
-        ->post(route('payment-requests.store'), [...$this->validData, 'payment_type' => $invalidType])
-        ->assertSessionHasErrors('payment_type');
+        ->post(route('payment-requests.store'), [...$this->validData, 'payment_type_id' => $invalidId])
+        ->assertSessionHasErrors('payment_type_id');
 })->with([
+    99999,
     'invalid',
-    'partial',
     '',
-]);
-
-test('valid payment types without documents are accepted', function (string $type) {
-    $this->actingAs($this->user)
-        ->post(route('payment-requests.store'), [...$this->validData, 'payment_type' => $type])
-        ->assertRedirect(route('payment-requests.index'));
-})->with([
-    'advance',
-    'investment',
 ]);
 
 test('invoice payment type requires pdf and xml documents', function () {
     $this->actingAs($this->user)
-        ->post(route('payment-requests.store'), [...$this->validData, 'payment_type' => 'invoice'])
+        ->post(route('payment-requests.store'), [...$this->validData, 'payment_type_id' => $this->invoiceType->id])
         ->assertSessionHasErrors('advance_documents');
 });
 
 test('invoice payment type is accepted with pdf and xml documents', function () {
-    $pdf = \Illuminate\Http\UploadedFile::fake()->create('factura.pdf', 100, 'application/pdf');
-    $xml = \Illuminate\Http\UploadedFile::fake()->create('factura.xml', 50, 'text/xml');
+    $pdf = UploadedFile::fake()->create('factura.pdf', 100, 'application/pdf');
+    $xml = UploadedFile::fake()->create('factura.xml', 50, 'text/xml');
 
     $this->actingAs($this->user)
         ->post(route('payment-requests.store'), [
             ...$this->validData,
-            'payment_type' => 'invoice',
+            'payment_type_id' => $this->invoiceType->id,
             'advance_documents' => [$pdf, $xml],
         ])
         ->assertRedirect(route('payment-requests.index'));
 });
 
 test('invoice payment type rejects two pdfs', function () {
-    $pdf1 = \Illuminate\Http\UploadedFile::fake()->create('factura1.pdf', 100, 'application/pdf');
-    $pdf2 = \Illuminate\Http\UploadedFile::fake()->create('factura2.pdf', 100, 'application/pdf');
+    $pdf1 = UploadedFile::fake()->create('factura1.pdf', 100, 'application/pdf');
+    $pdf2 = UploadedFile::fake()->create('factura2.pdf', 100, 'application/pdf');
 
     $this->actingAs($this->user)
         ->post(route('payment-requests.store'), [
             ...$this->validData,
-            'payment_type' => 'invoice',
+            'payment_type_id' => $this->invoiceType->id,
             'advance_documents' => [$pdf1, $pdf2],
         ])
         ->assertSessionHasErrors('advance_documents');
 });
 
 test('invoice payment type rejects more than two files', function () {
-    $pdf = \Illuminate\Http\UploadedFile::fake()->create('factura.pdf', 100, 'application/pdf');
-    $xml = \Illuminate\Http\UploadedFile::fake()->create('factura.xml', 50, 'text/xml');
-    $extra = \Illuminate\Http\UploadedFile::fake()->create('extra.pdf', 100, 'application/pdf');
+    $pdf = UploadedFile::fake()->create('factura.pdf', 100, 'application/pdf');
+    $xml = UploadedFile::fake()->create('factura.xml', 50, 'text/xml');
+    $extra = UploadedFile::fake()->create('extra.pdf', 100, 'application/pdf');
 
     $this->actingAs($this->user)
         ->post(route('payment-requests.store'), [
             ...$this->validData,
-            'payment_type' => 'invoice',
+            'payment_type_id' => $this->invoiceType->id,
             'advance_documents' => [$pdf, $xml, $extra],
         ])
         ->assertSessionHasErrors('advance_documents');
@@ -136,13 +132,13 @@ test('invoice payment type rejects more than two files', function () {
 test('non-invoice payment types allow up to 10 documents', function () {
     $files = [];
     for ($i = 0; $i < 10; $i++) {
-        $files[] = \Illuminate\Http\UploadedFile::fake()->create("doc{$i}.pdf", 100, 'application/pdf');
+        $files[] = UploadedFile::fake()->create("doc{$i}.pdf", 100, 'application/pdf');
     }
 
     $this->actingAs($this->user)
         ->post(route('payment-requests.store'), [
             ...$this->validData,
-            'payment_type' => 'advance',
+            'payment_type_id' => $this->advanceType->id,
             'advance_documents' => $files,
         ])
         ->assertRedirect(route('payment-requests.index'));
@@ -151,13 +147,13 @@ test('non-invoice payment types allow up to 10 documents', function () {
 test('non-invoice payment types reject more than 10 documents', function () {
     $files = [];
     for ($i = 0; $i < 11; $i++) {
-        $files[] = \Illuminate\Http\UploadedFile::fake()->create("doc{$i}.pdf", 100, 'application/pdf');
+        $files[] = UploadedFile::fake()->create("doc{$i}.pdf", 100, 'application/pdf');
     }
 
     $this->actingAs($this->user)
         ->post(route('payment-requests.store'), [
             ...$this->validData,
-            'payment_type' => 'advance',
+            'payment_type_id' => $this->advanceType->id,
             'advance_documents' => $files,
         ])
         ->assertSessionHasErrors('advance_documents');

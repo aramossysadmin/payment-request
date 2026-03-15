@@ -62,7 +62,7 @@
                     </div>
                     <div>
                         <span class="text-brand-muted dark:text-brand-muted-dark text-xs">Tipo de Pago</span>
-                        <p class="font-semibold text-navy dark:text-cream mt-0.5">{{ $paymentRequest->payment_type->label() }}</p>
+                        <p class="font-semibold text-navy dark:text-cream mt-0.5">{{ $paymentRequest->paymentType->name ?? '-' }}</p>
                     </div>
                     <div>
                         <span class="text-brand-muted dark:text-brand-muted-dark text-xs">Moneda</span>

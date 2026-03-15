@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\PaymentRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\PaymentRequest */
+/** @mixin PaymentRequest */
 class PaymentRequestResource extends JsonResource
 {
     /**
@@ -22,8 +23,10 @@ class PaymentRequestResource extends JsonResource
             'invoice_folio' => $this->invoice_folio,
             'description' => $this->description,
             'payment_type' => [
-                'value' => $this->payment_type->value,
-                'label' => $this->payment_type->label(),
+                'id' => $this->paymentType?->id,
+                'name' => $this->paymentType?->name,
+                'slug' => $this->paymentType?->slug,
+                'requires_invoice_documents' => $this->paymentType?->requires_invoice_documents ?? false,
             ],
             'advance_documents' => $this->advance_documents,
             'status' => [

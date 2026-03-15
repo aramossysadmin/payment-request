@@ -3,17 +3,18 @@
 namespace Database\Factories;
 
 use App\Enums\IvaRate;
-use App\Enums\PaymentType;
 use App\Models\Branch;
 use App\Models\Currency;
 use App\Models\Department;
 use App\Models\ExpenseConcept;
+use App\Models\PaymentRequest;
+use App\Models\PaymentType;
 use App\Models\User;
 use App\States\PaymentRequest\PendingDepartment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\PaymentRequest>
+ * @extends Factory<PaymentRequest>
  */
 class PaymentRequestFactory extends Factory
 {
@@ -41,7 +42,7 @@ class PaymentRequestFactory extends Factory
             'branch_id' => Branch::factory(),
             'expense_concept_id' => ExpenseConcept::factory(),
             'description' => fake()->optional()->sentence(),
-            'payment_type' => PaymentType::Invoice,
+            'payment_type_id' => PaymentType::factory(),
             'status' => PendingDepartment::$name,
             'subtotal' => $subtotal,
             'iva_rate' => $ivaRate->value,

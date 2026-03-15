@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Enums\IvaRate;
-use App\Enums\PaymentType;
 use App\Filament\Resources\PaymentRequestResource\Pages;
 use App\Filament\Resources\PaymentRequestResource\RelationManagers\ApprovalsRelationManager;
 use App\Models\PaymentRequest;
@@ -119,12 +118,12 @@ class PaymentRequestResource extends Resource
                             ->label('Descripción')
                             ->rows(3)
                             ->columnSpan(2),
-                        Forms\Components\Select::make('payment_type')
+                        Forms\Components\Select::make('payment_type_id')
                             ->label('Tipo de Pago')
                             ->placeholder('Seleccionar Tipo de Pago')
-                            ->options(collect(PaymentType::cases())->mapWithKeys(
-                                fn (PaymentType $type) => [$type->value => $type->label()]
-                            ))
+                            ->relationship('paymentType', 'name')
+                            ->searchable()
+                            ->preload()
                             ->required()
                             ->live(),
                         Forms\Components\FileUpload::make('advance_documents')
@@ -258,14 +257,9 @@ class PaymentRequestResource extends Resource
                 Tables\Columns\TextColumn::make('expenseConcept.name')
                     ->label('Concepto de Gasto')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('payment_type')
+                Tables\Columns\TextColumn::make('paymentType.name')
                     ->label('Tipo de Pago')
                     ->badge()
-                    ->color(fn (PaymentType $state): string => match ($state) {
-                        PaymentType::Invoice => 'success',
-                        PaymentType::Advance => 'warning',
-                    })
-                    ->formatStateUsing(fn (PaymentType $state): string => $state->label())
                     ->sortable(),
                 Tables\Columns\TextColumn::make('subtotal')
                     ->label('Subtotal')

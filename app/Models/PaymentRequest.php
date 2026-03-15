@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\IvaRate;
-use App\Enums\PaymentType;
 use App\States\PaymentRequest\PaymentRequestState;
 use Database\Factories\PaymentRequestFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,7 +30,7 @@ class PaymentRequest extends Model
         'branch_id',
         'expense_concept_id',
         'description',
-        'payment_type',
+        'payment_type_id',
         'advance_documents',
         'status',
         'subtotal',
@@ -95,7 +94,6 @@ class PaymentRequest extends Model
     {
         return [
             'status' => PaymentRequestState::class,
-            'payment_type' => PaymentType::class,
             'iva_rate' => IvaRate::class,
             'advance_documents' => 'array',
             'subtotal' => 'decimal:2',
@@ -123,6 +121,11 @@ class PaymentRequest extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function paymentType(): BelongsTo
+    {
+        return $this->belongsTo(PaymentType::class);
     }
 
     public function expenseConcept(): BelongsTo

@@ -9,6 +9,7 @@ use App\Models\Branch;
 use App\Models\Currency;
 use App\Models\ExpenseConcept;
 use App\Models\PaymentRequest;
+use App\Models\PaymentType;
 use App\Services\ApprovalService;
 use App\States\PaymentRequest\Completed;
 use App\States\PaymentRequest\PendingAdministration;
@@ -30,7 +31,7 @@ class PaymentRequestController extends Controller
         $user = $request->user();
 
         $query = PaymentRequest::query()
-            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user'])
+            ->with(['user', 'department', 'currency', 'branch', 'paymentType', 'expenseConcept', 'approvals.user'])
             ->visibleTo($user);
 
         if ($request->filled('search')) {
@@ -104,6 +105,7 @@ class PaymentRequestController extends Controller
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::all(['id', 'name']),
             'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
+            'paymentTypes' => PaymentType::active()->get(['id', 'name', 'slug', 'requires_invoice_documents']),
         ]);
     }
 
@@ -136,7 +138,7 @@ class PaymentRequestController extends Controller
     {
         Gate::authorize('view', $paymentRequest);
 
-        $paymentRequest->load(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user']);
+        $paymentRequest->load(['user', 'department', 'currency', 'branch', 'paymentType', 'expenseConcept', 'approvals.user']);
 
         $user = $request->user();
         $canApprove = $paymentRequest->approvals
@@ -176,13 +178,14 @@ class PaymentRequestController extends Controller
 
         abort_unless($paymentRequest->status->equals(PendingDepartment::class), 403);
 
-        $paymentRequest->load(['currency', 'branch', 'expenseConcept']);
+        $paymentRequest->load(['currency', 'branch', 'paymentType', 'expenseConcept']);
 
         return Inertia::render('payment-requests/edit', [
             'paymentRequest' => new PaymentRequestResource($paymentRequest),
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::all(['id', 'name']),
             'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
+            'paymentTypes' => PaymentType::active()->get(['id', 'name', 'slug', 'requires_invoice_documents']),
         ]);
     }
 

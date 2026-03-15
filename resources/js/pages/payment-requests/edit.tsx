@@ -22,13 +22,8 @@ import type {
     Currency,
     ExpenseConcept,
     PaymentRequest,
+    PaymentTypeOption,
 } from '@/types';
-
-const paymentTypeOptions = [
-    { value: 'invoice', label: 'Pago con Factura' },
-    { value: 'advance', label: 'Anticipo' },
-    { value: 'investment', label: 'Inversiones' },
-];
 
 const ivaRateOptions = [
     { value: '0.00', label: 'IVA 0%' },
@@ -41,6 +36,7 @@ type PageProps = {
     currencies: Currency[];
     branches: Branch[];
     expenseConcepts: ExpenseConcept[];
+    paymentTypes: PaymentTypeOption[];
     errors: Record<string, string>;
 };
 
@@ -50,6 +46,7 @@ export default function Edit() {
         currencies,
         branches,
         expenseConcepts,
+        paymentTypes,
         errors,
     } = usePage<PageProps>().props;
     const pr = resource.data;
@@ -74,7 +71,7 @@ export default function Edit() {
         branch_id: String(pr.branch?.id ?? ''),
         expense_concept_id: String(pr.expense_concept?.id ?? ''),
         description: pr.description ?? '',
-        payment_type: pr.payment_type.value,
+        payment_type_id: String(pr.payment_type?.id ?? ''),
         subtotal: pr.subtotal,
         iva_rate: pr.iva_rate.value,
         iva: pr.iva,
@@ -116,7 +113,7 @@ export default function Edit() {
             }));
             return;
         }
-        if (field === 'payment_type') {
+        if (field === 'payment_type_id') {
             setFiles([]);
             setInvoicePdf(null);
             setInvoiceXml(null);
@@ -134,7 +131,8 @@ export default function Edit() {
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
 
-        if (values.payment_type === 'invoice') {
+        const selectedType = paymentTypes.find((pt) => String(pt.id) === values.payment_type_id);
+        if (selectedType?.requires_invoice_documents) {
             if (invoicePdf) {
                 formData.append('advance_documents[]', invoicePdf);
             }
@@ -317,26 +315,26 @@ export default function Edit() {
                             <div className="space-y-2">
                                 <Label>Tipo de Pago</Label>
                                 <Select
-                                    value={values.payment_type}
+                                    value={values.payment_type_id}
                                     onValueChange={(v) =>
-                                        handleChange('payment_type', v)
+                                        handleChange('payment_type_id', v)
                                     }
                                 >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {paymentTypeOptions.map((opt) => (
+                                        {paymentTypes.map((pt) => (
                                             <SelectItem
-                                                key={opt.value}
-                                                value={opt.value}
+                                                key={pt.id}
+                                                value={String(pt.id)}
                                             >
-                                                {opt.label}
+                                                {pt.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <InputError message={errors.payment_type} />
+                                <InputError message={errors.payment_type_id} />
                             </div>
 
                             <div className="space-y-2">
@@ -390,7 +388,7 @@ export default function Edit() {
                                         </ul>
                                     </div>
                                 )}
-                            {values.payment_type === 'invoice' ? (
+                            {paymentTypes.find((pt) => String(pt.id) === values.payment_type_id)?.requires_invoice_documents ? (
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label>Factura PDF <span className="text-red-500">*</span></Label>

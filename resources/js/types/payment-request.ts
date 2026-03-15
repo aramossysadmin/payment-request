@@ -5,8 +5,10 @@ export type PaymentRequestStatus = {
 };
 
 export type PaymentTypeOption = {
-    value: string;
-    label: string;
+    id: number;
+    name: string;
+    slug: string;
+    requires_invoice_documents: boolean;
 };
 
 export type Currency = {
