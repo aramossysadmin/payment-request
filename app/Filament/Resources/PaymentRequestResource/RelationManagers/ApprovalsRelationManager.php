@@ -22,6 +22,7 @@ class ApprovalsRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('stage')
                     ->label('Etapa')
+                    ->sortable()
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'department' => 'warning',
@@ -40,6 +41,7 @@ class ApprovalsRelationManager extends RelationManager
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
+                    ->sortable()
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',

@@ -34,6 +34,18 @@ class PaymentRequestApproval extends Model
         ];
     }
 
+    protected function setCommentsAttribute(?string $value): void
+    {
+        if ($value === null) {
+            $this->attributes['comments'] = null;
+
+            return;
+        }
+
+        $trimmed = trim($value);
+        $this->attributes['comments'] = mb_strtoupper(mb_substr($trimmed, 0, 1)).mb_substr($trimmed, 1);
+    }
+
     public function hasValidToken(): bool
     {
         return $this->approval_token
