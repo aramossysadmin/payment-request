@@ -65,6 +65,7 @@ class DepartmentResource extends Resource
                 Tables\Columns\TextColumn::make('description')
                     ->label('Descripción')
                     ->limit(50)
+                    ->sortable()
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('authorizers.name')
                     ->label('Autorizador(es)')

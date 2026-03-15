@@ -30,13 +30,13 @@ class ApprovalService
             'stage' => 'administration',
             'state' => PendingAdministration::class,
             'next_state' => PendingTreasury::class,
-            'department_name' => 'Administración',
+            'department_name' => 'ADMINISTRACIÓN',
         ],
         [
             'stage' => 'treasury',
             'state' => PendingTreasury::class,
             'next_state' => Completed::class,
-            'department_name' => 'Tesorería',
+            'department_name' => 'TESORERÍA',
         ],
     ];
 

@@ -42,7 +42,7 @@ it('can create a department', function () {
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('departments', [
-        'name' => 'Contabilidad',
+        'name' => 'CONTABILIDAD',
         'description' => 'Departamento de contabilidad',
     ]);
 });
@@ -54,7 +54,7 @@ it('can create a department without description', function () {
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('departments', [
-        'name' => 'Recursos Humanos',
+        'name' => 'RECURSOS HUMANOS',
         'description' => null,
     ]);
 });
@@ -71,10 +71,10 @@ it('validates required fields on create', function () {
 });
 
 it('validates unique name on create', function () {
-    Department::factory()->create(['name' => 'Finanzas']);
+    Department::factory()->create(['name' => 'FINANZAS']);
 
     Livewire::test(CreateDepartment::class)
-        ->set('data.name', 'Finanzas')
+        ->set('data.name', 'FINANZAS')
         ->call('create')
         ->assertHasFormErrors(['name']);
 });
@@ -96,7 +96,7 @@ it('can edit a department', function () {
         ->assertHasNoFormErrors();
 
     $department->refresh();
-    expect($department->name)->toBe('Departamento Editado');
+    expect($department->name)->toBe('DEPARTAMENTO EDITADO');
     expect($department->description)->toBe('Descripción editada');
 });
 
@@ -121,11 +121,11 @@ it('can restore a soft deleted department', function () {
 });
 
 it('can search departments by name', function () {
-    $department = Department::factory()->create(['name' => 'Logística']);
-    $other = Department::factory()->create(['name' => 'Marketing']);
+    $department = Department::factory()->create(['name' => 'LOGISTICA']);
+    $other = Department::factory()->create(['name' => 'MARKETING']);
 
     Livewire::test(ListDepartments::class)
-        ->searchTable('Logística')
+        ->searchTable('LOGISTICA')
         ->assertCanSeeTableRecords([$department])
         ->assertCanNotSeeTableRecords([$other]);
 });
@@ -139,7 +139,7 @@ it('can create a department with authorizers', function () {
         ->call('create')
         ->assertHasNoFormErrors();
 
-    $department = Department::where('name', 'Compras')->first();
+    $department = Department::where('name', 'COMPRAS')->first();
     expect($department->authorizers)->toHaveCount(2);
     expect($department->authorizers->pluck('id')->toArray())
         ->toEqualCanonicalizing($authorizers->pluck('id')->toArray());
@@ -169,7 +169,7 @@ it('can create a department without authorizers', function () {
         ->call('create')
         ->assertHasNoFormErrors();
 
-    $department = Department::where('name', 'Departamento Sin Autorizadores')->first();
+    $department = Department::where('name', 'DEPARTAMENTO SIN AUTORIZADORES')->first();
     expect($department->authorizers)->toHaveCount(0);
 });
 

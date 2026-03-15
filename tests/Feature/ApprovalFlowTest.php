@@ -19,8 +19,8 @@ beforeEach(function () {
     Notification::fake();
 
     $this->department = Department::factory()->create();
-    $this->adminDepartment = Department::factory()->create(['name' => 'Administración']);
-    $this->treasuryDepartment = Department::factory()->create(['name' => 'Tesorería']);
+    $this->adminDepartment = Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
+    $this->treasuryDepartment = Department::factory()->create(['name' => 'TESORERÍA']);
 
     $this->requester = User::factory()->create([
         'department_id' => $this->department->id,

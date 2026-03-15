@@ -365,7 +365,7 @@ it('can search payment requests by folio number', function () {
 
 it('authorizer can see payment requests with assigned approvals from other departments', function () {
     $requesterDept = \App\Models\Department::factory()->create(['name' => 'Ventas']);
-    $adminDept = \App\Models\Department::factory()->create(['name' => 'Administración']);
+    $adminDept = \App\Models\Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
 
     $requester = User::factory()->create(['department_id' => $requesterDept->id]);
 

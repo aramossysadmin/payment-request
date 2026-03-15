@@ -37,7 +37,7 @@ test('authorized user can approve at department stage', function () {
         'status' => 'pending',
     ]);
 
-    Department::factory()->create(['name' => 'Administración']);
+    Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
 
     $this->actingAs($authorizer)
         ->post(route('payment-requests.approve', $pr))
@@ -163,7 +163,7 @@ test('approval at administration stage saves number_purchase_invoices', function
         'status' => 'pending',
     ]);
 
-    Department::factory()->create(['name' => 'Tesorería']);
+    Department::factory()->create(['name' => 'TESORERÍA']);
 
     $this->actingAs($authorizer)
         ->post(route('payment-requests.approve', $pr), [
@@ -225,7 +225,7 @@ test('approval without sap fields still works', function () {
         'status' => 'pending',
     ]);
 
-    Department::factory()->create(['name' => 'Tesorería']);
+    Department::factory()->create(['name' => 'TESORERÍA']);
 
     $this->actingAs($authorizer)
         ->post(route('payment-requests.approve', $pr))

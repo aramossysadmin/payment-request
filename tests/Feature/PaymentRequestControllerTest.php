@@ -103,8 +103,8 @@ test('authorizers see their department payment requests', function () {
 });
 
 test('authorizers see payment requests from other departments when they have an assigned approval', function () {
-    $systemsDept = Department::factory()->create(['name' => 'Sistemas']);
-    $adminDept = Department::factory()->create(['name' => 'Administración']);
+    $systemsDept = Department::factory()->create(['name' => 'SISTEMAS']);
+    $adminDept = Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
 
     $collaborator = User::factory()->create(['department_id' => $systemsDept->id]);
     $deptAuthorizer = User::factory()->create(['department_id' => $systemsDept->id]);
@@ -145,8 +145,8 @@ test('authorizers see payment requests from other departments when they have an 
 });
 
 test('authorizers do not see payment requests without assigned approvals', function () {
-    $systemsDept = Department::factory()->create(['name' => 'Sistemas']);
-    $adminDept = Department::factory()->create(['name' => 'Administración']);
+    $systemsDept = Department::factory()->create(['name' => 'SISTEMAS']);
+    $adminDept = Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
 
     $collaborator = User::factory()->create(['department_id' => $systemsDept->id]);
     $adminAuthorizer = User::factory()->create(['department_id' => $adminDept->id]);

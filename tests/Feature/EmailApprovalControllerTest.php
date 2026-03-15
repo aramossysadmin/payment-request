@@ -46,7 +46,7 @@ test('valid token shows approval page with payment request details', function ()
 });
 
 test('valid token can approve payment request', function () {
-    Department::factory()->create(['name' => 'Administración']);
+    Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
 
     $approval = PaymentRequestApproval::factory()->withToken()->create([
         'payment_request_id' => $this->paymentRequest->id,
@@ -147,7 +147,7 @@ test('already approved request shows error', function () {
 });
 
 test('used token cannot be reused after approval', function () {
-    Department::factory()->create(['name' => 'Administración']);
+    Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
 
     $approval = PaymentRequestApproval::factory()->withToken()->create([
         'payment_request_id' => $this->paymentRequest->id,
@@ -233,7 +233,7 @@ test('email renders filament link as primary action when token is null', functio
 });
 
 test('approval via email advances to next stage', function () {
-    Department::factory()->create(['name' => 'Administración']);
+    Department::factory()->create(['name' => 'ADMINISTRACIÓN']);
 
     $approval = PaymentRequestApproval::factory()->withToken()->create([
         'payment_request_id' => $this->paymentRequest->id,
