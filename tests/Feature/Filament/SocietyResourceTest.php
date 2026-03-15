@@ -41,7 +41,7 @@ it('can create a society', function () {
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('societies', [
-        'name' => 'Sociedad Alpha',
+        'name' => 'SOCIEDAD ALPHA',
     ]);
 });
 
@@ -57,10 +57,10 @@ it('validates required fields on create', function () {
 });
 
 it('validates unique name on create', function () {
-    Society::factory()->create(['name' => 'Sociedad Única']);
+    Society::factory()->create(['name' => 'SOCIEDAD UNICA']);
 
     Livewire::test(CreateSociety::class)
-        ->set('data.name', 'Sociedad Única')
+        ->set('data.name', 'SOCIEDAD UNICA')
         ->call('create')
         ->assertHasFormErrors(['name']);
 });
@@ -81,7 +81,7 @@ it('can edit a society', function () {
         ->assertHasNoFormErrors();
 
     $society->refresh();
-    expect($society->name)->toBe('Sociedad Editada');
+    expect($society->name)->toBe('SOCIEDAD EDITADA');
 });
 
 it('can soft delete a society', function () {
@@ -105,11 +105,11 @@ it('can restore a soft deleted society', function () {
 });
 
 it('can search societies by name', function () {
-    $society = Society::factory()->create(['name' => 'Sociedad Buscable']);
-    $other = Society::factory()->create(['name' => 'Otra Sociedad']);
+    $society = Society::factory()->create(['name' => 'SOCIEDAD BUSCABLE']);
+    $other = Society::factory()->create(['name' => 'OTRA SOCIEDAD']);
 
     Livewire::test(ListSocieties::class)
-        ->searchTable('Sociedad Buscable')
+        ->searchTable('SOCIEDAD BUSCABLE')
         ->assertCanSeeTableRecords([$society])
         ->assertCanNotSeeTableRecords([$other]);
 });
