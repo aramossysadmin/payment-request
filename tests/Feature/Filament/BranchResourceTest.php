@@ -45,7 +45,7 @@ it('can create a branch', function () {
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('branches', [
-        'name' => 'Sucursal Centro',
+        'name' => 'SUCURSAL CENTRO',
         'society_id' => $society->id,
     ]);
 });
@@ -81,7 +81,7 @@ it('can edit a branch', function () {
         ->assertHasNoFormErrors();
 
     $branch->refresh();
-    expect($branch->name)->toBe('Sucursal Editada');
+    expect($branch->name)->toBe('SUCURSAL EDITADA');
     expect($branch->society_id)->toBe($newSociety->id);
 });
 
@@ -106,22 +106,22 @@ it('can restore a soft deleted branch', function () {
 });
 
 it('can search branches by name', function () {
-    $branch = Branch::factory()->create(['name' => 'Sucursal Buscable']);
-    $other = Branch::factory()->create(['name' => 'Otra Sucursal']);
+    $branch = Branch::factory()->create(['name' => 'SUCURSAL BUSCABLE']);
+    $other = Branch::factory()->create(['name' => 'OTRA SUCURSAL']);
 
     Livewire::test(ListBranches::class)
-        ->searchTable('Sucursal Buscable')
+        ->searchTable('SUCURSAL BUSCABLE')
         ->assertCanSeeTableRecords([$branch])
         ->assertCanNotSeeTableRecords([$other]);
 });
 
 it('can search branches by society name', function () {
-    $society = Society::factory()->create(['name' => 'Sociedad Especial']);
+    $society = Society::factory()->create(['name' => 'SOCIEDAD ESPECIAL']);
     $branch = Branch::factory()->create(['society_id' => $society->id]);
     $other = Branch::factory()->create();
 
     Livewire::test(ListBranches::class)
-        ->searchTable('Sociedad Especial')
+        ->searchTable('SOCIEDAD ESPECIAL')
         ->assertCanSeeTableRecords([$branch])
         ->assertCanNotSeeTableRecords([$other]);
 });
