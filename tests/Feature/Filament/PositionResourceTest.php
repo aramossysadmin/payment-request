@@ -42,7 +42,7 @@ it('can create a position', function () {
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('positions', [
-        'name' => 'Gerente de Ventas',
+        'name' => 'GERENTE DE VENTAS',
         'description' => 'Responsable del área de ventas',
     ]);
 });
@@ -54,7 +54,7 @@ it('can create a position without description', function () {
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('positions', [
-        'name' => 'Analista',
+        'name' => 'ANALISTA',
         'description' => null,
     ]);
 });
@@ -71,10 +71,10 @@ it('validates required fields on create', function () {
 });
 
 it('validates unique name on create', function () {
-    Position::factory()->create(['name' => 'Director']);
+    Position::factory()->create(['name' => 'DIRECTOR']);
 
     Livewire::test(CreatePosition::class)
-        ->set('data.name', 'Director')
+        ->set('data.name', 'DIRECTOR')
         ->call('create')
         ->assertHasFormErrors(['name']);
 });
@@ -96,7 +96,7 @@ it('can edit a position', function () {
         ->assertHasNoFormErrors();
 
     $position->refresh();
-    expect($position->name)->toBe('Puesto Editado');
+    expect($position->name)->toBe('PUESTO EDITADO');
     expect($position->description)->toBe('Descripción editada');
 });
 
@@ -121,11 +121,11 @@ it('can restore a soft deleted position', function () {
 });
 
 it('can search positions by name', function () {
-    $position = Position::factory()->create(['name' => 'Contador']);
-    $other = Position::factory()->create(['name' => 'Abogado']);
+    $position = Position::factory()->create(['name' => 'CONTADOR']);
+    $other = Position::factory()->create(['name' => 'ABOGADO']);
 
     Livewire::test(ListPositions::class)
-        ->searchTable('Contador')
+        ->searchTable('CONTADOR')
         ->assertCanSeeTableRecords([$position])
         ->assertCanNotSeeTableRecords([$other]);
 });
