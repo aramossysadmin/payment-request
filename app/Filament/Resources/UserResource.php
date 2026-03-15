@@ -6,6 +6,7 @@ use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -80,9 +81,29 @@ class UserResource extends Resource
                 Forms\Components\Section::make('Roles y estado')
                     ->schema([
                         Forms\Components\CheckboxList::make('roles')
-                            ->relationship('roles', 'name')
+                            ->relationship(
+                                'roles',
+                                'name',
+                                fn (Builder $query) => auth()->user()?->hasRole('super_admin')
+                                    ? $query
+                                    : $query->where('name', '!=', 'super_admin'),
+                            )
                             ->label('Roles')
-                            ->columns(2),
+                            ->columns(2)
+                            ->saveRelationshipsUsing(function (Forms\Components\CheckboxList $component, User $record, array $state): void {
+                                $user = auth()->user();
+
+                                if ($user && $record->id === $user->id && $record->hasRole('super_admin') && ! in_array($record->roles()->where('name', 'super_admin')->value('id'), array_map('intval', $state))) {
+                                    Notification::make()
+                                        ->title('No puedes quitarte el rol de Super Admin a ti mismo.')
+                                        ->danger()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $record->syncRoles($state);
+                            }),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Activo'),
                     ]),

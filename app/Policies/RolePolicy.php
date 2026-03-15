@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
+use App\Models\Role;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class RolePolicy
@@ -23,6 +23,10 @@ class RolePolicy
      */
     public function view(User $user, Role $role): bool
     {
+        if ($role->name === 'super_admin' && ! $user->hasRole('super_admin')) {
+            return false;
+        }
+
         return $user->can('view_role');
     }
 
@@ -39,6 +43,10 @@ class RolePolicy
      */
     public function update(User $user, Role $role): bool
     {
+        if ($role->name === 'super_admin' && ! $user->hasRole('super_admin')) {
+            return false;
+        }
+
         return $user->can('update_role');
     }
 
@@ -47,6 +55,10 @@ class RolePolicy
      */
     public function delete(User $user, Role $role): bool
     {
+        if ($role->name === 'super_admin') {
+            return false;
+        }
+
         return $user->can('delete_role');
     }
 
@@ -63,7 +75,7 @@ class RolePolicy
      */
     public function forceDelete(User $user, Role $role): bool
     {
-        return $user->can('{{ ForceDelete }}');
+        return false;
     }
 
     /**
@@ -71,7 +83,7 @@ class RolePolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('{{ ForceDeleteAny }}');
+        return false;
     }
 
     /**
@@ -79,7 +91,7 @@ class RolePolicy
      */
     public function restore(User $user, Role $role): bool
     {
-        return $user->can('{{ Restore }}');
+        return false;
     }
 
     /**
@@ -87,7 +99,7 @@ class RolePolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('{{ RestoreAny }}');
+        return false;
     }
 
     /**
@@ -95,7 +107,7 @@ class RolePolicy
      */
     public function replicate(User $user, Role $role): bool
     {
-        return $user->can('{{ Replicate }}');
+        return false;
     }
 
     /**
@@ -103,6 +115,6 @@ class RolePolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('{{ Reorder }}');
+        return false;
     }
 }

@@ -1,4 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
+import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
@@ -6,8 +7,21 @@ import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     Select,
     SelectContent,
@@ -15,6 +29,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Branch, Currency, ExpenseConcept, PaymentTypeOption } from '@/types';
 
@@ -208,7 +223,19 @@ export default function Create() {
                                 </div>
                             </div>
 
-                            <div className="grid gap-4 sm:grid-cols-3">
+                            <div className="space-y-2">
+                                <Label>Sucursal</Label>
+                                <BranchCombobox
+                                    branches={branches}
+                                    value={values.branch_id}
+                                    onChange={(v) =>
+                                        handleChange('branch_id', v)
+                                    }
+                                />
+                                <InputError message={errors.branch_id} />
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label>Moneda</Label>
                                     <Select
@@ -232,30 +259,6 @@ export default function Create() {
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.currency_id} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Sucursal</Label>
-                                    <Select
-                                        value={values.branch_id}
-                                        onValueChange={(v) =>
-                                            handleChange('branch_id', v)
-                                        }
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seleccionar" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {branches.map((b) => (
-                                                <SelectItem
-                                                    key={b.id}
-                                                    value={String(b.id)}
-                                                >
-                                                    {b.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError message={errors.branch_id} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Concepto de Gasto</Label>
@@ -508,5 +511,64 @@ export default function Create() {
                 </form>
             </div>
         </AppLayout>
+    );
+}
+
+function BranchCombobox({
+    branches,
+    value,
+    onChange,
+}: {
+    branches: Branch[];
+    value: string;
+    onChange: (value: string) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const selectedBranch = branches.find((b) => String(b.id) === value);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between font-normal"
+                >
+                    {selectedBranch?.name ?? 'Seleccionar'}
+                    <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                    <CommandInput placeholder="Buscar sucursal..." />
+                    <CommandList>
+                        <CommandEmpty>Sin resultados.</CommandEmpty>
+                        <CommandGroup>
+                            {branches.map((b) => (
+                                <CommandItem
+                                    key={b.id}
+                                    value={b.name}
+                                    onSelect={() => {
+                                        onChange(String(b.id));
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <CheckIcon
+                                        className={cn(
+                                            'mr-2 h-4 w-4',
+                                            value === String(b.id)
+                                                ? 'opacity-100'
+                                                : 'opacity-0',
+                                        )}
+                                    />
+                                    {b.name}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
 }
