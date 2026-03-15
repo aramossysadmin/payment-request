@@ -56,7 +56,8 @@ class CurrencyResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('prefix')
                     ->label('Prefijo')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()
