@@ -44,7 +44,7 @@ test('returns empty array for invalid field parameter', function () {
 
 test('searches providers by provider name', function () {
     PaymentRequest::factory()->create([
-        'provider' => 'Empresa Nacional SA',
+        'provider' => 'EMPRESA NACIONAL SA',
         'rfc' => 'ENA123456789',
         'user_id' => $this->user->id,
         'department_id' => $this->department->id,
@@ -68,14 +68,14 @@ test('searches providers by provider name', function () {
         ->assertOk()
         ->assertJsonCount(1)
         ->assertJsonFragment([
-            'provider' => 'Empresa Nacional SA',
+            'provider' => 'EMPRESA NACIONAL SA',
             'rfc' => 'ENA123456789',
         ]);
 });
 
 test('searches providers by rfc', function () {
     PaymentRequest::factory()->create([
-        'provider' => 'Empresa Nacional SA',
+        'provider' => 'EMPRESA NACIONAL SA',
         'rfc' => 'ENA123456789',
         'user_id' => $this->user->id,
         'department_id' => $this->department->id,
@@ -89,7 +89,7 @@ test('searches providers by rfc', function () {
         ->assertOk()
         ->assertJsonCount(1)
         ->assertJsonFragment([
-            'provider' => 'Empresa Nacional SA',
+            'provider' => 'EMPRESA NACIONAL SA',
             'rfc' => 'ENA123456789',
         ]);
 });
@@ -116,7 +116,7 @@ test('returns distinct provider-rfc combinations', function () {
 
 test('defaults to searching by provider field', function () {
     PaymentRequest::factory()->create([
-        'provider' => 'Default Field Test SA',
+        'provider' => 'DEFAULT FIELD TEST SA',
         'rfc' => 'DFT123456789',
         'user_id' => $this->user->id,
         'department_id' => $this->department->id,
@@ -129,7 +129,7 @@ test('defaults to searching by provider field', function () {
         ->getJson(route('providers.search', ['q' => 'Default Field']))
         ->assertOk()
         ->assertJsonCount(1)
-        ->assertJsonFragment(['provider' => 'Default Field Test SA']);
+        ->assertJsonFragment(['provider' => 'DEFAULT FIELD TEST SA']);
 });
 
 test('limits results to 10', function () {

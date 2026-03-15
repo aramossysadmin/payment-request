@@ -141,7 +141,7 @@ test('deferred recent requests respect role filtering', function () {
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
         'expense_concept_id' => $this->expenseConcept->id,
-        'provider' => 'Mi Proveedor',
+        'provider' => 'MI PROVEEDOR',
     ]);
 
     PaymentRequest::factory()->create([
@@ -162,7 +162,7 @@ test('deferred recent requests respect role filtering', function () {
     $props = $response->json('props');
 
     expect($props['recentRequests'])->toHaveCount(1);
-    expect($props['recentRequests'][0]['provider'])->toBe('Mi Proveedor');
+    expect($props['recentRequests'][0]['provider'])->toBe('MI PROVEEDOR');
 });
 
 test('super admin sees all recent requests', function () {

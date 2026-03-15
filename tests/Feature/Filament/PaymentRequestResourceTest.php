@@ -63,7 +63,7 @@ it('can create a payment request', function () {
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('payment_requests', [
-        'provider' => 'Proveedor Test',
+        'provider' => 'PROVEEDOR TEST',
         'invoice_folio' => 'FAC-0001',
         'user_id' => $this->superAdmin->id,
         'currency_id' => $currency->id,
@@ -141,7 +141,7 @@ it('can edit a payment request', function () {
         ->assertHasNoFormErrors();
 
     $paymentRequest->refresh();
-    expect($paymentRequest->provider)->toBe('Proveedor Editado');
+    expect($paymentRequest->provider)->toBe('PROVEEDOR EDITADO');
     expect($paymentRequest->branch_id)->toBe($newBranch->id);
 });
 

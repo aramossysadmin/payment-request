@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\IvaRate;
 use App\Enums\PaymentType;
 use App\States\PaymentRequest\PaymentRequestState;
+use Database\Factories\PaymentRequestFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,7 @@ use Spatie\ModelStates\HasStates;
 
 class PaymentRequest extends Model
 {
-    /** @use HasFactory<\Database\Factories\PaymentRequestFactory> */
+    /** @use HasFactory<PaymentRequestFactory> */
     use HasFactory, HasStates, SoftDeletes;
 
     protected $fillable = [
@@ -41,6 +42,33 @@ class PaymentRequest extends Model
         'number_purchase_invoices',
         'number_vendor_payments',
     ];
+
+    protected function setProviderAttribute(string $value): void
+    {
+        $this->attributes['provider'] = mb_strtoupper(trim($value));
+    }
+
+    protected function setRfcAttribute(?string $value): void
+    {
+        $this->attributes['rfc'] = $value ? mb_strtoupper(trim($value)) : null;
+    }
+
+    protected function setInvoiceFolioAttribute(string $value): void
+    {
+        $this->attributes['invoice_folio'] = mb_strtoupper(trim($value));
+    }
+
+    protected function setDescriptionAttribute(?string $value): void
+    {
+        if ($value === null) {
+            $this->attributes['description'] = null;
+
+            return;
+        }
+
+        $trimmed = trim($value);
+        $this->attributes['description'] = mb_strtoupper(mb_substr($trimmed, 0, 1)).mb_substr($trimmed, 1);
+    }
 
     protected static function booted(): void
     {

@@ -242,10 +242,12 @@ class PaymentRequestResource extends Resource
                 Tables\Columns\TextColumn::make('rfc')
                     ->label('RFC')
                     ->searchable()
+                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('invoice_folio')
                     ->label('Folio Factura')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('currency.name')
                     ->label('Moneda')
                     ->sortable(),
@@ -277,7 +279,8 @@ class PaymentRequestResource extends Resource
                     ->label('Estado')
                     ->badge()
                     ->color(fn (PaymentRequestState $state): string => $state->color())
-                    ->formatStateUsing(fn (PaymentRequestState $state): string => $state->label()),
+                    ->formatStateUsing(fn (PaymentRequestState $state): string => $state->label())
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Solicitante')
                     ->sortable(),

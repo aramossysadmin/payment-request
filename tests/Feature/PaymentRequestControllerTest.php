@@ -192,11 +192,11 @@ test('search filter works by provider', function () {
     ]);
 
     $this->actingAs($user)
-        ->get(route('payment-requests.index', ['search' => 'Acme']))
+        ->get(route('payment-requests.index', ['search' => 'ACME']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('paymentRequests.data', 1)
-            ->where('paymentRequests.data.0.provider', 'Acme Corp')
+            ->where('paymentRequests.data.0.provider', 'ACME CORP')
         );
 });
 
@@ -260,7 +260,7 @@ test('store creates a payment request with valid data', function () {
         ->assertRedirect(route('payment-requests.index'));
 
     $this->assertDatabaseHas('payment_requests', [
-        'provider' => 'Test Provider',
+        'provider' => 'TEST PROVIDER',
         'user_id' => $user->id,
         'department_id' => $this->department->id,
     ]);
@@ -287,7 +287,7 @@ test('store auto-assigns user_id and department_id', function () {
     $this->actingAs($user)
         ->post(route('payment-requests.store'), $data);
 
-    $pr = PaymentRequest::where('provider', 'Auto Assign Test')->first();
+    $pr = PaymentRequest::where('provider', 'AUTO ASSIGN TEST')->first();
 
     expect($pr->user_id)->toBe($user->id);
     expect($pr->department_id)->toBe($this->department->id);
@@ -315,7 +315,7 @@ test('store creates initial approval', function () {
     $this->actingAs($user)
         ->post(route('payment-requests.store'), $data);
 
-    $pr = PaymentRequest::where('provider', 'Approval Test')->first();
+    $pr = PaymentRequest::where('provider', 'APPROVAL TEST')->first();
 
     expect($pr->approvals)->toHaveCount(1);
     expect($pr->approvals->first()->stage)->toBe('department');
@@ -434,7 +434,7 @@ test('update modifies the payment request', function () {
         ])
         ->assertRedirect(route('payment-requests.show', $pr));
 
-    expect($pr->refresh()->provider)->toBe('New Provider');
+    expect($pr->refresh()->provider)->toBe('NEW PROVIDER');
 });
 
 test('soft delete works', function () {
@@ -605,7 +605,7 @@ test('uuid is automatically generated when creating a payment request', function
     $this->actingAs($user)
         ->post(route('payment-requests.store'), $data);
 
-    $pr = PaymentRequest::where('provider', 'UUID Test Provider')->first();
+    $pr = PaymentRequest::where('provider', 'UUID TEST PROVIDER')->first();
 
     expect($pr->uuid)->not->toBeNull();
     expect($pr->uuid)->toMatch('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/');
