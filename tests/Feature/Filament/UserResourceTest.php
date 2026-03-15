@@ -245,16 +245,16 @@ it('can edit department on a user', function () {
 });
 
 it('does not show soft deleted departments in select', function () {
-    $activeDepartment = Department::factory()->create(['name' => 'Depto Activo']);
-    $deletedDepartment = Department::factory()->create(['name' => 'Depto Eliminado']);
+    $activeDepartment = Department::factory()->create(['name' => 'DEPTO ACTIVO']);
+    $deletedDepartment = Department::factory()->create(['name' => 'DEPTO ELIMINADO']);
     $deletedDepartment->delete();
 
     Livewire::test(CreateUser::class)
         ->assertFormFieldExists('department_id', function ($field) {
             $options = $field->getOptions();
 
-            $hasActive = collect($options)->contains('Depto Activo');
-            $hasDeleted = collect($options)->contains('Depto Eliminado');
+            $hasActive = collect($options)->contains('DEPTO ACTIVO');
+            $hasDeleted = collect($options)->contains('DEPTO ELIMINADO');
 
             return $hasActive && ! $hasDeleted;
         });
@@ -274,16 +274,16 @@ it('can edit position on a user', function () {
 });
 
 it('does not show soft deleted positions in select', function () {
-    $activePosition = Position::factory()->create(['name' => 'Posición Activa']);
-    $deletedPosition = Position::factory()->create(['name' => 'Posición Eliminada']);
+    $activePosition = Position::factory()->create(['name' => 'POSICION ACTIVA']);
+    $deletedPosition = Position::factory()->create(['name' => 'POSICION ELIMINADA']);
     $deletedPosition->delete();
 
     Livewire::test(CreateUser::class)
         ->assertFormFieldExists('position_id', function ($field) {
             $options = $field->getOptions();
 
-            $hasActive = collect($options)->contains('Posición Activa');
-            $hasDeleted = collect($options)->contains('Posición Eliminada');
+            $hasActive = collect($options)->contains('POSICION ACTIVA');
+            $hasDeleted = collect($options)->contains('POSICION ELIMINADA');
 
             return $hasActive && ! $hasDeleted;
         });
