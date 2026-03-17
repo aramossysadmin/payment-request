@@ -22,7 +22,10 @@
       "Bash(grep \"function viteTheme\\\\|function theme\" /var/www/paymentrequest.linking.com.mx/vendor/filament/filament/src/Panel.php 2>/dev/null || grep -r \"viteTheme\" /var/www/paymentrequest.linking.com.mx/vendor/filament/ --include=\"*.php\" -l 2>/dev/null | head -5)",
       "Bash(mkdir -p /var/www/paymentrequest.linking.com.mx/public/css/filament/admin && npx tailwindcss@3 --input ./resources/css/filament/admin/theme.css --output ./public/css/filament/admin/theme.css --config ./resources/css/filament/admin/tailwind.config.js --minify 2>&1)",
       "Bash(npm install:*)",
-      "Bash(npx tailwindcss@3 --input ./resources/css/filament/admin/theme.css --output ./public/css/filament/admin/theme.css --config ./resources/css/filament/admin/tailwind.config.js --minify 2>&1)"
+      "Bash(npx tailwindcss@3 --input ./resources/css/filament/admin/theme.css --output ./public/css/filament/admin/theme.css --config ./resources/css/filament/admin/tailwind.config.js --minify 2>&1)",
+      "mcp__laravel-boost__last-error",
+      "mcp__laravel-boost__read-log-entries",
+      "mcp__laravel-boost__database-query"
     ]
   },
   "enableAllProjectMcpServers": true,
