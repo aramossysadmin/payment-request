@@ -64,6 +64,7 @@ class ListExpenseConcepts extends ListRecords
 
         try {
             $csv = Reader::createFromPath($fullPath, 'r');
+            $csv->addStreamFilter('convert.iconv.Windows-1252/UTF-8');
             $csv->setHeaderOffset(0);
             $headers = $csv->getHeader();
         } catch (\Exception $e) {

@@ -69,12 +69,12 @@ class ExpenseConceptResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TrashedFilter::make(),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Estado')
                     ->trueLabel('Activos')
                     ->falseLabel('Inactivos')
                     ->placeholder('Todos'),
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

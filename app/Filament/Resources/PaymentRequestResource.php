@@ -291,7 +291,6 @@ class PaymentRequestResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TrashedFilter::make(),
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Estado')
                     ->options(
@@ -316,6 +315,7 @@ class PaymentRequestResource extends Resource
                     ->relationship('user', 'name')
                     ->label('Solicitante')
                     ->preload(),
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\Action::make('approve')
