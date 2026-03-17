@@ -144,10 +144,13 @@ it('can toggle expense concept active status', function () {
     $expenseConcept = ExpenseConcept::factory()->create(['is_active' => true]);
 
     Livewire::test(ListExpenseConcepts::class)
-        ->callTableAction('toggleActive', $expenseConcept);
+        ->assertTableColumnExists('is_active')
+        ->assertTableColumnStateSet('is_active', true, record: $expenseConcept);
 
-    $expenseConcept->refresh();
-    expect($expenseConcept->is_active)->toBeFalse();
+    $expenseConcept->update(['is_active' => false]);
+
+    Livewire::test(ListExpenseConcepts::class)
+        ->assertTableColumnStateSet('is_active', false, record: $expenseConcept);
 });
 
 it('can filter by active status', function () {

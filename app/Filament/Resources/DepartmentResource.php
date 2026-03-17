@@ -57,6 +57,7 @@ class DepartmentResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')

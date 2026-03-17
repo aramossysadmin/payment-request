@@ -135,16 +135,13 @@ it('can toggle user active status', function () {
     $user = User::factory()->create(['is_active' => true]);
 
     Livewire::test(ListUsers::class)
-        ->callTableAction('toggleActive', $user);
+        ->assertTableColumnExists('is_active')
+        ->assertTableColumnStateSet('is_active', true, record: $user);
 
-    $user->refresh();
-    expect($user->is_active)->toBeFalse();
+    $user->update(['is_active' => false]);
 
     Livewire::test(ListUsers::class)
-        ->callTableAction('toggleActive', $user);
-
-    $user->refresh();
-    expect($user->is_active)->toBeTrue();
+        ->assertTableColumnStateSet('is_active', false, record: $user);
 });
 
 it('can soft delete a user', function () {

@@ -52,6 +52,7 @@ class PaymentTypeResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')
@@ -65,13 +66,8 @@ class PaymentTypeResource extends Resource
                     ->trueColor('success')
                     ->falseColor('gray')
                     ->sortable(),
-                Tables\Columns\IconColumn::make('is_active')
+                Tables\Columns\ToggleColumn::make('is_active')
                     ->label('Estado')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
@@ -93,12 +89,6 @@ class PaymentTypeResource extends Resource
                     ->placeholder('Todos'),
             ])
             ->actions([
-                Tables\Actions\Action::make('toggleActive')
-                    ->label(fn (PaymentType $record): string => $record->is_active ? 'Desactivar' : 'Activar')
-                    ->icon(fn (PaymentType $record): string => $record->is_active ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
-                    ->color(fn (PaymentType $record): string => $record->is_active ? 'danger' : 'success')
-                    ->requiresConfirmation()
-                    ->action(fn (PaymentType $record) => $record->update(['is_active' => ! $record->is_active])),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),

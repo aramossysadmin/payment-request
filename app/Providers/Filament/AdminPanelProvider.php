@@ -34,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2rem')
             ->favicon(asset('images/favicon.svg'))
             ->font('Open Sans')
-            ->defaultThemeMode(ThemeMode::Dark)
+            ->defaultThemeMode(ThemeMode::Light)
             ->colors([
                 // Costeño Brand - Primary: Cream (#EBDFC7)
                 'primary' => [

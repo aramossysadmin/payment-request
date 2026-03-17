@@ -225,6 +225,7 @@ class PaymentRequestResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('folio_number', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('folio_number')
                     ->label('Folio')
