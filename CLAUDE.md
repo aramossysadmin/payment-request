@@ -1,6 +1,15 @@
 ## Git Commits
 - NEVER create git commits unless the user explicitly asks for it. Only commit when directly instructed to do so.
 
+## Proteccion de Base de Datos (REGLA CRITICA - MAXIMA PRIORIDAD)
+- ESTA ABSOLUTAMENTE PROHIBIDO eliminar, borrar, truncar o modificar destructivamente registros de la base de datos real bajo CUALQUIER circunstancia, ya sea por testing, debugging, migraciones, seeders, comandos artisan, o cualquier otro motivo.
+- NUNCA modificar `.env.testing` para quitar o cambiar `DB_CONNECTION` o `DB_DATABASE`. El archivo `.env.testing` DEBE mantener siempre `DB_CONNECTION=sqlite` y `DB_DATABASE=:memory:` para garantizar aislamiento total.
+- NUNCA ejecutar tests sin antes verificar que `.env.testing` tiene `DB_DATABASE=:memory:`.
+- NUNCA ejecutar `migrate:fresh`, `migrate:refresh`, `db:wipe`, `truncate()`, `delete()`, `forceDelete()`, `DB::table()->delete()`, o cualquier operacion destructiva contra la BD real.
+- `RefreshDatabase` esta permitido UNICAMENTE porque `.env.testing` apunta a SQLite en memoria, completamente aislado de la BD real.
+- Si un test necesita datos, debe crearlos con factories dentro del test (operan sobre la BD en memoria).
+- Antes de ejecutar CUALQUIER comando que pueda afectar la BD, verificar que NO se esta apuntando a la BD real.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

@@ -2,24 +2,38 @@
 
 namespace Database\Seeders;
 
+use App\Models\Department;
+use App\Models\Position;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            DepartmentSeeder::class,
+            PositionSeeder::class,
+            CurrencySeeder::class,
+            SocietySeeder::class,
+            BranchSeeder::class,
+            PaymentTypeSeeder::class,
+            ExpenseConceptSeeder::class,
+            RoleAndPermissionSeeder::class,
         ]);
 
-        $this->call(RoleAndPermissionSeeder::class);
+        $user = User::firstOrCreate(
+            ['email' => 'alfonso.ramos@grupocosteno.com'],
+            [
+                'name' => 'Alfonso Ramos',
+                'password' => Hash::make('123456789'),
+                'is_active' => true,
+                'department_id' => Department::where('name', 'SISTEMAS')->first()?->id,
+                'position_id' => Position::where('name', 'GERENTE')->first()?->id,
+            ],
+        );
+
+        $user->assignRole('super_admin');
     }
 }

@@ -11,71 +11,57 @@ beforeEach(function () {
 it('creates the three roles', function () {
     $this->artisan('db:seed', ['--class' => RoleAndPermissionSeeder::class, '--no-interaction' => true]);
 
-    expect(Role::where('name', 'Colaborador')->exists())->toBeTrue()
-        ->and(Role::where('name', 'Gerente')->exists())->toBeTrue()
-        ->and(Role::where('name', 'Director')->exists())->toBeTrue();
+    expect(Role::where('name', 'super_admin')->exists())->toBeTrue()
+        ->and(Role::where('name', 'admin_sp')->exists())->toBeTrue()
+        ->and(Role::where('name', 'administrador')->exists())->toBeTrue();
 });
 
-it('assigns correct permissions to Colaborador', function () {
+it('assigns correct permissions to administrador', function () {
     $this->artisan('db:seed', ['--class' => RoleAndPermissionSeeder::class, '--no-interaction' => true]);
 
-    $role = Role::findByName('Colaborador', 'web');
+    $role = Role::findByName('administrador', 'web');
     $permissions = $role->permissions->pluck('name')->sort()->values()->all();
 
     expect($permissions)->toBe([
         'create_payment::request',
+        'delete_any_payment::request',
+        'delete_payment::request',
+        'force_delete_any_payment::request',
+        'force_delete_payment::request',
+        'reorder_payment::request',
+        'replicate_payment::request',
+        'restore_any_payment::request',
+        'restore_payment::request',
         'update_payment::request',
         'view_any_payment::request',
         'view_payment::request',
     ]);
 });
 
-it('assigns correct permissions to Gerente', function () {
+it('assigns all permissions to admin_sp', function () {
     $this->artisan('db:seed', ['--class' => RoleAndPermissionSeeder::class, '--no-interaction' => true]);
 
-    $role = Role::findByName('Gerente', 'web');
-    $permissions = $role->permissions->pluck('name')->sort()->values()->all();
+    $role = Role::findByName('admin_sp', 'web');
 
-    expect($permissions)->toBe([
-        'create_branch',
-        'create_expense::concept',
-        'create_payment::request',
-        'create_society',
-        'update_branch',
-        'update_expense::concept',
-        'update_payment::request',
-        'update_society',
-        'view_any_branch',
-        'view_any_expense::concept',
-        'view_any_payment::request',
-        'view_any_society',
-        'view_branch',
-        'view_expense::concept',
-        'view_payment::request',
-        'view_society',
-    ]);
+    expect($role->permissions)->toHaveCount(114);
 });
 
-it('assigns correct permissions to Director', function () {
+it('assigns all permissions to super_admin', function () {
     $this->artisan('db:seed', ['--class' => RoleAndPermissionSeeder::class, '--no-interaction' => true]);
 
-    $role = Role::findByName('Director', 'web');
-    $permissions = $role->permissions->pluck('name')->sort()->values()->all();
+    $role = Role::findByName('super_admin', 'web');
 
-    $gerentePermissions = Role::findByName('Gerente', 'web')
-        ->permissions->pluck('name')->sort()->values()->all();
-
-    expect($permissions)->toBe($gerentePermissions);
+    expect($role->permissions)->toHaveCount(114);
 });
 
 it('is idempotent', function () {
     $this->artisan('db:seed', ['--class' => RoleAndPermissionSeeder::class, '--no-interaction' => true]);
     $this->artisan('db:seed', ['--class' => RoleAndPermissionSeeder::class, '--no-interaction' => true]);
 
-    expect(Role::where('name', 'Colaborador')->count())->toBe(1)
-        ->and(Role::where('name', 'Gerente')->count())->toBe(1)
-        ->and(Role::where('name', 'Director')->count())->toBe(1)
-        ->and(Role::findByName('Colaborador', 'web')->permissions)->toHaveCount(4)
-        ->and(Role::findByName('Gerente', 'web')->permissions)->toHaveCount(16)
-        ->and(Role::findByName('Director', 'web')->permissions)->toHaveCount(16);
+    expect(Role::where('name', 'super_admin')->count())->toBe(1)
+        ->and(Role::where('name', 'admin_sp')->count())->toBe(1)
+        ->and(Role::where('name', 'administrador')->count())->toBe(1)
+        ->and(Role::findByName('super_admin', 'web')->permissions)->toHaveCount(114)
+        ->and(Role::findByName('admin_sp', 'web')->permissions)->toHaveCount(114)
+        ->and(Role::findByName('administrador', 'web')->permissions)->toHaveCount(12);
 });

@@ -102,10 +102,11 @@ class UserResource extends Resource
                                     return;
                                 }
 
-                                $record->syncRoles($state);
+                                $record->roles()->withoutGlobalScopes()->sync(array_map('intval', $state));
                             }),
                         Forms\Components\Toggle::make('is_active')
-                            ->label('Activo'),
+                            ->label('Activo')
+                            ->default(true),
                     ]),
             ]);
     }

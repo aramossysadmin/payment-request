@@ -77,7 +77,7 @@ class PaymentRequest extends Model
             }
 
             if (! $paymentRequest->folio_number) {
-                $paymentRequest->folio_number = (static::max('folio_number') ?? 0) + 1;
+                $paymentRequest->folio_number = (static::withTrashed()->max('folio_number') ?? 0) + 1;
             }
         });
     }
