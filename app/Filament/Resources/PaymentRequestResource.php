@@ -121,7 +121,7 @@ class PaymentRequestResource extends Resource
                         Forms\Components\Select::make('payment_type_id')
                             ->label('Tipo de Pago')
                             ->placeholder('Seleccionar Tipo de Pago')
-                            ->relationship('paymentType', 'name')
+                            ->relationship('paymentType', 'name', fn (Builder $query) => $query->forPayments()->active())
                             ->searchable()
                             ->preload()
                             ->required()

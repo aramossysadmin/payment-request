@@ -121,7 +121,7 @@ class InvestmentRequestResource extends Resource
                         Forms\Components\Select::make('payment_type_id')
                             ->label('Tipo de Pago')
                             ->placeholder('Seleccionar Tipo de Pago')
-                            ->relationship('paymentType', 'name')
+                            ->relationship('paymentType', 'name', fn (Builder $query) => $query->forInvestments()->active())
                             ->searchable()
                             ->preload()
                             ->required()

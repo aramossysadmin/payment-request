@@ -26,7 +26,8 @@ class PaymentRequestResource extends JsonResource
                 'id' => $this->paymentType?->id,
                 'name' => $this->paymentType?->name,
                 'slug' => $this->paymentType?->slug,
-                'requires_invoice_documents' => $this->paymentType?->requires_invoice_documents ?? false,
+                'invoice_documents_mode' => $this->paymentType?->invoice_documents_mode?->value ?? 'disabled',
+                'additional_documents_mode' => $this->paymentType?->additional_documents_mode?->value ?? 'optional',
             ],
             'advance_documents' => $this->advance_documents,
             'status' => [

@@ -30,7 +30,8 @@ export type InvestmentRequest = {
         id: number;
         name: string;
         slug: string;
-        requires_invoice_documents: boolean;
+        invoice_documents_mode: 'disabled' | 'optional' | 'required';
+        additional_documents_mode: 'disabled' | 'optional' | 'required';
     };
     advance_documents: string[] | null;
     status: InvestmentRequestStatus;

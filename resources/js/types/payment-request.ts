@@ -8,7 +8,8 @@ export type PaymentTypeOption = {
     id: number;
     name: string;
     slug: string;
-    requires_invoice_documents: boolean;
+    invoice_documents_mode: 'disabled' | 'optional' | 'required';
+    additional_documents_mode: 'disabled' | 'optional' | 'required';
 };
 
 export type Currency = {

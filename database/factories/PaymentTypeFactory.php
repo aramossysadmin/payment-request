@@ -20,7 +20,8 @@ class PaymentTypeFactory extends Factory
         return [
             'name' => fake()->unique()->word(),
             'slug' => fake()->unique()->slug(2),
-            'requires_invoice_documents' => false,
+            'invoice_documents_mode' => 'disabled',
+            'additional_documents_mode' => 'optional',
             'is_active' => true,
         ];
     }

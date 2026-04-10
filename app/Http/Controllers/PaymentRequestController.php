@@ -105,7 +105,7 @@ class PaymentRequestController extends Controller
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
-            'paymentTypes' => PaymentType::active()->get(['id', 'name', 'slug', 'requires_invoice_documents']),
+            'paymentTypes' => PaymentType::active()->forPayments()->get(['id', 'name', 'slug', 'invoice_documents_mode', 'additional_documents_mode']),
         ]);
     }
 
@@ -114,10 +114,15 @@ class PaymentRequestController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
-        $advanceDocuments = [];
+        $allDocuments = [];
+        if ($request->hasFile('invoice_documents')) {
+            foreach ($request->file('invoice_documents') as $file) {
+                $allDocuments[] = $file->store('advance-documents', 'public');
+            }
+        }
         if ($request->hasFile('advance_documents')) {
             foreach ($request->file('advance_documents') as $file) {
-                $advanceDocuments[] = $file->store('advance-documents', 'public');
+                $allDocuments[] = $file->store('advance-documents', 'public');
             }
         }
 
@@ -125,7 +130,7 @@ class PaymentRequestController extends Controller
             ...$validated,
             'user_id' => $user->id,
             'department_id' => $user->department_id,
-            'advance_documents' => $advanceDocuments ?: null,
+            'advance_documents' => $allDocuments ?: null,
         ]);
 
         $this->approvalService->createApprovals($paymentRequest);
@@ -185,7 +190,7 @@ class PaymentRequestController extends Controller
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
-            'paymentTypes' => PaymentType::active()->get(['id', 'name', 'slug', 'requires_invoice_documents']),
+            'paymentTypes' => PaymentType::active()->forPayments()->get(['id', 'name', 'slug', 'invoice_documents_mode', 'additional_documents_mode']),
         ]);
     }
 
@@ -197,20 +202,29 @@ class PaymentRequestController extends Controller
 
         $validated = $request->validated();
 
-        $advanceDocuments = $paymentRequest->advance_documents ?? [];
-        if ($request->hasFile('advance_documents')) {
-            foreach ($advanceDocuments as $oldPath) {
+        $hasNewFiles = $request->hasFile('invoice_documents') || $request->hasFile('advance_documents');
+        $allDocuments = $paymentRequest->advance_documents ?? [];
+
+        if ($hasNewFiles) {
+            foreach ($allDocuments as $oldPath) {
                 Storage::disk('public')->delete($oldPath);
             }
-            $advanceDocuments = [];
-            foreach ($request->file('advance_documents') as $file) {
-                $advanceDocuments[] = $file->store('advance-documents', 'public');
+            $allDocuments = [];
+            if ($request->hasFile('invoice_documents')) {
+                foreach ($request->file('invoice_documents') as $file) {
+                    $allDocuments[] = $file->store('advance-documents', 'public');
+                }
+            }
+            if ($request->hasFile('advance_documents')) {
+                foreach ($request->file('advance_documents') as $file) {
+                    $allDocuments[] = $file->store('advance-documents', 'public');
+                }
             }
         }
 
         $paymentRequest->update([
             ...$validated,
-            'advance_documents' => $advanceDocuments ?: null,
+            'advance_documents' => $allDocuments ?: null,
         ]);
 
         return redirect()->route('payment-requests.show', $paymentRequest)

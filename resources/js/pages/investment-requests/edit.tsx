@@ -147,14 +147,15 @@ export default function Edit() {
         });
 
         const selectedType = paymentTypes.find((pt) => String(pt.id) === values.payment_type_id);
-        if (selectedType?.requires_invoice_documents) {
+        if (selectedType?.invoice_documents_mode !== 'disabled') {
             if (invoicePdf) {
-                formData.append('advance_documents[]', invoicePdf);
+                formData.append('invoice_documents[]', invoicePdf);
             }
             if (invoiceXml) {
-                formData.append('advance_documents[]', invoiceXml);
+                formData.append('invoice_documents[]', invoiceXml);
             }
-        } else {
+        }
+        if (selectedType?.additional_documents_mode !== 'disabled') {
             files.forEach((file) => {
                 formData.append('advance_documents[]', file);
             });
@@ -364,66 +365,84 @@ export default function Edit() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Documentos Solicitudes de Inversión</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {pr.advance_documents &&
-                                pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).length > 0 && (
-                                    <div className="mb-4">
-                                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                            Documentos actuales:
-                                        </p>
-                                        <ul className="space-y-1">
-                                            {pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).map(
-                                                (doc, i) => (
-                                                    <li
-                                                        key={i}
-                                                        className="text-sm text-gray-700 dark:text-gray-300"
-                                                    >
-                                                        {doc
-                                                            .split('/')
-                                                            .pop()}
-                                                    </li>
-                                                ),
-                                            )}
-                                        </ul>
-                                    </div>
-                                )}
-                            {paymentTypes.find((pt) => String(pt.id) === values.payment_type_id)?.requires_invoice_documents ? (
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label>Factura PDF <span className="text-red-500">*</span></Label>
-                                        <FileUpload
-                                            files={invoicePdf ? [invoicePdf] : []}
-                                            onChange={(f) => setInvoicePdf(f[0] ?? null)}
-                                            maxFiles={1}
-                                            accept=".pdf"
-                                            error={errors['advance_documents'] || errors['advance_documents.0']}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Factura XML <span className="text-red-500">*</span></Label>
-                                        <FileUpload
-                                            files={invoiceXml ? [invoiceXml] : []}
-                                            onChange={(f) => setInvoiceXml(f[0] ?? null)}
-                                            maxFiles={1}
-                                            accept=".xml"
-                                            error={errors['advance_documents.1']}
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <FileUpload
-                                    files={files}
-                                    onChange={setFiles}
-                                    maxFiles={10}
-                                    error={errors.advance_documents || errors['advance_documents.0']}
-                                />
-                            )}
-                        </CardContent>
-                    </Card>
+                    {(() => {
+                        const selectedType = paymentTypes.find((pt) => String(pt.id) === values.payment_type_id);
+                        const invoiceMode = selectedType?.invoice_documents_mode ?? 'disabled';
+                        const additionalMode = selectedType?.additional_documents_mode ?? 'disabled';
+                        const showInvoice = invoiceMode !== 'disabled';
+                        const showAdditional = additionalMode !== 'disabled';
+
+                        if (!showInvoice && !showAdditional) return null;
+
+                        return (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Documentos Solicitudes de Inversión</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    {pr.advance_documents &&
+                                        pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).length > 0 && (
+                                            <div>
+                                                <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                                    Documentos actuales:
+                                                </p>
+                                                <ul className="space-y-1">
+                                                    {pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).map(
+                                                        (doc, i) => (
+                                                            <li key={i} className="text-sm text-gray-700 dark:text-gray-300">
+                                                                {doc.split('/').pop()}
+                                                            </li>
+                                                        ),
+                                                    )}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    {showInvoice && (
+                                        <div>
+                                            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Factura (PDF + XML){invoiceMode === 'required' && <span className="text-red-500"> *</span>}
+                                            </p>
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <div className="space-y-2">
+                                                    <Label>Factura PDF{invoiceMode === 'required' && <span className="text-red-500"> *</span>}</Label>
+                                                    <FileUpload
+                                                        files={invoicePdf ? [invoicePdf] : []}
+                                                        onChange={(f) => setInvoicePdf(f[0] ?? null)}
+                                                        maxFiles={1}
+                                                        accept=".pdf"
+                                                        error={errors['invoice_documents'] || errors['invoice_documents.0']}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Factura XML{invoiceMode === 'required' && <span className="text-red-500"> *</span>}</Label>
+                                                    <FileUpload
+                                                        files={invoiceXml ? [invoiceXml] : []}
+                                                        onChange={(f) => setInvoiceXml(f[0] ?? null)}
+                                                        maxFiles={1}
+                                                        accept=".xml"
+                                                        error={errors['invoice_documents.1']}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {showAdditional && (
+                                        <div>
+                                            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Documentos Adicionales{additionalMode === 'required' && <span className="text-red-500"> *</span>}
+                                            </p>
+                                            <FileUpload
+                                                files={files}
+                                                onChange={setFiles}
+                                                maxFiles={10}
+                                                error={errors.advance_documents || errors['advance_documents.0']}
+                                            />
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        );
+                    })()}
 
                     <Card>
                         <CardHeader>

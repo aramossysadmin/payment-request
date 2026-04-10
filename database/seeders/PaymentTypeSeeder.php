@@ -10,9 +10,9 @@ class PaymentTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            ['name' => 'PAGO CON FACTURA', 'slug' => 'invoice', 'requires_invoice_documents' => true],
-            ['name' => 'ANTICIPO', 'slug' => 'advance', 'requires_invoice_documents' => false],
-            ['name' => 'INVERSIONES', 'slug' => 'investment', 'requires_invoice_documents' => false],
+            ['name' => 'PAGO CON FACTURA', 'slug' => 'invoice', 'invoice_documents_mode' => 'required', 'additional_documents_mode' => 'optional', 'category' => 'payment'],
+            ['name' => 'ANTICIPO', 'slug' => 'advance', 'invoice_documents_mode' => 'disabled', 'additional_documents_mode' => 'optional', 'category' => 'payment'],
+            ['name' => 'INVERSIONES', 'slug' => 'investment', 'invoice_documents_mode' => 'disabled', 'additional_documents_mode' => 'optional', 'category' => 'investment'],
         ];
 
         foreach ($types as $type) {

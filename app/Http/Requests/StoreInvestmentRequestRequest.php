@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\DocumentMode;
 use App\Enums\IvaRate;
 use App\Models\PaymentType;
 use Illuminate\Foundation\Http\FormRequest;
@@ -21,7 +22,11 @@ class StoreInvestmentRequestRequest extends FormRequest
     public function rules(): array
     {
         $paymentType = PaymentType::find($this->input('payment_type_id'));
-        $isInvoice = $paymentType?->requires_invoice_documents ?? false;
+        $invoiceMode = $paymentType?->invoice_documents_mode ?? DocumentMode::Disabled;
+        $additionalMode = $paymentType?->additional_documents_mode ?? DocumentMode::Optional;
+
+        $invoiceRequired = $invoiceMode === DocumentMode::Required;
+        $additionalRequired = $additionalMode === DocumentMode::Required;
 
         return [
             'provider' => ['required', 'string', 'max:255'],
@@ -32,7 +37,9 @@ class StoreInvestmentRequestRequest extends FormRequest
             'expense_concept_id' => ['required', 'integer', Rule::exists('expense_concepts', 'id')],
             'description' => ['nullable', 'string', 'max:1000'],
             'payment_type_id' => ['required', 'integer', Rule::exists('payment_types', 'id')],
-            'advance_documents' => [$isInvoice ? 'required' : 'nullable', 'array', $isInvoice ? 'size:2' : 'max:10'],
+            'invoice_documents' => [$invoiceRequired ? 'required' : 'nullable', 'array', 'size:2'],
+            'invoice_documents.*' => ['file', 'max:10240'],
+            'advance_documents' => [$additionalRequired ? 'required' : 'nullable', 'array', 'max:10'],
             'advance_documents.*' => ['file', 'max:10240'],
             'iva_rate' => ['required', Rule::enum(IvaRate::class)],
             'subtotal' => ['required', 'numeric', 'min:0'],
@@ -46,13 +53,23 @@ class StoreInvestmentRequestRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             $paymentType = PaymentType::find($this->input('payment_type_id'));
+            $invoiceMode = $paymentType?->invoice_documents_mode ?? DocumentMode::Disabled;
 
-            if (! $paymentType?->requires_invoice_documents) {
+            if ($invoiceMode === DocumentMode::Disabled) {
                 return;
             }
 
-            $files = $this->file('advance_documents', []);
-            if (! is_array($files) || count($files) !== 2) {
+            $files = $this->file('invoice_documents', []);
+            if (! is_array($files) || count($files) === 0) {
+                return;
+            }
+
+            if (count($files) !== 2) {
+                $validator->errors()->add(
+                    'invoice_documents',
+                    'Debe subir exactamente 1 archivo PDF y 1 archivo XML.',
+                );
+
                 return;
             }
 
@@ -65,8 +82,8 @@ class StoreInvestmentRequestRequest extends FormRequest
 
             if ($extensions !== ['pdf', 'xml']) {
                 $validator->errors()->add(
-                    'advance_documents',
-                    'Para este tipo de pago debe subir exactamente 1 archivo PDF y 1 archivo XML.',
+                    'invoice_documents',
+                    'Debe subir exactamente 1 archivo PDF y 1 archivo XML.',
                 );
             }
         });
@@ -91,8 +108,10 @@ class StoreInvestmentRequestRequest extends FormRequest
             'expense_concept_id.exists' => 'El concepto de gasto seleccionado no es válido.',
             'payment_type_id.required' => 'El tipo de pago es obligatorio.',
             'payment_type_id.exists' => 'El tipo de pago seleccionado no es válido.',
-            'advance_documents.required' => 'Los documentos son obligatorios para este tipo de pago.',
-            'advance_documents.size' => 'Debe subir exactamente 2 archivos (1 PDF y 1 XML).',
+            'invoice_documents.required' => 'Los documentos de factura (PDF + XML) son obligatorios para este tipo de pago.',
+            'invoice_documents.size' => 'Debe subir exactamente 2 archivos (1 PDF y 1 XML).',
+            'invoice_documents.*.max' => 'Cada documento no debe superar los 10MB.',
+            'advance_documents.required' => 'Los documentos adicionales son obligatorios para este tipo de pago.',
             'advance_documents.max' => 'No se permiten más de 10 documentos.',
             'advance_documents.*.max' => 'Cada documento no debe superar los 10MB.',
             'iva_rate.required' => 'La tasa de IVA es obligatoria.',

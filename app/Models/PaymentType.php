@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentMode;
+use App\Enums\PaymentTypeCategory;
 use Database\Factories\PaymentTypeFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,8 +20,10 @@ class PaymentType extends Model
     protected $fillable = [
         'name',
         'slug',
-        'requires_invoice_documents',
+        'invoice_documents_mode',
+        'additional_documents_mode',
         'is_active',
+        'category',
     ];
 
     /**
@@ -28,8 +32,10 @@ class PaymentType extends Model
     protected function casts(): array
     {
         return [
-            'requires_invoice_documents' => 'boolean',
+            'invoice_documents_mode' => DocumentMode::class,
+            'additional_documents_mode' => DocumentMode::class,
             'is_active' => 'boolean',
+            'category' => PaymentTypeCategory::class,
         ];
     }
 
@@ -52,8 +58,23 @@ class PaymentType extends Model
         return $query->where('is_active', true);
     }
 
+    public function scopeForPayments(Builder $query): Builder
+    {
+        return $query->where('category', PaymentTypeCategory::Payment);
+    }
+
+    public function scopeForInvestments(Builder $query): Builder
+    {
+        return $query->where('category', PaymentTypeCategory::Investment);
+    }
+
     public function paymentRequests(): HasMany
     {
         return $this->hasMany(PaymentRequest::class);
+    }
+
+    public function investmentRequests(): HasMany
+    {
+        return $this->hasMany(InvestmentRequest::class);
     }
 }
