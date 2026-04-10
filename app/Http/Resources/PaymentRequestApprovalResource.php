@@ -16,6 +16,7 @@ class PaymentRequestApprovalResource extends JsonResource
         return [
             'id' => $this->id,
             'stage' => $this->stage,
+            'level' => $this->level,
             'status' => $this->status,
             'comments' => $this->comments,
             'responded_at' => $this->responded_at?->toISOString(),

@@ -35,6 +35,7 @@ export type Department = {
 export type PaymentRequestApproval = {
     id: number;
     stage: 'department' | 'administration' | 'treasury';
+    level: 1 | 2;
     status: 'pending' | 'approved' | 'rejected';
     comments: string | null;
     responded_at: string | null;

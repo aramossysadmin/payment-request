@@ -5,7 +5,7 @@ namespace App\Models;
 use Database\Factories\DepartmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -17,6 +17,8 @@ class Department extends Model
     protected $fillable = [
         'name',
         'description',
+        'authorizer_level_1_id',
+        'authorizer_level_2_id',
     ];
 
     protected function setNameAttribute(string $value): void
@@ -41,8 +43,13 @@ class Department extends Model
         return $this->hasMany(User::class);
     }
 
-    public function authorizers(): BelongsToMany
+    public function authorizerLevel1(): BelongsTo
     {
-        return $this->belongsToMany(User::class)->withTimestamps();
+        return $this->belongsTo(User::class, 'authorizer_level_1_id');
+    }
+
+    public function authorizerLevel2(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'authorizer_level_2_id');
     }
 }

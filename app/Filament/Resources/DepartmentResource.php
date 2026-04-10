@@ -40,16 +40,22 @@ class DepartmentResource extends Resource
                         Forms\Components\Textarea::make('description')
                             ->label('Descripción')
                             ->rows(3),
-                        Forms\Components\Select::make('authorizers')
-                            ->label('Autorizador(es)')
-                            ->relationship(
-                                'authorizers',
-                                'name',
-                                fn (Builder $query) => $query->where('is_active', true)
-                            )
-                            ->multiple()
+                        Forms\Components\Select::make('authorizer_level_1_id')
+                            ->label('Autorizador Nivel 1')
+                            ->relationship('authorizerLevel1', 'name', fn (Builder $query) => $query->where('is_active', true))
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->required()
+                            ->live(),
+                        Forms\Components\Select::make('authorizer_level_2_id')
+                            ->label('Autorizador Nivel 2')
+                            ->relationship('authorizerLevel2', 'name', fn (Builder $query) => $query->where('is_active', true))
+                            ->searchable()
+                            ->preload()
+                            ->different('authorizer_level_1_id')
+                            ->validationMessages([
+                                'different' => 'El Autorizador Nivel 2 debe ser diferente al Autorizador Nivel 1.',
+                            ]),
                     ]),
             ]);
     }
@@ -68,9 +74,12 @@ class DepartmentResource extends Resource
                     ->limit(50)
                     ->sortable()
                     ->toggleable(),
-                Tables\Columns\TextColumn::make('authorizers.name')
-                    ->label('Autorizador(es)')
-                    ->badge()
+                Tables\Columns\TextColumn::make('authorizerLevel1.name')
+                    ->label('Autorizador Nivel 1')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('authorizerLevel2.name')
+                    ->label('Autorizador Nivel 2')
+                    ->placeholder('—')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')

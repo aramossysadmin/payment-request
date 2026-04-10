@@ -16,6 +16,7 @@ class PaymentRequestApproval extends Model
         'payment_request_id',
         'user_id',
         'stage',
+        'level',
         'status',
         'comments',
         'responded_at',

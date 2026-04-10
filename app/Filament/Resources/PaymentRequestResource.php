@@ -401,7 +401,7 @@ class PaymentRequestResource extends Resource
             return $query;
         }
 
-        $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('departments.id');
+        $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('id');
 
         if ($authorizedDepartmentIds->isNotEmpty()) {
             return $query->where(function (Builder $q) use ($user, $authorizedDepartmentIds): void {
@@ -425,7 +425,8 @@ class PaymentRequestResource extends Resource
                 Forms\Components\TextInput::make('number_purchase_invoices')
                     ->label('Folio SAP Factura Proveedores')
                     ->numeric()
-                    ->minValue(1),
+                    ->minValue(1)
+                    ->default($record->number_purchase_invoices),
             ];
         }
 
@@ -434,7 +435,8 @@ class PaymentRequestResource extends Resource
                 Forms\Components\TextInput::make('number_vendor_payments')
                     ->label('Folio SAP Pago Efectuado')
                     ->numeric()
-                    ->minValue(1),
+                    ->minValue(1)
+                    ->default($record->number_vendor_payments),
             ];
         }
 

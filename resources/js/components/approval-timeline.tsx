@@ -79,6 +79,9 @@ export function ApprovalTimeline({
                                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                 {stageLabels[approval.stage] ??
                                                     approval.stage}
+                                                <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                                                    (Nivel {approval.level})
+                                                </span>
                                             </p>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                                 {approval.user.name} —{' '}

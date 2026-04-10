@@ -145,7 +145,7 @@ class PaymentRequest extends Model
         }
 
         if ($user->authorizedDepartments()->exists()) {
-            $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('departments.id');
+            $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('id');
 
             return $query->where(function ($q) use ($user, $authorizedDepartmentIds) {
                 $q->whereIn('department_id', $authorizedDepartmentIds)

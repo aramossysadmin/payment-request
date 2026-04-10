@@ -9,7 +9,6 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -83,9 +82,13 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(PaymentRequest::class);
     }
 
-    public function authorizedDepartments(): BelongsToMany
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<Department>
+     */
+    public function authorizedDepartments(): \Illuminate\Database\Eloquent\Builder
     {
-        return $this->belongsToMany(Department::class)->withTimestamps();
+        return Department::where('authorizer_level_1_id', $this->id)
+            ->orWhere('authorizer_level_2_id', $this->id);
     }
 
     /**
