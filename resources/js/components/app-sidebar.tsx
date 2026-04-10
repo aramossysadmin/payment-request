@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { FileText, LayoutGrid } from 'lucide-react';
+import { Banknote, FileText, LayoutGrid } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -25,6 +25,11 @@ const mainNavItems: NavItem[] = [
         title: 'Solicitudes de Pago',
         href: '/payment-requests',
         icon: FileText,
+    },
+    {
+        title: 'Solicitudes de Inversión',
+        href: '/investment-requests',
+        icon: Banknote,
     },
 ];
 

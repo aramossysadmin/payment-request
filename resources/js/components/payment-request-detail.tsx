@@ -17,6 +17,7 @@ type PaymentRequestDetailProps = {
     approvalStage?: 'department' | 'administration' | 'treasury' | null;
     canEditPurchaseInvoices?: boolean;
     canEditVendorPayments?: boolean;
+    baseUrl?: string;
 };
 
 export function PaymentRequestDetail({
@@ -25,6 +26,7 @@ export function PaymentRequestDetail({
     approvalStage = null,
     canEditPurchaseInvoices = false,
     canEditVendorPayments = false,
+    baseUrl = '/payment-requests',
 }: PaymentRequestDetailProps) {
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -53,7 +55,7 @@ export function PaymentRequestDetail({
             data.number_vendor_payments = sapFieldValue;
         }
 
-        router.post(`/payment-requests/${pr.uuid}/approve`, data, {
+        router.post(`${baseUrl}/${pr.uuid}/approve`, data, {
             onFinish: () => {
                 setProcessing(false);
                 setApproveDialogOpen(false);
@@ -65,7 +67,7 @@ export function PaymentRequestDetail({
     const handleReject = () => {
         setProcessing(true);
         router.post(
-            `/payment-requests/${pr.uuid}/reject`,
+            `${baseUrl}/${pr.uuid}/reject`,
             { comments: rejectComments },
             {
                 onFinish: () => {
@@ -82,7 +84,7 @@ export function PaymentRequestDetail({
         const value = field === 'number_purchase_invoices' ? purchaseInvoicesValue : vendorPaymentsValue;
 
         router.patch(
-            `/payment-requests/${pr.uuid}/sap-folios`,
+            `${baseUrl}/${pr.uuid}/sap-folios`,
             { [field]: value || null },
             {
                 onFinish: () => {
@@ -124,7 +126,7 @@ export function PaymentRequestDetail({
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => router.visit(`/payment-requests/${pr.uuid}/edit`)}
+                                                onClick={() => router.visit(`${baseUrl}/${pr.uuid}/edit`)}
                                             >
                                                 <Pencil className="size-4" />
                                                 Editar

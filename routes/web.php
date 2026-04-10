@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailApprovalController;
+use App\Http\Controllers\InvestmentRequestApprovalController;
+use App\Http\Controllers\InvestmentRequestController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestApprovalController;
 use App\Http\Controllers\PaymentRequestController;
@@ -26,6 +28,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('payment-requests/{payment_request}/approve', [PaymentRequestApprovalController::class, 'approve'])->name('payment-requests.approve');
     Route::post('payment-requests/{payment_request}/reject', [PaymentRequestApprovalController::class, 'reject'])->name('payment-requests.reject');
     Route::patch('payment-requests/{payment_request}/sap-folios', [PaymentRequestApprovalController::class, 'updateSapFolios'])->name('payment-requests.sap-folios');
+
+    Route::resource('investment-requests', InvestmentRequestController::class);
+    Route::post('investment-requests/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->name('investment-requests.approve');
+    Route::post('investment-requests/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->name('investment-requests.reject');
+    Route::patch('investment-requests/{investment_request}/sap-folios', [InvestmentRequestApprovalController::class, 'updateSapFolios'])->name('investment-requests.sap-folios');
 
     Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');

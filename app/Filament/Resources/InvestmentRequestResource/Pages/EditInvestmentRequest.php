@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Filament\Resources\InvestmentRequestResource\Pages;
+
+use App\Filament\Resources\InvestmentRequestResource;
+use Filament\Actions;
+use Filament\Resources\Pages\EditRecord;
+
+class EditInvestmentRequest extends EditRecord
+{
+    protected static string $resource = InvestmentRequestResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\DeleteAction::make(),
+            Actions\RestoreAction::make(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (isset($data['advance_documents']) && is_array($data['advance_documents'])) {
+            $data['advance_documents'] = array_values(array_filter(
+                $data['advance_documents'],
+                fn ($doc): bool => is_string($doc) && $doc !== '',
+            ));
+
+            if (empty($data['advance_documents'])) {
+                $data['advance_documents'] = null;
+            }
+        }
+
+        return $data;
+    }
+
+    protected function getRedirectUrl(): ?string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+}
