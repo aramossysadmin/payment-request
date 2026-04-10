@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\PaymentRequest;
 use App\Models\User;
+use App\Notifications\Concerns\IncludesRequestDetails;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -13,6 +14,7 @@ use Illuminate\Notifications\Notification;
 
 class PaymentRequestCreated extends Notification implements ShouldQueue
 {
+    use IncludesRequestDetails;
     use Queueable;
 
     public function __construct(
@@ -42,6 +44,9 @@ class PaymentRequestCreated extends Notification implements ShouldQueue
             ->line('**Proveedor:** '.$this->paymentRequest->provider)
             ->line('**Folio:** '.$this->paymentRequest->invoice_folio)
             ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'));
+
+        $this->appendStageInfo($mail, $this->paymentRequest);
+        $this->appendDocumentLinks($mail, $this->paymentRequest);
 
         if ($this->approvalToken) {
             $mail->action('Autorizar / Rechazar Solicitud', url('/approval/'.$this->approvalToken))

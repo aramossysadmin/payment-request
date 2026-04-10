@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\InvestmentRequest;
 use App\Models\User;
+use App\Notifications\Concerns\IncludesRequestDetails;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -13,6 +14,7 @@ use Illuminate\Notifications\Notification;
 
 class InvestmentRequestLevel2Rejected extends Notification implements ShouldQueue
 {
+    use IncludesRequestDetails;
     use Queueable;
 
     public function __construct(
@@ -41,6 +43,9 @@ class InvestmentRequestLevel2Rejected extends Notification implements ShouldQueu
             ->line('**Solicitante:** '.$this->investmentRequest->user->name)
             ->line('**Proveedor:** '.$this->investmentRequest->provider)
             ->line('**Total:** $ '.number_format($this->investmentRequest->total, 2).' '.($this->investmentRequest->currency->prefix ?? 'MXN'));
+
+        $this->appendStageInfo($mail, $this->investmentRequest);
+        $this->appendDocumentLinks($mail, $this->investmentRequest);
 
         if ($this->approvalToken) {
             $mail->action('Revisar y Autorizar / Rechazar', url('/approval/'.$this->approvalToken))

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentViewController;
 use App\Http\Controllers\EmailApprovalController;
 use App\Http\Controllers\InvestmentRequestApprovalController;
 use App\Http\Controllers\InvestmentRequestController;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
+
+Route::get('/documents/view', DocumentViewController::class)->name('documents.view');
 
 Route::middleware('throttle:10,1')->group(function () {
     Route::get('/approval/{token}', [EmailApprovalController::class, 'show'])->name('approval.show');

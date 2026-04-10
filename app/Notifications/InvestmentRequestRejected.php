@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\InvestmentRequest;
 use App\Models\User;
+use App\Notifications\Concerns\IncludesRequestDetails;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -13,6 +14,7 @@ use Illuminate\Notifications\Notification;
 
 class InvestmentRequestRejected extends Notification implements ShouldQueue
 {
+    use IncludesRequestDetails;
     use Queueable;
 
     public function __construct(
@@ -31,15 +33,21 @@ class InvestmentRequestRejected extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Solicitud de Inversión #'.$this->investmentRequest->folio_number.' - Rechazada')
             ->greeting('Hola '.$notifiable->name)
             ->salutation('Saludos, '.config('app.name'))
             ->line($this->rejector->name.' ha rechazado la solicitud de inversión.')
             ->line('**Motivo:** '.$this->comments)
             ->line('**Proveedor:** '.$this->investmentRequest->provider)
-            ->line('**Total:** $ '.number_format($this->investmentRequest->total, 2).' '.($this->investmentRequest->currency->prefix ?? 'MXN'))
-            ->action('Ver Solicitud', url('/admin/investment-requests/'.$this->investmentRequest->uuid.'/edit'));
+            ->line('**Total:** $ '.number_format($this->investmentRequest->total, 2).' '.($this->investmentRequest->currency->prefix ?? 'MXN'));
+
+        $this->appendStageInfo($mail, $this->investmentRequest);
+        $this->appendDocumentLinks($mail, $this->investmentRequest);
+
+        $mail->action('Ver Solicitud', url('/admin/investment-requests/'.$this->investmentRequest->uuid.'/edit'));
+
+        return $mail;
     }
 
     /**

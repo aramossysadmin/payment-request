@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\PaymentRequest;
 use App\Models\User;
+use App\Notifications\Concerns\IncludesRequestDetails;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Bus\Queueable;
@@ -13,6 +14,7 @@ use Illuminate\Notifications\Notification;
 
 class PaymentRequestLevel2Rejected extends Notification implements ShouldQueue
 {
+    use IncludesRequestDetails;
     use Queueable;
 
     public function __construct(
@@ -41,6 +43,9 @@ class PaymentRequestLevel2Rejected extends Notification implements ShouldQueue
             ->line('**Solicitante:** '.$this->paymentRequest->user->name)
             ->line('**Proveedor:** '.$this->paymentRequest->provider)
             ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'));
+
+        $this->appendStageInfo($mail, $this->paymentRequest);
+        $this->appendDocumentLinks($mail, $this->paymentRequest);
 
         if ($this->approvalToken) {
             $mail->action('Revisar y Autorizar / Rechazar', url('/approval/'.$this->approvalToken))
