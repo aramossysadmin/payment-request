@@ -368,14 +368,14 @@ export function PaymentRequestDetail({
                     </Card>
                 )}
 
-                {pr.advance_documents && pr.advance_documents.length > 0 && (
+                {pr.advance_documents && pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).length > 0 && (
                     <Card>
                         <CardHeader>
                             <CardTitle>Documentos Solicitudes de Pago</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <ul className="space-y-2">
-                                {pr.advance_documents.map((doc, index) => {
+                                {pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).map((doc, index) => {
                                     const filename = doc.split('/').pop() ?? doc;
 
                                     return (

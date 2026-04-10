@@ -370,13 +370,13 @@ export default function Edit() {
                         </CardHeader>
                         <CardContent>
                             {pr.advance_documents &&
-                                pr.advance_documents.length > 0 && (
+                                pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).length > 0 && (
                                     <div className="mb-4">
                                         <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                                             Documentos actuales:
                                         </p>
                                         <ul className="space-y-1">
-                                            {pr.advance_documents.map(
+                                            {pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).map(
                                                 (doc, i) => (
                                                     <li
                                                         key={i}
