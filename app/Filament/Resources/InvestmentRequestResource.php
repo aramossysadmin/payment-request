@@ -356,6 +356,13 @@ class InvestmentRequestResource extends Resource
                             ->danger()
                             ->send();
                     }),
+                Tables\Actions\Action::make('pdf')
+                    ->label('PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->visible(fn (InvestmentRequest $record): bool => $record->status::$name === 'completed')
+                    ->url(fn (InvestmentRequest $record): string => route('investment-requests.pdf', $record))
+                    ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),

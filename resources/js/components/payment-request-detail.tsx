@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Check, CheckCircle, Download, Pencil, XCircle } from 'lucide-react';
+import { Check, CheckCircle, Download, FileDown, Pencil, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { ApprovalTimeline } from '@/components/approval-timeline';
 import { ConfirmationDialog } from '@/components/confirmation-dialog';
@@ -100,6 +100,7 @@ export function PaymentRequestDetail({
     };
 
     const isEditable = pr.status.name === 'pending_department';
+    const isCompleted = pr.status.name === 'completed';
     const showSapSection = pr.status.name !== 'pending_department';
 
     const showSapFieldInModal = approvalStage === 'administration' || approvalStage === 'treasury';
@@ -120,8 +121,16 @@ export function PaymentRequestDetail({
                                 <p className="font-mono text-xs text-muted-foreground">
                                     {pr.uuid}
                                 </p>
-                                {(isEditable || canApprove) && (
+                                {(isEditable || canApprove || isCompleted) && (
                                     <div className="flex gap-2 pt-1">
+                                        {isCompleted && (
+                                            <a href={`${baseUrl}/${pr.uuid}/pdf`} target="_blank" rel="noopener noreferrer">
+                                                <Button variant="outline" size="sm">
+                                                    <FileDown className="size-4" />
+                                                    PDF
+                                                </Button>
+                                            </a>
+                                        )}
                                         {isEditable && (
                                             <Button
                                                 variant="outline"
