@@ -22,6 +22,8 @@ trait IncludesRequestDetails
      */
     private function appendStageInfo(MailMessage $mail, mixed $request): MailMessage
     {
+        $mail->line('**Departamento:** '.($request->department->name ?? '-'));
+
         $latestApproval = $request->approvals()
             ->latest()
             ->first();
@@ -29,8 +31,6 @@ trait IncludesRequestDetails
         if ($latestApproval) {
             $mail->line('**Etapa actual:** '.$this->stageLabel($latestApproval->stage).' - Nivel '.$latestApproval->level);
         }
-
-        $mail->line('**Departamento:** '.($request->department->name ?? '-'));
 
         return $mail;
     }

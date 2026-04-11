@@ -22,9 +22,14 @@ class DocumentViewController extends Controller
 
         $mimeType = Storage::disk('public')->mimeType($path);
         $filename = basename($path);
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
-        return Storage::disk('public')->response($path, $filename, [
-            'Content-Type' => $mimeType,
-        ]);
+        if ($extension === 'pdf') {
+            return Storage::disk('public')->response($path, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
+
+        return Storage::disk('public')->download($path, $filename);
     }
 }
