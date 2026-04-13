@@ -15,12 +15,15 @@ import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 
-const mainNavItems: NavItem[] = [
+const platformItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Panel',
         href: dashboard(),
         icon: LayoutGrid,
     },
+];
+
+const requestItems: NavItem[] = [
     {
         title: 'Solicitudes de Pago',
         href: '/payment-requests',
@@ -31,6 +34,9 @@ const mainNavItems: NavItem[] = [
         href: '/investment-requests',
         icon: Banknote,
     },
+];
+
+const docsItems: NavItem[] = [
     {
         title: 'Guía de Usuario',
         href: '/guide',
@@ -54,7 +60,9 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={platformItems} label="Plataforma" />
+                <NavMain items={requestItems} label="Solicitudes" />
+                <NavMain items={docsItems} label="Documentación" />
             </SidebarContent>
 
             <SidebarFooter>
