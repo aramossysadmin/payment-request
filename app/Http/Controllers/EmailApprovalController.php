@@ -2,18 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InvestmentRequestApproval;
 use App\Models\PaymentRequestApproval;
 use App\Services\ApprovalService;
+use App\Services\InvestmentApprovalService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class EmailApprovalController extends Controller
 {
-    public function __construct(private ApprovalService $approvalService) {}
+    public function __construct(
+        private ApprovalService $approvalService,
+        private InvestmentApprovalService $investmentApprovalService,
+    ) {}
 
     public function show(string $token): View
     {
-        $approval = PaymentRequestApproval::where('approval_token', $token)->first();
+        $approval = $this->findApprovalByToken($token);
 
         if (! $approval) {
             return view('approval.result', [
@@ -38,11 +44,11 @@ class EmailApprovalController extends Controller
             ]);
         }
 
-        $approval->load(['paymentRequest.user', 'paymentRequest.department', 'paymentRequest.currency', 'paymentRequest.branch', 'paymentRequest.expenseConcept', 'user']);
+        $request = $this->loadRequestRelation($approval);
 
         return view('approval.show', [
             'approval' => $approval,
-            'paymentRequest' => $approval->paymentRequest,
+            'paymentRequest' => $request,
             'token' => $token,
         ]);
     }
@@ -55,17 +61,26 @@ class EmailApprovalController extends Controller
             return $approval;
         }
 
-        $this->approvalService->approve(
-            $approval->paymentRequest,
-            $approval->user,
-        );
+        if ($approval instanceof InvestmentRequestApproval) {
+            $this->investmentApprovalService->approve(
+                $approval->investmentRequest,
+                $approval->user,
+            );
+            $request = $approval->investmentRequest;
+        } else {
+            $this->approvalService->approve(
+                $approval->paymentRequest,
+                $approval->user,
+            );
+            $request = $approval->paymentRequest;
+        }
 
         return view('approval.result', [
             'success' => true,
             'message' => 'La solicitud ha sido autorizada correctamente. Puedes cerrar esta ventana.',
             'action' => 'approved',
-            'folioNumber' => $approval->paymentRequest->folio_number,
-            'provider' => $approval->paymentRequest->provider,
+            'folioNumber' => $request->folio_number,
+            'provider' => $request->provider,
         ]);
     }
 
@@ -84,26 +99,53 @@ class EmailApprovalController extends Controller
             'comments.min' => 'Los comentarios deben tener al menos 10 caracteres.',
         ]);
 
-        $this->approvalService->reject(
-            $approval->paymentRequest,
-            $approval->user,
-            $validated['comments'],
-        );
+        if ($approval instanceof InvestmentRequestApproval) {
+            $this->investmentApprovalService->reject(
+                $approval->investmentRequest,
+                $approval->user,
+                $validated['comments'],
+            );
+            $requestModel = $approval->investmentRequest;
+        } else {
+            $this->approvalService->reject(
+                $approval->paymentRequest,
+                $approval->user,
+                $validated['comments'],
+            );
+            $requestModel = $approval->paymentRequest;
+        }
 
         return view('approval.result', [
             'success' => true,
             'message' => 'La solicitud ha sido rechazada. Puedes cerrar esta ventana.',
             'action' => 'rejected',
-            'folioNumber' => $approval->paymentRequest->folio_number,
-            'provider' => $approval->paymentRequest->provider,
+            'folioNumber' => $requestModel->folio_number,
+            'provider' => $requestModel->provider,
         ]);
     }
 
-    private function resolveValidApproval(string $token): PaymentRequestApproval|View
+    private function findApprovalByToken(string $token): PaymentRequestApproval|InvestmentRequestApproval|null
     {
-        $approval = PaymentRequestApproval::with(['paymentRequest', 'user'])
-            ->where('approval_token', $token)
-            ->first();
+        return PaymentRequestApproval::where('approval_token', $token)->first()
+            ?? InvestmentRequestApproval::where('approval_token', $token)->first();
+    }
+
+    private function loadRequestRelation(PaymentRequestApproval|InvestmentRequestApproval $approval): Model
+    {
+        if ($approval instanceof InvestmentRequestApproval) {
+            $approval->load(['investmentRequest.user', 'investmentRequest.department', 'investmentRequest.currency', 'investmentRequest.branch', 'investmentRequest.expenseConcept', 'investmentRequest.paymentType', 'user']);
+
+            return $approval->investmentRequest;
+        }
+
+        $approval->load(['paymentRequest.user', 'paymentRequest.department', 'paymentRequest.currency', 'paymentRequest.branch', 'paymentRequest.expenseConcept', 'paymentRequest.paymentType', 'user']);
+
+        return $approval->paymentRequest;
+    }
+
+    private function resolveValidApproval(string $token): PaymentRequestApproval|InvestmentRequestApproval|View
+    {
+        $approval = $this->findApprovalByToken($token);
 
         if (! $approval) {
             return view('approval.result', [
@@ -127,6 +169,8 @@ class EmailApprovalController extends Controller
                 'message' => "Esta solicitud ya fue {$statusLabel} previamente.",
             ]);
         }
+
+        $this->loadRequestRelation($approval);
 
         return $approval;
     }

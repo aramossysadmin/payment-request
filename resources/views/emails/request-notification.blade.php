@@ -20,10 +20,7 @@
 </td>
 </tr>
 @endforeach
-</table>
-
 @if (!empty($stageInfo))
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 8px 0;">
 <tr>
 <td style="padding: 6px 0; vertical-align: top; width: 24px;">
 <span style="color: #C5A059; font-size: 14px;">&#8226;</span>
@@ -42,8 +39,8 @@
 </td>
 </tr>
 @endif
-</table>
 @endif
+</table>
 
 {{-- Section: Attached Documents --}}
 @if (!empty($documents))

@@ -87,10 +87,18 @@ trait IncludesRequestDetails
      */
     private function getFullDetails(mixed $request): array
     {
-        return [
+        $details = [
             ['label' => 'Solicitante', 'value' => $request->user->name ?? '-'],
             ['label' => 'Sucursal', 'value' => $request->branch->name ?? '-'],
             ['label' => 'Concepto de Gasto', 'value' => $request->expenseConcept->name ?? '-'],
+        ];
+
+        if ($request->description) {
+            $details[] = ['label' => 'Descripción', 'value' => $request->description];
+        }
+
+        return [
+            ...$details,
             ['label' => 'Tipo de Pago', 'value' => $request->paymentType->name ?? '-'],
             ['label' => 'Proveedor', 'value' => $request->provider],
             ['label' => 'Folio', 'value' => $request->invoice_folio],
