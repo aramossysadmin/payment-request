@@ -12,6 +12,7 @@ use App\Http\Controllers\PaymentRequestController;
 use App\Http\Controllers\PaymentRequestPdfController;
 use App\Http\Controllers\ProviderSearchController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -39,6 +40,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('investment-requests/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->name('investment-requests.approve');
     Route::post('investment-requests/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->name('investment-requests.reject');
     Route::get('investment-requests/{investment_request}/pdf', InvestmentRequestPdfController::class)->name('investment-requests.pdf');
+
+    Route::get('guide', fn () => Inertia::render('guide/index'))->name('guide');
 
     Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
