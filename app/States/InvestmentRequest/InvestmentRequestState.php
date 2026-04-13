@@ -8,9 +8,7 @@ use Spatie\ModelStates\State;
 
 #[
     DefaultState(PendingDepartment::class),
-    AllowTransition(PendingDepartment::class, PendingAdministration::class),
-    AllowTransition(PendingAdministration::class, PendingTreasury::class),
-    AllowTransition(PendingTreasury::class, Completed::class),
+    AllowTransition(PendingDepartment::class, Completed::class),
 ]
 abstract class InvestmentRequestState extends State
 {

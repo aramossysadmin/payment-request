@@ -50,9 +50,10 @@ export default function Show() {
                     paymentRequest={pr}
                     canApprove={canApprove}
                     approvalStage={approvalStage}
-                    canEditPurchaseInvoices={canEditPurchaseInvoices}
-                    canEditVendorPayments={canEditVendorPayments}
+                    canEditPurchaseInvoices={false}
+                    canEditVendorPayments={false}
                     baseUrl="/investment-requests"
+                    showSapFolios={false}
                 />
             </div>
         </AppLayout>

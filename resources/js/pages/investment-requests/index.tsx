@@ -174,9 +174,10 @@ export default function Index() {
                     paymentRequest={selectedRequest as any}
                     canApprove={canApproveSelected}
                     approvalStage={(selectedId ? approvalStages[selectedId] : null) as 'department' | 'administration' | 'treasury' | null}
-                    canEditPurchaseInvoices={selectedId !== null && canEditPurchaseInvoicesIds.includes(selectedId)}
-                    canEditVendorPayments={selectedId !== null && canEditVendorPaymentsIds.includes(selectedId)}
+                    canEditPurchaseInvoices={false}
+                    canEditVendorPayments={false}
                     baseUrl="/investment-requests"
+                    showSapFolios={false}
                 />
             ) : (
                 <div className="flex h-full flex-col items-center justify-center text-muted-foreground">

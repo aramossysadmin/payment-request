@@ -2,6 +2,8 @@
 
 namespace App\Notifications\Concerns;
 
+use App\Models\InvestmentRequest;
+use App\Models\PaymentRequest;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\URL;
 
@@ -18,7 +20,7 @@ trait IncludesRequestDetails
     }
 
     /**
-     * @param  \App\Models\PaymentRequest|\App\Models\InvestmentRequest  $request
+     * @param  PaymentRequest|InvestmentRequest  $request
      */
     private function appendStageInfo(MailMessage $mail, mixed $request): MailMessage
     {
@@ -28,7 +30,7 @@ trait IncludesRequestDetails
             ->latest()
             ->first();
 
-        if ($latestApproval) {
+        if ($latestApproval && ! $request instanceof InvestmentRequest) {
             $mail->line('**Etapa actual:** '.$this->stageLabel($latestApproval->stage).' - Nivel '.$latestApproval->level);
         }
 
@@ -36,7 +38,7 @@ trait IncludesRequestDetails
     }
 
     /**
-     * @param  \App\Models\PaymentRequest|\App\Models\InvestmentRequest  $request
+     * @param  PaymentRequest|InvestmentRequest  $request
      */
     private function appendDocumentLinks(MailMessage $mail, mixed $request): MailMessage
     {

@@ -12,9 +12,7 @@ use App\Models\InvestmentRequest;
 use App\Models\PaymentType;
 use App\Services\InvestmentApprovalService;
 use App\States\InvestmentRequest\Completed;
-use App\States\InvestmentRequest\PendingAdministration;
 use App\States\InvestmentRequest\PendingDepartment;
-use App\States\InvestmentRequest\PendingTreasury;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -50,11 +48,7 @@ class InvestmentRequestController extends Controller
         $group = $request->string('status_group')->toString() ?: 'pending';
 
         if ($group === 'pending') {
-            $query->whereIn('status', [
-                PendingDepartment::$name,
-                PendingAdministration::$name,
-                PendingTreasury::$name,
-            ]);
+            $query->whereState('status', PendingDepartment::$name);
         } elseif ($group === 'completed') {
             $query->whereState('status', Completed::$name);
         }
@@ -63,8 +57,6 @@ class InvestmentRequestController extends Controller
 
         $canApproveIds = [];
         $approvalStages = [];
-        $canEditPurchaseInvoicesIds = [];
-        $canEditVendorPaymentsIds = [];
 
         foreach ($investmentRequests->items() as $ir) {
             $pendingApproval = $ir->approvals
@@ -76,22 +68,14 @@ class InvestmentRequestController extends Controller
                 $canApproveIds[] = $ir->uuid;
                 $approvalStages[$ir->uuid] = $pendingApproval->stage;
             }
-
-            if ($ir->approvals->where('user_id', $user->id)->where('stage', 'administration')->where('status', 'approved')->isNotEmpty()) {
-                $canEditPurchaseInvoicesIds[] = $ir->uuid;
-            }
-
-            if ($ir->approvals->where('user_id', $user->id)->where('stage', 'treasury')->where('status', 'approved')->isNotEmpty()) {
-                $canEditVendorPaymentsIds[] = $ir->uuid;
-            }
         }
 
         return Inertia::render('investment-requests/index', [
             'investmentRequests' => InvestmentRequestResource::collection($investmentRequests),
             'canApproveIds' => $canApproveIds,
             'approvalStages' => $approvalStages,
-            'canEditPurchaseInvoicesIds' => $canEditPurchaseInvoicesIds,
-            'canEditVendorPaymentsIds' => $canEditVendorPaymentsIds,
+            'canEditPurchaseInvoicesIds' => [],
+            'canEditVendorPaymentsIds' => [],
             'filters' => [
                 ...$request->only(['search', 'status']),
                 'status_group' => $request->string('status_group')->toString() ?: 'pending',
@@ -150,23 +134,6 @@ class InvestmentRequestController extends Controller
         $investmentRequest->load(['user', 'department', 'currency', 'branch', 'paymentType', 'expenseConcept', 'approvals.user']);
 
         $user = $request->user();
-        $canApprove = $investmentRequest->approvals
-            ->where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->isNotEmpty();
-
-        $canEditPurchaseInvoices = $investmentRequest->approvals
-            ->where('user_id', $user->id)
-            ->where('stage', 'administration')
-            ->where('status', 'approved')
-            ->isNotEmpty();
-
-        $canEditVendorPayments = $investmentRequest->approvals
-            ->where('user_id', $user->id)
-            ->where('stage', 'treasury')
-            ->where('status', 'approved')
-            ->isNotEmpty();
-
         $pendingApproval = $investmentRequest->approvals
             ->where('user_id', $user->id)
             ->where('status', 'pending')
@@ -174,10 +141,10 @@ class InvestmentRequestController extends Controller
 
         return Inertia::render('investment-requests/show', [
             'investmentRequest' => new InvestmentRequestResource($investmentRequest),
-            'canApprove' => $canApprove,
+            'canApprove' => $pendingApproval !== null,
             'approvalStage' => $pendingApproval?->stage,
-            'canEditPurchaseInvoices' => $canEditPurchaseInvoices,
-            'canEditVendorPayments' => $canEditVendorPayments,
+            'canEditPurchaseInvoices' => false,
+            'canEditVendorPayments' => false,
         ]);
     }
 

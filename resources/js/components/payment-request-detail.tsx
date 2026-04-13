@@ -18,6 +18,7 @@ type PaymentRequestDetailProps = {
     canEditPurchaseInvoices?: boolean;
     canEditVendorPayments?: boolean;
     baseUrl?: string;
+    showSapFolios?: boolean;
 };
 
 export function PaymentRequestDetail({
@@ -27,6 +28,7 @@ export function PaymentRequestDetail({
     canEditPurchaseInvoices = false,
     canEditVendorPayments = false,
     baseUrl = '/payment-requests',
+    showSapFolios = true,
 }: PaymentRequestDetailProps) {
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -101,7 +103,7 @@ export function PaymentRequestDetail({
 
     const isEditable = pr.status.name === 'pending_department';
     const isCompleted = pr.status.name === 'completed';
-    const showSapSection = pr.status.name !== 'pending_department';
+    const showSapSection = showSapFolios && pr.status.name !== 'pending_department';
 
     const showSapFieldInModal = approvalStage === 'administration' || approvalStage === 'treasury';
 

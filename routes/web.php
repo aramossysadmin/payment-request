@@ -38,7 +38,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('investment-requests', InvestmentRequestController::class);
     Route::post('investment-requests/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->name('investment-requests.approve');
     Route::post('investment-requests/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->name('investment-requests.reject');
-    Route::patch('investment-requests/{investment_request}/sap-folios', [InvestmentRequestApprovalController::class, 'updateSapFolios'])->name('investment-requests.sap-folios');
     Route::get('investment-requests/{investment_request}/pdf', InvestmentRequestPdfController::class)->name('investment-requests.pdf');
 
     Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
