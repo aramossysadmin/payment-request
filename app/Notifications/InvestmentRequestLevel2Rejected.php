@@ -34,28 +34,42 @@ class InvestmentRequestLevel2Rejected extends Notification implements ShouldQueu
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject('Solicitud de Inversión #'.$this->investmentRequest->folio_number.' - Rechazada por Nivel 2')
-            ->greeting('Hola '.$notifiable->name)
-            ->salutation('Saludos, '.config('app.name'))
-            ->line('El Autorizador Nivel 2 ('.$this->rejector->name.') ha rechazado la solicitud de inversión y requiere tu revisión nuevamente.')
-            ->line('**Motivo del rechazo:** '.$this->comments)
-            ->line('**Solicitante:** '.$this->investmentRequest->user->name)
-            ->line('**Proveedor:** '.$this->investmentRequest->provider)
-            ->line('**Total:** $ '.number_format($this->investmentRequest->total, 2).' '.($this->investmentRequest->currency->prefix ?? 'MXN'));
+        $actionUrl = $this->approvalToken
+            ? url('/approval/'.$this->approvalToken)
+            : url('/admin/investment-requests/'.$this->investmentRequest->uuid.'/edit');
 
-        $this->appendStageInfo($mail, $this->investmentRequest);
-        $this->appendDocumentLinks($mail, $this->investmentRequest);
+        $actionText = $this->approvalToken
+            ? 'Revisar y Autorizar / Rechazar'
+            : 'Ver Solicitud';
+
+        $details = [
+            ['label' => 'Motivo del rechazo', 'value' => $this->comments],
+            ['label' => 'Solicitante', 'value' => $this->investmentRequest->user->name ?? '-'],
+            ...$this->getMinimalDetails($this->investmentRequest),
+        ];
+
+        $footerLines = [];
 
         if ($this->approvalToken) {
-            $mail->action('Revisar y Autorizar / Rechazar', url('/approval/'.$this->approvalToken))
-                ->line('Este enlace es válido por 48 horas.')
-                ->line('[Ver solicitud en el panel de administración]('.url('/admin/investment-requests/'.$this->investmentRequest->uuid.'/edit').')');
-        } else {
-            $mail->action('Ver Solicitud', url('/admin/investment-requests/'.$this->investmentRequest->uuid.'/edit'));
+            $footerLines[] = 'Este enlace es válido por 48 horas.';
+            $footerLines[] = '[Ver solicitud en el panel de administración]('.url('/admin/investment-requests/'.$this->investmentRequest->uuid.'/edit').')';
         }
 
-        return $mail;
+        return $this->buildMailMessage(
+            'Solicitud de Inversión #'.$this->investmentRequest->folio_number.' - Rechazada por Nivel 2',
+            [
+                'sectionTitle' => 'Detalles de la Solicitud',
+                'greeting' => 'Hola '.$notifiable->name,
+                'description' => 'El Autorizador Nivel 2 ('.$this->rejector->name.') ha rechazado la solicitud de inversión y requiere tu revisión nuevamente.',
+                'details' => $details,
+                'stageInfo' => $this->getStageInfo($this->investmentRequest),
+                'documents' => $this->getDocuments($this->investmentRequest),
+                'actionUrl' => $actionUrl,
+                'actionText' => $actionText,
+                'footerLines' => $footerLines,
+                'salutation' => 'Saludos, '.config('app.name'),
+            ],
+        );
     }
 
     /**

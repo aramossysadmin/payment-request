@@ -29,20 +29,21 @@ class InvestmentRequestCompleted extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject('Solicitud de Inversión #'.$this->investmentRequest->folio_number.' - Finalizada')
-            ->greeting('Hola '.$notifiable->name)
-            ->salutation('Saludos, '.config('app.name'))
-            ->line('Tu solicitud de inversión ha completado todas las etapas de aprobación.')
-            ->line('**Proveedor:** '.$this->investmentRequest->provider)
-            ->line('**Total:** $ '.number_format($this->investmentRequest->total, 2).' '.($this->investmentRequest->currency->prefix ?? 'MXN'));
-
-        $this->appendStageInfo($mail, $this->investmentRequest);
-        $this->appendDocumentLinks($mail, $this->investmentRequest);
-
-        $mail->action('Ver Solicitud', url('/admin/investment-requests/'.$this->investmentRequest->uuid.'/edit'));
-
-        return $mail;
+        return $this->buildMailMessage(
+            'Solicitud de Inversión #'.$this->investmentRequest->folio_number.' - Finalizada',
+            [
+                'sectionTitle' => 'Detalles de la Solicitud',
+                'greeting' => 'Hola '.$notifiable->name,
+                'description' => 'Tu solicitud de inversión ha completado la aprobación.',
+                'details' => $this->getMinimalDetails($this->investmentRequest),
+                'stageInfo' => $this->getStageInfo($this->investmentRequest),
+                'documents' => $this->getDocuments($this->investmentRequest),
+                'actionUrl' => url('/admin/investment-requests/'.$this->investmentRequest->uuid.'/edit'),
+                'actionText' => 'Ver Solicitud',
+                'footerLines' => [],
+                'salutation' => 'Saludos, '.config('app.name'),
+            ],
+        );
     }
 
     /**

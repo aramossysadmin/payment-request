@@ -34,28 +34,42 @@ class PaymentRequestLevel2Rejected extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject('Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Rechazada por Nivel 2')
-            ->greeting('Hola '.$notifiable->name)
-            ->salutation('Saludos, '.config('app.name'))
-            ->line('El Autorizador Nivel 2 ('.$this->rejector->name.') ha rechazado la solicitud de pago y requiere tu revisión nuevamente.')
-            ->line('**Motivo del rechazo:** '.$this->comments)
-            ->line('**Solicitante:** '.$this->paymentRequest->user->name)
-            ->line('**Proveedor:** '.$this->paymentRequest->provider)
-            ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'));
+        $actionUrl = $this->approvalToken
+            ? url('/approval/'.$this->approvalToken)
+            : url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit');
 
-        $this->appendStageInfo($mail, $this->paymentRequest);
-        $this->appendDocumentLinks($mail, $this->paymentRequest);
+        $actionText = $this->approvalToken
+            ? 'Revisar y Autorizar / Rechazar'
+            : 'Ver Solicitud';
+
+        $details = [
+            ['label' => 'Motivo del rechazo', 'value' => $this->comments],
+            ['label' => 'Solicitante', 'value' => $this->paymentRequest->user->name ?? '-'],
+            ...$this->getMinimalDetails($this->paymentRequest),
+        ];
+
+        $footerLines = [];
 
         if ($this->approvalToken) {
-            $mail->action('Revisar y Autorizar / Rechazar', url('/approval/'.$this->approvalToken))
-                ->line('Este enlace es válido por 48 horas.')
-                ->line('[Ver solicitud en el panel de administración]('.url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit').')');
-        } else {
-            $mail->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'));
+            $footerLines[] = 'Este enlace es válido por 48 horas.';
+            $footerLines[] = '[Ver solicitud en el panel de administración]('.url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit').')';
         }
 
-        return $mail;
+        return $this->buildMailMessage(
+            'Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Rechazada por Nivel 2',
+            [
+                'sectionTitle' => 'Detalles de la Solicitud',
+                'greeting' => 'Hola '.$notifiable->name,
+                'description' => 'El Autorizador Nivel 2 ('.$this->rejector->name.') ha rechazado la solicitud de pago y requiere tu revisión nuevamente.',
+                'details' => $details,
+                'stageInfo' => $this->getStageInfo($this->paymentRequest),
+                'documents' => $this->getDocuments($this->paymentRequest),
+                'actionUrl' => $actionUrl,
+                'actionText' => $actionText,
+                'footerLines' => $footerLines,
+                'salutation' => 'Saludos, '.config('app.name'),
+            ],
+        );
     }
 
     /**

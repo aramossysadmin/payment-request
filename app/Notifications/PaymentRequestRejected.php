@@ -33,21 +33,26 @@ class PaymentRequestRejected extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject('Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Rechazada')
-            ->greeting('Hola '.$notifiable->name)
-            ->salutation('Saludos, '.config('app.name'))
-            ->line($this->rejector->name.' ha rechazado la solicitud de pago.')
-            ->line('**Motivo:** '.$this->comments)
-            ->line('**Proveedor:** '.$this->paymentRequest->provider)
-            ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'));
+        $details = [
+            ['label' => 'Motivo', 'value' => $this->comments],
+            ...$this->getMinimalDetails($this->paymentRequest),
+        ];
 
-        $this->appendStageInfo($mail, $this->paymentRequest);
-        $this->appendDocumentLinks($mail, $this->paymentRequest);
-
-        $mail->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'));
-
-        return $mail;
+        return $this->buildMailMessage(
+            'Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Rechazada',
+            [
+                'sectionTitle' => 'Detalles de la Solicitud',
+                'greeting' => 'Hola '.$notifiable->name,
+                'description' => $this->rejector->name.' ha rechazado la solicitud de pago.',
+                'details' => $details,
+                'stageInfo' => $this->getStageInfo($this->paymentRequest),
+                'documents' => $this->getDocuments($this->paymentRequest),
+                'actionUrl' => url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'),
+                'actionText' => 'Ver Solicitud',
+                'footerLines' => [],
+                'salutation' => 'Saludos, '.config('app.name'),
+            ],
+        );
     }
 
     /**

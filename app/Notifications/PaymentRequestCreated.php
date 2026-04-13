@@ -32,31 +32,36 @@ class PaymentRequestCreated extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject('Nueva Solicitud de Pago #'.$this->paymentRequest->folio_number)
-            ->greeting('Hola '.$notifiable->name)
-            ->salutation('Saludos, '.config('app.name'))
-            ->line('Se ha creado una nueva solicitud de pago que requiere tu autorización.')
-            ->line('**Solicitante:** '.$this->paymentRequest->user->name)
-            ->line('**Sucursal:** '.($this->paymentRequest->branch->name ?? '-'))
-            ->line('**Concepto de Gasto:** '.($this->paymentRequest->expenseConcept->name ?? '-'))
-            ->line('**Tipo de Pago:** '.($this->paymentRequest->paymentType->name ?? '-'))
-            ->line('**Proveedor:** '.$this->paymentRequest->provider)
-            ->line('**Folio:** '.$this->paymentRequest->invoice_folio)
-            ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'));
+        $actionUrl = $this->approvalToken
+            ? url('/approval/'.$this->approvalToken)
+            : url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit');
 
-        $this->appendStageInfo($mail, $this->paymentRequest);
-        $this->appendDocumentLinks($mail, $this->paymentRequest);
+        $actionText = $this->approvalToken
+            ? 'Autorizar / Rechazar Solicitud'
+            : 'Ver Solicitud';
+
+        $footerLines = [];
 
         if ($this->approvalToken) {
-            $mail->action('Autorizar / Rechazar Solicitud', url('/approval/'.$this->approvalToken))
-                ->line('Este enlace es válido por 48 horas.')
-                ->line('[Ver solicitud en el panel de administración]('.url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit').')');
-        } else {
-            $mail->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'));
+            $footerLines[] = 'Este enlace es válido por 48 horas.';
+            $footerLines[] = '[Ver solicitud en el panel de administración]('.url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit').')';
         }
 
-        return $mail;
+        return $this->buildMailMessage(
+            'Nueva Solicitud de Pago #'.$this->paymentRequest->folio_number,
+            [
+                'sectionTitle' => 'Detalles de la Solicitud',
+                'greeting' => 'Hola '.$notifiable->name,
+                'description' => 'Se ha creado una nueva solicitud de pago que requiere tu autorización.',
+                'details' => $this->getFullDetails($this->paymentRequest),
+                'stageInfo' => $this->getStageInfo($this->paymentRequest),
+                'documents' => $this->getDocuments($this->paymentRequest),
+                'actionUrl' => $actionUrl,
+                'actionText' => $actionText,
+                'footerLines' => $footerLines,
+                'salutation' => 'Saludos, '.config('app.name'),
+            ],
+        );
     }
 
     /**

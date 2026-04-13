@@ -20,53 +20,107 @@ trait IncludesRequestDetails
     }
 
     /**
+     * Build stage info array for the email template.
+     *
      * @param  PaymentRequest|InvestmentRequest  $request
+     * @return array{department: string, stage: string|null}
      */
-    private function appendStageInfo(MailMessage $mail, mixed $request): MailMessage
+    private function getStageInfo(mixed $request): array
     {
-        $mail->line('**Departamento:** '.($request->department->name ?? '-'));
+        $info = [
+            'department' => $request->department->name ?? '-',
+            'stage' => null,
+        ];
 
         $latestApproval = $request->approvals()
             ->latest()
             ->first();
 
         if ($latestApproval && ! $request instanceof InvestmentRequest) {
-            $mail->line('**Etapa actual:** '.$this->stageLabel($latestApproval->stage).' - Nivel '.$latestApproval->level);
+            $info['stage'] = $this->stageLabel($latestApproval->stage).' - Nivel '.$latestApproval->level;
         }
 
-        return $mail;
+        return $info;
     }
 
     /**
+     * Build documents array for the email template.
+     *
      * @param  PaymentRequest|InvestmentRequest  $request
+     * @return array<int, array{name: string, url: string}>
      */
-    private function appendDocumentLinks(MailMessage $mail, mixed $request): MailMessage
+    private function getDocuments(mixed $request): array
     {
         $documents = $request->advance_documents;
 
         if (! is_array($documents) || count($documents) === 0) {
-            return $mail;
+            return [];
         }
 
         $validDocs = array_filter($documents, fn ($doc) => is_string($doc) && $doc !== '');
 
         if (count($validDocs) === 0) {
-            return $mail;
+            return [];
         }
 
-        $mail->line('---');
-        $mail->line('**Documentos adjuntos:**');
+        $result = [];
 
         foreach ($validDocs as $doc) {
-            $filename = basename($doc);
-            $signedUrl = URL::temporarySignedRoute(
-                'documents.view',
-                now()->addHours(48),
-                ['path' => $doc],
-            );
-            $mail->line("[{$filename}]({$signedUrl})");
+            $result[] = [
+                'name' => basename($doc),
+                'url' => URL::temporarySignedRoute(
+                    'documents.view',
+                    now()->addHours(48),
+                    ['path' => $doc],
+                ),
+            ];
         }
 
-        return $mail;
+        return $result;
+    }
+
+    /**
+     * Build common request details for the email template.
+     *
+     * @param  PaymentRequest|InvestmentRequest  $request
+     * @return array<int, array{label: string, value: string}>
+     */
+    private function getFullDetails(mixed $request): array
+    {
+        return [
+            ['label' => 'Solicitante', 'value' => $request->user->name ?? '-'],
+            ['label' => 'Sucursal', 'value' => $request->branch->name ?? '-'],
+            ['label' => 'Concepto de Gasto', 'value' => $request->expenseConcept->name ?? '-'],
+            ['label' => 'Tipo de Pago', 'value' => $request->paymentType->name ?? '-'],
+            ['label' => 'Proveedor', 'value' => $request->provider],
+            ['label' => 'Folio', 'value' => $request->invoice_folio],
+            ['label' => 'Total', 'value' => '$ '.number_format($request->total, 2).' '.($request->currency->prefix ?? 'MXN')],
+        ];
+    }
+
+    /**
+     * Build minimal request details (for rejection/completion notifications).
+     *
+     * @param  PaymentRequest|InvestmentRequest  $request
+     * @return array<int, array{label: string, value: string}>
+     */
+    private function getMinimalDetails(mixed $request): array
+    {
+        return [
+            ['label' => 'Proveedor', 'value' => $request->provider],
+            ['label' => 'Total', 'value' => '$ '.number_format($request->total, 2).' '.($request->currency->prefix ?? 'MXN')],
+        ];
+    }
+
+    /**
+     * Build the MailMessage using the shared template.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function buildMailMessage(string $subject, array $data): MailMessage
+    {
+        return (new MailMessage)
+            ->subject($subject)
+            ->markdown('emails.request-notification', $data);
     }
 }

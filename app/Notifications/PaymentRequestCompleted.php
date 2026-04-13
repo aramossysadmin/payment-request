@@ -29,20 +29,21 @@ class PaymentRequestCompleted extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject('Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Finalizada')
-            ->greeting('Hola '.$notifiable->name)
-            ->salutation('Saludos, '.config('app.name'))
-            ->line('Tu solicitud de pago ha completado todas las etapas de aprobación.')
-            ->line('**Proveedor:** '.$this->paymentRequest->provider)
-            ->line('**Total:** $ '.number_format($this->paymentRequest->total, 2).' '.($this->paymentRequest->currency->prefix ?? 'MXN'));
-
-        $this->appendStageInfo($mail, $this->paymentRequest);
-        $this->appendDocumentLinks($mail, $this->paymentRequest);
-
-        $mail->action('Ver Solicitud', url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'));
-
-        return $mail;
+        return $this->buildMailMessage(
+            'Solicitud de Pago #'.$this->paymentRequest->folio_number.' - Finalizada',
+            [
+                'sectionTitle' => 'Detalles de la Solicitud',
+                'greeting' => 'Hola '.$notifiable->name,
+                'description' => 'Tu solicitud de pago ha completado todas las etapas de aprobación.',
+                'details' => $this->getMinimalDetails($this->paymentRequest),
+                'stageInfo' => $this->getStageInfo($this->paymentRequest),
+                'documents' => $this->getDocuments($this->paymentRequest),
+                'actionUrl' => url('/admin/payment-requests/'.$this->paymentRequest->uuid.'/edit'),
+                'actionText' => 'Ver Solicitud',
+                'footerLines' => [],
+                'salutation' => 'Saludos, '.config('app.name'),
+            ],
+        );
     }
 
     /**

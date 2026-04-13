@@ -21,7 +21,7 @@
 {{-- Footer --}}
 <x-slot:footer>
 <x-mail::footer>
-© {{ date('Y') }} {{ config('app.name') }}. Todos los derechos reservados.
+Copyright &copy; {{ date('Y') }} COSTE&Ntilde;O. Todos los derechos reservados.
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>
