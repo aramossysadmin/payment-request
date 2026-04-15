@@ -33,6 +33,10 @@ export type InvestmentRequest = {
         invoice_documents_mode: 'disabled' | 'optional' | 'required';
         additional_documents_mode: 'disabled' | 'optional' | 'required';
     };
+    project: {
+        id: number;
+        name: string;
+    } | null;
     advance_documents: string[] | null;
     status: InvestmentRequestStatus;
     iva_rate: { value: string; label: string };

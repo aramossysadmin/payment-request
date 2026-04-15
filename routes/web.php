@@ -6,6 +6,8 @@ use App\Http\Controllers\EmailApprovalController;
 use App\Http\Controllers\InvestmentRequestApprovalController;
 use App\Http\Controllers\InvestmentRequestController;
 use App\Http\Controllers\InvestmentRequestPdfController;
+use App\Http\Controllers\InvestmentSheetConsolidatedController;
+use App\Http\Controllers\InvestmentSheetConsolidatedIndexController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestApprovalController;
 use App\Http\Controllers\PaymentRequestController;
@@ -36,6 +38,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('payment-requests/{payment_request}/sap-folios', [PaymentRequestApprovalController::class, 'updateSapFolios'])->name('payment-requests.sap-folios');
     Route::get('payment-requests/{payment_request}/pdf', PaymentRequestPdfController::class)->name('payment-requests.pdf');
 
+    Route::get('investment-sheets/consolidated', InvestmentSheetConsolidatedIndexController::class)->name('investment-sheets.consolidated.index');
+    Route::get('investment-sheets/consolidated/{project}', InvestmentSheetConsolidatedController::class)->name('investment-sheets.consolidated');
     Route::resource('investment-sheets', InvestmentRequestController::class)->parameters(['investment-sheets' => 'investment_request']);
     Route::post('investment-sheets/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->middleware('throttle:10,1')->name('investment-sheets.approve');
     Route::post('investment-sheets/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('investment-sheets.reject');

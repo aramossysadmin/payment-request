@@ -100,6 +100,7 @@ export default function Create() {
         setProcessing(true);
 
         const formData = new FormData();
+        if (selectedProjectId) formData.append('project_id', selectedProjectId);
         Object.entries(values).forEach(([key, val]) => {
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });

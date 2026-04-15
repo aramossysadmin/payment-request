@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { Banknote, BookOpen, FileText, LayoutGrid } from 'lucide-react';
+import { Banknote, BookOpen, ClipboardList, FileText, LayoutGrid } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -30,9 +30,14 @@ const requestItems: NavItem[] = [
         icon: FileText,
     },
     {
-        title: 'Hojas de Inversión',
+        title: 'Conceptos de Inversión',
         href: '/investment-sheets',
         icon: Banknote,
+    },
+    {
+        title: 'Consolidado Inversión',
+        href: '/investment-sheets/consolidated',
+        icon: ClipboardList,
     },
 ];
 

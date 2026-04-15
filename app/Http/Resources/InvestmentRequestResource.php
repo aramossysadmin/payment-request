@@ -29,6 +29,10 @@ class InvestmentRequestResource extends JsonResource
                 'invoice_documents_mode' => $this->paymentType?->invoice_documents_mode?->value ?? 'disabled',
                 'additional_documents_mode' => $this->paymentType?->additional_documents_mode?->value ?? 'optional',
             ],
+            'project' => [
+                'id' => $this->project?->id,
+                'name' => $this->project?->name,
+            ],
             'advance_documents' => $this->advance_documents,
             'status' => [
                 'name' => $this->status::$name,

@@ -7,7 +7,6 @@ use App\Http\Requests\UpdateInvestmentRequestRequest;
 use App\Http\Resources\InvestmentRequestResource;
 use App\Models\Branch;
 use App\Models\Currency;
-use App\Models\ExpenseConcept;
 use App\Models\InvestmentExpenseConcept;
 use App\Models\InvestmentRequest;
 use App\Models\Project;
@@ -31,7 +30,7 @@ class InvestmentRequestController extends Controller
         $user = $request->user();
 
         $query = InvestmentRequest::query()
-            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user'])
+            ->with(['user', 'department', 'currency', 'branch', 'project', 'expenseConcept', 'approvals.user'])
             ->visibleTo($user);
 
         if ($request->filled('search')) {
@@ -103,6 +102,7 @@ class InvestmentRequestController extends Controller
         $investmentRequest = new InvestmentRequest($validated);
         $investmentRequest->user_id = $user->id;
         $investmentRequest->department_id = $user->department_id;
+        $investmentRequest->project_id = $request->input('project_id') ?: null;
         $investmentRequest->save();
 
         $directory = 'investment-advance-documents/'.now()->format('Y/m').'/'.$investmentRequest->folio_number;
@@ -132,7 +132,7 @@ class InvestmentRequestController extends Controller
     {
         Gate::authorize('view', $investmentRequest);
 
-        $investmentRequest->load(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user']);
+        $investmentRequest->load(['user', 'department', 'currency', 'branch', 'project', 'expenseConcept', 'approvals.user']);
 
         $user = $request->user();
         $pendingApproval = $investmentRequest->approvals

@@ -20,6 +20,7 @@ class StoreInvestmentRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'project_id' => ['nullable', 'integer', Rule::exists('projects', 'id')],
             'provider' => ['required', 'string', 'max:255'],
             'rfc' => ['nullable', 'string', 'alpha_num', 'min:12', 'max:13'],
             'invoice_folio' => ['required', 'string', 'max:255'],

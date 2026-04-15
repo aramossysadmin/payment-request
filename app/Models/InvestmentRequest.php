@@ -115,6 +115,11 @@ class InvestmentRequest extends Model
         return $this->belongsTo(Currency::class);
     }
 
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
