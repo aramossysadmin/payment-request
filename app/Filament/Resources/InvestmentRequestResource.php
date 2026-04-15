@@ -129,8 +129,10 @@ class InvestmentRequestResource extends Resource
                         Forms\Components\FileUpload::make('advance_documents')
                             ->label('Documentos Solicitudes de Inversión')
                             ->multiple()
+                            ->disk('local')
                             ->directory('investment-advance-documents')
                             ->visibility('private')
+                            ->acceptedFileTypes(['application/pdf', 'text/xml', 'application/xml', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
                             ->columnSpanFull(),
                     ])
                     ->columns(4),

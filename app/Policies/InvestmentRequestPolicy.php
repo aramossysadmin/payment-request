@@ -23,7 +23,11 @@ class InvestmentRequestPolicy
      */
     public function view(User $user, InvestmentRequest $investmentRequest): bool
     {
-        return $user->can('view_investment::request');
+        if (! $user->can('view_investment::request')) {
+            return false;
+        }
+
+        return $this->hasAccess($user, $investmentRequest);
     }
 
     /**
@@ -39,7 +43,11 @@ class InvestmentRequestPolicy
      */
     public function update(User $user, InvestmentRequest $investmentRequest): bool
     {
-        return $user->can('update_investment::request');
+        if (! $user->can('update_investment::request')) {
+            return false;
+        }
+
+        return $this->hasAccess($user, $investmentRequest);
     }
 
     /**
@@ -47,7 +55,28 @@ class InvestmentRequestPolicy
      */
     public function delete(User $user, InvestmentRequest $investmentRequest): bool
     {
-        return $user->can('delete_investment::request');
+        if (! $user->can('delete_investment::request')) {
+            return false;
+        }
+
+        return $this->hasAccess($user, $investmentRequest);
+    }
+
+    private function hasAccess(User $user, InvestmentRequest $investmentRequest): bool
+    {
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        if ($user->id === $investmentRequest->user_id) {
+            return true;
+        }
+
+        if ($user->authorizedDepartments()->where('departments.id', $investmentRequest->department_id)->exists()) {
+            return true;
+        }
+
+        return $investmentRequest->approvals()->where('user_id', $user->id)->exists();
     }
 
     /**

@@ -20,8 +20,6 @@ class InvestmentRequest extends Model
     use HasFactory, HasStates, SoftDeletes;
 
     protected $fillable = [
-        'user_id',
-        'department_id',
         'folio_number',
         'provider',
         'rfc',
@@ -32,7 +30,6 @@ class InvestmentRequest extends Model
         'description',
         'payment_type_id',
         'advance_documents',
-        'status',
         'subtotal',
         'iva_rate',
         'iva',

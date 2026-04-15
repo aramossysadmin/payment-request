@@ -6,6 +6,7 @@ use App\Filament\Resources\InvestmentRequestResource;
 use App\Models\InvestmentRequest;
 use App\Services\InvestmentApprovalService;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateInvestmentRequest extends CreateRecord
 {
@@ -17,9 +18,6 @@ class CreateInvestmentRequest extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['user_id'] = auth()->id();
-        $data['department_id'] = auth()->user()->department_id;
-
         if (isset($data['advance_documents']) && is_array($data['advance_documents'])) {
             $data['advance_documents'] = array_values(array_filter(
                 $data['advance_documents'],
@@ -32,6 +30,16 @@ class CreateInvestmentRequest extends CreateRecord
         }
 
         return $data;
+    }
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        $record = new InvestmentRequest($data);
+        $record->user_id = auth()->id();
+        $record->department_id = auth()->user()->department_id;
+        $record->save();
+
+        return $record;
     }
 
     protected function afterCreate(): void

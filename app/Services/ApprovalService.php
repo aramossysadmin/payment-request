@@ -64,9 +64,10 @@ class ApprovalService
             'stage' => 'department',
             'level' => 1,
             'status' => 'pending',
-            'approval_token' => Str::uuid()->toString(),
-            'approval_token_expires_at' => now()->addHours(48),
         ]);
+        $approval->approval_token = Str::uuid()->toString();
+        $approval->approval_token_expires_at = now()->addHours(48);
+        $approval->save();
 
         $authorizer->notify(new PaymentRequestCreated($paymentRequest, $approval->approval_token));
     }
@@ -91,12 +92,11 @@ class ApprovalService
             return;
         }
 
-        $approval->update([
-            'status' => 'approved',
-            'responded_at' => now(),
-            'approval_token' => null,
-            'approval_token_expires_at' => null,
-        ]);
+        $approval->status = 'approved';
+        $approval->responded_at = now();
+        $approval->approval_token = null;
+        $approval->approval_token_expires_at = null;
+        $approval->save();
 
         $sapFields = array_intersect_key($data, array_flip(['number_purchase_invoices', 'number_vendor_payments']));
 
@@ -145,13 +145,12 @@ class ApprovalService
             return;
         }
 
-        $approval->update([
-            'status' => 'rejected',
-            'comments' => $comments,
-            'responded_at' => now(),
-            'approval_token' => null,
-            'approval_token_expires_at' => null,
-        ]);
+        $approval->status = 'rejected';
+        $approval->comments = $comments;
+        $approval->responded_at = now();
+        $approval->approval_token = null;
+        $approval->approval_token_expires_at = null;
+        $approval->save();
 
         if ($approval->level === 2) {
             $this->resetLevel1AfterLevel2Rejection($paymentRequest, $currentStage, $authorizer, $comments);
@@ -200,9 +199,10 @@ class ApprovalService
             'stage' => $currentStage['stage'],
             'level' => 2,
             'status' => 'pending',
-            'approval_token' => Str::uuid()->toString(),
-            'approval_token_expires_at' => now()->addHours(48),
         ]);
+        $approval->approval_token = Str::uuid()->toString();
+        $approval->approval_token_expires_at = now()->addHours(48);
+        $approval->save();
 
         $authorizer->notify(
             new PaymentRequestApproved($paymentRequest, $previousApprover, $approval->approval_token)
@@ -238,9 +238,10 @@ class ApprovalService
             'stage' => $currentStage['stage'],
             'level' => 1,
             'status' => 'pending',
-            'approval_token' => Str::uuid()->toString(),
-            'approval_token_expires_at' => now()->addHours(48),
         ]);
+        $approval->approval_token = Str::uuid()->toString();
+        $approval->approval_token_expires_at = now()->addHours(48);
+        $approval->save();
 
         $authorizer->notify(
             new PaymentRequestApproved($paymentRequest, $previousApprover, $approval->approval_token)
@@ -273,9 +274,10 @@ class ApprovalService
             'stage' => $currentStage['stage'],
             'level' => 1,
             'status' => 'pending',
-            'approval_token' => Str::uuid()->toString(),
-            'approval_token_expires_at' => now()->addHours(48),
         ]);
+        $newApproval->approval_token = Str::uuid()->toString();
+        $newApproval->approval_token_expires_at = now()->addHours(48);
+        $newApproval->save();
 
         // Notify Level 1 authorizer about the Level 2 rejection
         $level1Authorizer->notify(

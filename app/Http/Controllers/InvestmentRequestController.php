@@ -17,6 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -98,22 +99,21 @@ class InvestmentRequestController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
-        $investmentRequest = InvestmentRequest::create([
-            ...$validated,
-            'user_id' => $user->id,
-            'department_id' => $user->department_id,
-        ]);
+        $investmentRequest = new InvestmentRequest($validated);
+        $investmentRequest->user_id = $user->id;
+        $investmentRequest->department_id = $user->department_id;
+        $investmentRequest->save();
 
         $directory = 'investment-advance-documents/'.now()->format('Y/m').'/'.$investmentRequest->folio_number;
         $allDocuments = [];
         if ($request->hasFile('invoice_documents')) {
             foreach ($request->file('invoice_documents') as $file) {
-                $allDocuments[] = $file->storeAs($directory, $file->getClientOriginalName(), 'public');
+                $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
             }
         }
         if ($request->hasFile('advance_documents')) {
             foreach ($request->file('advance_documents') as $file) {
-                $allDocuments[] = $file->storeAs($directory, $file->getClientOriginalName(), 'public');
+                $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
             }
         }
 
@@ -178,18 +178,18 @@ class InvestmentRequestController extends Controller
 
         if ($hasNewFiles) {
             foreach ($allDocuments as $oldPath) {
-                Storage::disk('public')->delete($oldPath);
+                Storage::disk('local')->delete($oldPath);
             }
             $directory = 'investment-advance-documents/'.now()->format('Y/m').'/'.$investmentRequest->folio_number;
             $allDocuments = [];
             if ($request->hasFile('invoice_documents')) {
                 foreach ($request->file('invoice_documents') as $file) {
-                    $allDocuments[] = $file->storeAs($directory, $file->getClientOriginalName(), 'public');
+                    $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
                 }
             }
             if ($request->hasFile('advance_documents')) {
                 foreach ($request->file('advance_documents') as $file) {
-                    $allDocuments[] = $file->storeAs($directory, $file->getClientOriginalName(), 'public');
+                    $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
                 }
             }
         }

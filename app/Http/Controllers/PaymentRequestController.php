@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -114,22 +115,21 @@ class PaymentRequestController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
-        $paymentRequest = PaymentRequest::create([
-            ...$validated,
-            'user_id' => $user->id,
-            'department_id' => $user->department_id,
-        ]);
+        $paymentRequest = new PaymentRequest($validated);
+        $paymentRequest->user_id = $user->id;
+        $paymentRequest->department_id = $user->department_id;
+        $paymentRequest->save();
 
         $directory = 'advance-documents/'.now()->format('Y/m').'/'.$paymentRequest->folio_number;
         $allDocuments = [];
         if ($request->hasFile('invoice_documents')) {
             foreach ($request->file('invoice_documents') as $file) {
-                $allDocuments[] = $file->storeAs($directory, $file->getClientOriginalName(), 'public');
+                $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
             }
         }
         if ($request->hasFile('advance_documents')) {
             foreach ($request->file('advance_documents') as $file) {
-                $allDocuments[] = $file->storeAs($directory, $file->getClientOriginalName(), 'public');
+                $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
             }
         }
 
@@ -211,18 +211,18 @@ class PaymentRequestController extends Controller
 
         if ($hasNewFiles) {
             foreach ($allDocuments as $oldPath) {
-                Storage::disk('public')->delete($oldPath);
+                Storage::disk('local')->delete($oldPath);
             }
             $directory = 'advance-documents/'.now()->format('Y/m').'/'.$paymentRequest->folio_number;
             $allDocuments = [];
             if ($request->hasFile('invoice_documents')) {
                 foreach ($request->file('invoice_documents') as $file) {
-                    $allDocuments[] = $file->storeAs($directory, $file->getClientOriginalName(), 'public');
+                    $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
                 }
             }
             if ($request->hasFile('advance_documents')) {
                 foreach ($request->file('advance_documents') as $file) {
-                    $allDocuments[] = $file->storeAs($directory, $file->getClientOriginalName(), 'public');
+                    $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
                 }
             }
         }

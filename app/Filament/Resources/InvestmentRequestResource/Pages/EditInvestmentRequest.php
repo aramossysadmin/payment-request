@@ -5,6 +5,7 @@ namespace App\Filament\Resources\InvestmentRequestResource\Pages;
 use App\Filament\Resources\InvestmentRequestResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditInvestmentRequest extends EditRecord
 {
@@ -22,6 +23,19 @@ class EditInvestmentRequest extends EditRecord
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        if (isset($data['status'])) {
+            $record->status = $data['status'];
+            unset($data['status']);
+        }
+
+        $record->fill($data);
+        $record->save();
+
+        return $record;
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         if (isset($data['advance_documents']) && is_array($data['advance_documents'])) {

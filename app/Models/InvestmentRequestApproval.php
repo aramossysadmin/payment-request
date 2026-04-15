@@ -20,8 +20,6 @@ class InvestmentRequestApproval extends Model
         'status',
         'comments',
         'responded_at',
-        'approval_token',
-        'approval_token_expires_at',
     ];
 
     /**

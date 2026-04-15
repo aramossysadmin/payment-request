@@ -16,20 +16,24 @@ class DocumentViewController extends Controller
 
         $path = $request->query('path');
 
-        if (! $path || ! Storage::disk('public')->exists($path)) {
+        if (! $path || str_contains($path, '..') || str_starts_with($path, '/')) {
+            abort(403, 'Ruta de documento no permitida.');
+        }
+
+        if (! Storage::disk('local')->exists($path)) {
             abort(404, 'Documento no encontrado.');
         }
 
-        $mimeType = Storage::disk('public')->mimeType($path);
+        $mimeType = Storage::disk('local')->mimeType($path);
         $filename = basename($path);
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
         if ($extension === 'pdf') {
-            return Storage::disk('public')->response($path, $filename, [
+            return Storage::disk('local')->response($path, $filename, [
                 'Content-Type' => 'application/pdf',
             ]);
         }
 
-        return Storage::disk('public')->download($path, $filename);
+        return Storage::disk('local')->download($path, $filename);
     }
 }

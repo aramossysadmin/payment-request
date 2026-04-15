@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\PaymentRequest;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class PaymentRequestPolicy
@@ -23,7 +23,11 @@ class PaymentRequestPolicy
      */
     public function view(User $user, PaymentRequest $paymentRequest): bool
     {
-        return $user->can('view_payment::request');
+        if (! $user->can('view_payment::request')) {
+            return false;
+        }
+
+        return $this->hasAccess($user, $paymentRequest);
     }
 
     /**
@@ -39,7 +43,11 @@ class PaymentRequestPolicy
      */
     public function update(User $user, PaymentRequest $paymentRequest): bool
     {
-        return $user->can('update_payment::request');
+        if (! $user->can('update_payment::request')) {
+            return false;
+        }
+
+        return $this->hasAccess($user, $paymentRequest);
     }
 
     /**
@@ -47,7 +55,28 @@ class PaymentRequestPolicy
      */
     public function delete(User $user, PaymentRequest $paymentRequest): bool
     {
-        return $user->can('delete_payment::request');
+        if (! $user->can('delete_payment::request')) {
+            return false;
+        }
+
+        return $this->hasAccess($user, $paymentRequest);
+    }
+
+    private function hasAccess(User $user, PaymentRequest $paymentRequest): bool
+    {
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        if ($user->id === $paymentRequest->user_id) {
+            return true;
+        }
+
+        if ($user->authorizedDepartments()->where('departments.id', $paymentRequest->department_id)->exists()) {
+            return true;
+        }
+
+        return $paymentRequest->approvals()->where('user_id', $user->id)->exists();
     }
 
     /**

@@ -31,9 +31,10 @@ class InvestmentApprovalService
             'stage' => 'department',
             'level' => 1,
             'status' => 'pending',
-            'approval_token' => Str::uuid()->toString(),
-            'approval_token_expires_at' => now()->addHours(48),
         ]);
+        $approval->approval_token = Str::uuid()->toString();
+        $approval->approval_token_expires_at = now()->addHours(48);
+        $approval->save();
 
         $authorizer->notify(new InvestmentRequestCreated($investmentRequest, $approval->approval_token));
     }
@@ -55,12 +56,11 @@ class InvestmentApprovalService
             return;
         }
 
-        $approval->update([
-            'status' => 'approved',
-            'responded_at' => now(),
-            'approval_token' => null,
-            'approval_token_expires_at' => null,
-        ]);
+        $approval->status = 'approved';
+        $approval->responded_at = now();
+        $approval->approval_token = null;
+        $approval->approval_token_expires_at = null;
+        $approval->save();
 
         $investmentRequest->status->transitionTo(Completed::class);
         $investmentRequest->refresh();
@@ -85,13 +85,12 @@ class InvestmentApprovalService
             return;
         }
 
-        $approval->update([
-            'status' => 'rejected',
-            'comments' => $comments,
-            'responded_at' => now(),
-            'approval_token' => null,
-            'approval_token_expires_at' => null,
-        ]);
+        $approval->status = 'rejected';
+        $approval->comments = $comments;
+        $approval->responded_at = now();
+        $approval->approval_token = null;
+        $approval->approval_token_expires_at = null;
+        $approval->save();
 
         $investmentRequest->user->notify(
             new InvestmentRequestRejected($investmentRequest, $authorizer, $comments)

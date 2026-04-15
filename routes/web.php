@@ -29,16 +29,16 @@ Route::middleware('throttle:10,1')->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
-    Route::get('providers/search', ProviderSearchController::class)->name('providers.search');
+    Route::get('providers/search', ProviderSearchController::class)->middleware('throttle:30,1')->name('providers.search');
     Route::resource('payment-requests', PaymentRequestController::class);
-    Route::post('payment-requests/{payment_request}/approve', [PaymentRequestApprovalController::class, 'approve'])->name('payment-requests.approve');
-    Route::post('payment-requests/{payment_request}/reject', [PaymentRequestApprovalController::class, 'reject'])->name('payment-requests.reject');
+    Route::post('payment-requests/{payment_request}/approve', [PaymentRequestApprovalController::class, 'approve'])->middleware('throttle:10,1')->name('payment-requests.approve');
+    Route::post('payment-requests/{payment_request}/reject', [PaymentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('payment-requests.reject');
     Route::patch('payment-requests/{payment_request}/sap-folios', [PaymentRequestApprovalController::class, 'updateSapFolios'])->name('payment-requests.sap-folios');
     Route::get('payment-requests/{payment_request}/pdf', PaymentRequestPdfController::class)->name('payment-requests.pdf');
 
     Route::resource('investment-requests', InvestmentRequestController::class);
-    Route::post('investment-requests/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->name('investment-requests.approve');
-    Route::post('investment-requests/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->name('investment-requests.reject');
+    Route::post('investment-requests/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->middleware('throttle:10,1')->name('investment-requests.approve');
+    Route::post('investment-requests/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('investment-requests.reject');
     Route::get('investment-requests/{investment_request}/pdf', InvestmentRequestPdfController::class)->name('investment-requests.pdf');
 
     Route::get('guide', fn () => Inertia::render('guide/index'))->name('guide');
