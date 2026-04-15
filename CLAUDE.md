@@ -1,3 +1,12 @@
+## Project Persistent Memory
+- Este proyecto tiene un sistema de memoria persistente en `.claude/memory/`.
+- El archivo `.claude/memory/MEMORY.md` es el indice principal. Cada entrada apunta a un archivo `.md` individual.
+- **Cuando guardar:** Al completar auditorias de seguridad, decisiones de arquitectura importantes, cambios significativos en el stack, o cualquier hallazgo que deba persistir entre conversaciones.
+- **Como guardar:** Crear o actualizar el archivo `.md` correspondiente en `.claude/memory/` y actualizar el indice `MEMORY.md`.
+- **Categorias disponibles:** Security (auditorias, vulnerabilidades), Architecture (decisiones tecnicas), Tech Stack (versiones y dependencias).
+- **Al iniciar una conversacion:** Leer `.claude/memory/MEMORY.md` para contexto del proyecto.
+- **No guardar:** Informacion efimera, progreso de tareas en curso, datos que se derivan del codigo o git log.
+
 ## Git Commits
 - NEVER create git commits unless the user explicitly asks for it. Only commit when directly instructed to do so.
 
