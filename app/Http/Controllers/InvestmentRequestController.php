@@ -8,8 +8,9 @@ use App\Http\Resources\InvestmentRequestResource;
 use App\Models\Branch;
 use App\Models\Currency;
 use App\Models\ExpenseConcept;
+use App\Models\InvestmentExpenseConcept;
 use App\Models\InvestmentRequest;
-use App\Models\PaymentType;
+use App\Models\Project;
 use App\Services\InvestmentApprovalService;
 use App\States\InvestmentRequest\Completed;
 use App\States\InvestmentRequest\PendingDepartment;
@@ -30,7 +31,7 @@ class InvestmentRequestController extends Controller
         $user = $request->user();
 
         $query = InvestmentRequest::query()
-            ->with(['user', 'department', 'currency', 'branch', 'paymentType', 'expenseConcept', 'approvals.user'])
+            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user'])
             ->visibleTo($user);
 
         if ($request->filled('search')) {
@@ -71,7 +72,7 @@ class InvestmentRequestController extends Controller
             }
         }
 
-        return Inertia::render('investment-requests/index', [
+        return Inertia::render('investment-sheets/index', [
             'investmentRequests' => InvestmentRequestResource::collection($investmentRequests),
             'canApproveIds' => $canApproveIds,
             'approvalStages' => $approvalStages,
@@ -86,11 +87,11 @@ class InvestmentRequestController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('investment-requests/create', [
+        return Inertia::render('investment-sheets/create', [
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
-            'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
-            'paymentTypes' => PaymentType::active()->forInvestments()->get(['id', 'name', 'slug', 'invoice_documents_mode', 'additional_documents_mode']),
+            'investmentExpenseConcepts' => InvestmentExpenseConcept::active()->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::active()->orderBy('name')->get(['id', 'name', 'branch_id']),
         ]);
     }
 
@@ -123,15 +124,15 @@ class InvestmentRequestController extends Controller
 
         $this->approvalService->createApprovals($investmentRequest);
 
-        return redirect()->route('investment-requests.index')
-            ->with('success', 'Solicitud de inversión creada exitosamente.');
+        return redirect()->route('investment-sheets.index')
+            ->with('success', 'Hoja de inversión creada exitosamente.');
     }
 
     public function show(Request $request, InvestmentRequest $investmentRequest): Response
     {
         Gate::authorize('view', $investmentRequest);
 
-        $investmentRequest->load(['user', 'department', 'currency', 'branch', 'paymentType', 'expenseConcept', 'approvals.user']);
+        $investmentRequest->load(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user']);
 
         $user = $request->user();
         $pendingApproval = $investmentRequest->approvals
@@ -139,7 +140,7 @@ class InvestmentRequestController extends Controller
             ->where('status', 'pending')
             ->first();
 
-        return Inertia::render('investment-requests/show', [
+        return Inertia::render('investment-sheets/show', [
             'investmentRequest' => new InvestmentRequestResource($investmentRequest),
             'canApprove' => $pendingApproval !== null,
             'approvalStage' => $pendingApproval?->stage,
@@ -154,14 +155,14 @@ class InvestmentRequestController extends Controller
 
         abort_unless($investmentRequest->status->equals(PendingDepartment::class), 403);
 
-        $investmentRequest->load(['currency', 'branch', 'paymentType', 'expenseConcept']);
+        $investmentRequest->load(['currency', 'branch', 'expenseConcept']);
 
-        return Inertia::render('investment-requests/edit', [
+        return Inertia::render('investment-sheets/edit', [
             'investmentRequest' => new InvestmentRequestResource($investmentRequest),
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
-            'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
-            'paymentTypes' => PaymentType::active()->forInvestments()->get(['id', 'name', 'slug', 'invoice_documents_mode', 'additional_documents_mode']),
+            'investmentExpenseConcepts' => InvestmentExpenseConcept::active()->orderBy('name')->get(['id', 'name']),
+            'projects' => Project::active()->orderBy('name')->get(['id', 'name', 'branch_id']),
         ]);
     }
 
@@ -199,8 +200,8 @@ class InvestmentRequestController extends Controller
             'advance_documents' => $allDocuments ?: null,
         ]);
 
-        return redirect()->route('investment-requests.show', $investmentRequest)
-            ->with('success', 'Solicitud de inversión actualizada exitosamente.');
+        return redirect()->route('investment-sheets.show', $investmentRequest)
+            ->with('success', 'Hoja de inversión actualizada exitosamente.');
     }
 
     public function destroy(InvestmentRequest $investmentRequest): RedirectResponse
@@ -209,7 +210,7 @@ class InvestmentRequestController extends Controller
 
         $investmentRequest->delete();
 
-        return redirect()->route('investment-requests.index')
-            ->with('success', 'Solicitud de inversión eliminada exitosamente.');
+        return redirect()->route('investment-sheets.index')
+            ->with('success', 'Hoja de inversión eliminada exitosamente.');
     }
 }

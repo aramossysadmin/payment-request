@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\DocumentMode;
 use App\Enums\IvaRate;
-use App\Models\PaymentType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -21,13 +19,6 @@ class StoreInvestmentRequestRequest extends FormRequest
      */
     public function rules(): array
     {
-        $paymentType = PaymentType::find($this->input('payment_type_id'));
-        $invoiceMode = $paymentType?->invoice_documents_mode ?? DocumentMode::Disabled;
-        $additionalMode = $paymentType?->additional_documents_mode ?? DocumentMode::Optional;
-
-        $invoiceRequired = $invoiceMode === DocumentMode::Required;
-        $additionalRequired = $additionalMode === DocumentMode::Required;
-
         return [
             'provider' => ['required', 'string', 'max:255'],
             'rfc' => ['nullable', 'string', 'alpha_num', 'min:12', 'max:13'],
@@ -36,10 +27,9 @@ class StoreInvestmentRequestRequest extends FormRequest
             'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')],
             'expense_concept_id' => ['required', 'integer', Rule::exists('expense_concepts', 'id')],
             'description' => ['nullable', 'string', 'max:1000'],
-            'payment_type_id' => ['required', 'integer', Rule::exists('payment_types', 'id')],
-            'invoice_documents' => [$invoiceRequired ? 'required' : 'nullable', 'array', 'size:2'],
+            'invoice_documents' => ['nullable', 'array', 'size:2'],
             'invoice_documents.*' => ['file', 'max:10240', 'mimes:pdf,xml'],
-            'advance_documents' => [$additionalRequired ? 'required' : 'nullable', 'array', 'max:10'],
+            'advance_documents' => ['nullable', 'array', 'max:10'],
             'advance_documents.*' => ['file', 'max:10240', 'mimes:pdf,xml,jpg,jpeg,png,doc,docx,xls,xlsx'],
             'iva_rate' => ['required', Rule::enum(IvaRate::class)],
             'subtotal' => ['required', 'numeric', 'min:0'],
@@ -52,13 +42,6 @@ class StoreInvestmentRequestRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $paymentType = PaymentType::find($this->input('payment_type_id'));
-            $invoiceMode = $paymentType?->invoice_documents_mode ?? DocumentMode::Disabled;
-
-            if ($invoiceMode === DocumentMode::Disabled) {
-                return;
-            }
-
             $files = $this->file('invoice_documents', []);
             if (! is_array($files) || count($files) === 0) {
                 return;
@@ -106,12 +89,8 @@ class StoreInvestmentRequestRequest extends FormRequest
             'branch_id.exists' => 'La sucursal seleccionada no es válida.',
             'expense_concept_id.required' => 'El concepto de gasto es obligatorio.',
             'expense_concept_id.exists' => 'El concepto de gasto seleccionado no es válido.',
-            'payment_type_id.required' => 'El tipo de pago es obligatorio.',
-            'payment_type_id.exists' => 'El tipo de pago seleccionado no es válido.',
-            'invoice_documents.required' => 'Los documentos de factura (PDF + XML) son obligatorios para este tipo de pago.',
             'invoice_documents.size' => 'Debe subir exactamente 2 archivos (1 PDF y 1 XML).',
             'invoice_documents.*.max' => 'Cada documento no debe superar los 10MB.',
-            'advance_documents.required' => 'Los documentos adicionales son obligatorios para este tipo de pago.',
             'advance_documents.max' => 'No se permiten más de 10 documentos.',
             'advance_documents.*.max' => 'Cada documento no debe superar los 10MB.',
             'iva_rate.required' => 'La tasa de IVA es obligatoria.',

@@ -363,7 +363,7 @@ class InvestmentRequestResource extends Resource
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('gray')
                     ->visible(fn (InvestmentRequest $record): bool => $record->status::$name === 'completed')
-                    ->url(fn (InvestmentRequest $record): string => route('investment-requests.pdf', $record))
+                    ->url(fn (InvestmentRequest $record): string => route('investment-sheets.pdf', $record))
                     ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

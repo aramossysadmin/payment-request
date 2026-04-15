@@ -36,10 +36,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('payment-requests/{payment_request}/sap-folios', [PaymentRequestApprovalController::class, 'updateSapFolios'])->name('payment-requests.sap-folios');
     Route::get('payment-requests/{payment_request}/pdf', PaymentRequestPdfController::class)->name('payment-requests.pdf');
 
-    Route::resource('investment-requests', InvestmentRequestController::class);
-    Route::post('investment-requests/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->middleware('throttle:10,1')->name('investment-requests.approve');
-    Route::post('investment-requests/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('investment-requests.reject');
-    Route::get('investment-requests/{investment_request}/pdf', InvestmentRequestPdfController::class)->name('investment-requests.pdf');
+    Route::resource('investment-sheets', InvestmentRequestController::class)->parameters(['investment-sheets' => 'investment_request']);
+    Route::post('investment-sheets/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->middleware('throttle:10,1')->name('investment-sheets.approve');
+    Route::post('investment-sheets/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('investment-sheets.reject');
+    Route::get('investment-sheets/{investment_request}/pdf', InvestmentRequestPdfController::class)->name('investment-sheets.pdf');
 
     Route::get('guide', fn () => Inertia::render('guide/index'))->name('guide');
 

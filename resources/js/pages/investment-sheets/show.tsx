@@ -19,10 +19,10 @@ export default function Show() {
     const pr = resource.data;
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Solicitudes de Inversión', href: '/investment-requests' },
+        { title: 'Hojas de Inversión', href: '/investment-sheets' },
         {
             title: `#${String(pr.folio_number).padStart(5, '0')}`,
-            href: `/investment-requests/${pr.uuid}`,
+            href: `/investment-sheets/${pr.uuid}`,
         },
     ];
 
@@ -37,12 +37,12 @@ export default function Show() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => router.visit('/investment-requests')}
+                        onClick={() => router.visit('/investment-sheets')}
                     >
                         <ArrowLeft className="size-4" />
                     </Button>
                     <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                        Solicitud de Inversión
+                        Hoja de Inversión
                     </h1>
                 </div>
 
@@ -52,7 +52,7 @@ export default function Show() {
                     approvalStage={approvalStage}
                     canEditPurchaseInvoices={false}
                     canEditVendorPayments={false}
-                    baseUrl="/investment-requests"
+                    baseUrl="/investment-sheets"
                     showSapFolios={false}
                 />
             </div>

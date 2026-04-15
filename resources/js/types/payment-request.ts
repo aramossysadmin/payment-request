@@ -28,6 +28,12 @@ export type ExpenseConcept = {
     name: string;
 };
 
+export type Project = {
+    id: number;
+    name: string;
+    branch_id: number;
+};
+
 export type Department = {
     id: number;
     name: string;

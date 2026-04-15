@@ -30,8 +30,8 @@ const requestItems: NavItem[] = [
         icon: FileText,
     },
     {
-        title: 'Solicitudes de Inversión',
-        href: '/investment-requests',
+        title: 'Hojas de Inversión',
+        href: '/investment-sheets',
         icon: Banknote,
     },
 ];

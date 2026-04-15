@@ -13,7 +13,7 @@ import type { BreadcrumbItem, PaginatedData } from '@/types';
 import type { InvestmentRequest } from '@/types/investment-request';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Solicitudes de Inversión', href: '/investment-requests' },
+    { title: 'Hojas de Inversión', href: '/investment-sheets' },
 ];
 
 type PageProps = {
@@ -52,7 +52,7 @@ export default function Index() {
                     cleaned[key] = value;
                 }
             }
-            router.get('/investment-requests', cleaned, {
+            router.get('/investment-sheets', cleaned, {
                 preserveState: true,
                 preserveScroll: true,
             });
@@ -100,7 +100,7 @@ export default function Index() {
                 </h1>
                 <Button
                     size="sm"
-                    onClick={() => router.visit('/investment-requests/create')}
+                    onClick={() => router.visit('/investment-sheets/create')}
                 >
                     <Plus className="size-4" />
                     Nueva
@@ -176,7 +176,7 @@ export default function Index() {
                     approvalStage={(selectedId ? approvalStages[selectedId] : null) as 'department' | 'administration' | 'treasury' | null}
                     canEditPurchaseInvoices={false}
                     canEditVendorPayments={false}
-                    baseUrl="/investment-requests"
+                    baseUrl="/investment-sheets"
                     showSapFolios={false}
                 />
             ) : (
@@ -194,7 +194,7 @@ export default function Index() {
     if (isMobile) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Solicitudes de Inversión" />
+                <Head title="Hojas de Inversión" />
                 <div className="flex h-[calc(100vh-4rem)] flex-col">
                     {mobileView === 'list' ? (
                         listPanel
@@ -224,7 +224,7 @@ export default function Index() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Solicitudes de Inversión" />
+            <Head title="Hojas de Inversión" />
             <div className="grid h-[calc(100vh-4rem)] grid-cols-[380px_1px_1fr]">
                 <div className="overflow-hidden">
                     {listPanel}

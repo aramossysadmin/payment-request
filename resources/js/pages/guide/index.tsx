@@ -276,13 +276,13 @@ function InvestmentRequestsGuide() {
                     <CardTitle>
                         <SectionTitle>
                             <Plus className="size-5 text-primary" />
-                            Crear una Solicitud de Inversión
+                            Crear una Hoja de Inversión
                         </SectionTitle>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <Step number={1}>
-                        Desde el panel de <strong>Solicitudes de Inversión</strong>, haz clic en el botón <strong>Nueva</strong>.
+                        Desde el panel de <strong>Hojas de Inversión</strong>, haz clic en el botón <strong>Nueva</strong>.
                     </Step>
                     <Step number={2}>
                         Completa los campos del formulario: <strong>Razón Social</strong>, <strong>RFC</strong>, <strong>Folio Factura</strong>, <strong>Moneda</strong>, <strong>Sucursal</strong>, <strong>Concepto de Gasto</strong> y <strong>Descripción</strong> (opcional).
@@ -331,7 +331,7 @@ function InvestmentRequestsGuide() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                        A diferencia de las solicitudes de pago, las solicitudes de inversión tienen un <strong>flujo simplificado con un único autorizador</strong>.
+                        A diferencia de las solicitudes de pago, las hojas de inversión tienen un <strong>flujo simplificado con un único autorizador</strong>.
                     </p>
 
                     {/* Diagrama de flujo */}
@@ -527,7 +527,7 @@ export default function Guide() {
                         </TabsTrigger>
                         <TabsTrigger value="investment-requests">
                             <Banknote className="size-4" />
-                            Solicitudes de Inversión
+                            Hojas de Inversión
                         </TabsTrigger>
                         <TabsTrigger value="general">
                             <Settings className="size-4" />
