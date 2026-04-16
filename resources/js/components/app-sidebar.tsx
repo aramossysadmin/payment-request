@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { Banknote, BarChart3, BookOpen, ClipboardList, FileText, LayoutGrid } from 'lucide-react';
+import { Banknote, BarChart3, BookOpen, CalendarCheck, ClipboardList, FileText, LayoutGrid } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -49,6 +49,14 @@ const investmentItems: NavItem[] = [
     },
 ];
 
+const treasuryItems: NavItem[] = [
+    {
+        title: 'Programación de Pagos',
+        href: '/weekly-payment-schedule',
+        icon: CalendarCheck,
+    },
+];
+
 const docsItems: NavItem[] = [
     {
         title: 'Guía de Usuario',
@@ -76,6 +84,7 @@ export function AppSidebar() {
                 <NavMain items={platformItems} label="Plataforma" />
                 <NavMain items={requestItems} label="Solicitudes" />
                 <NavMain items={investmentItems} label="Presupuestos de Inversión" />
+                <NavMain items={treasuryItems} label="Tesorería" />
                 <NavMain items={docsItems} label="Documentación" />
             </SidebarContent>
 

@@ -15,6 +15,7 @@ use App\Http\Controllers\PaymentRequestApprovalController;
 use App\Http\Controllers\PaymentRequestController;
 use App\Http\Controllers\PaymentRequestPdfController;
 use App\Http\Controllers\ProviderSearchController;
+use App\Http\Controllers\WeeklyPaymentScheduleController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -49,6 +50,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('investment-sheets/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->middleware('throttle:10,1')->name('investment-sheets.approve');
     Route::post('investment-sheets/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('investment-sheets.reject');
     Route::get('investment-sheets/{investment_request}/pdf', InvestmentRequestPdfController::class)->name('investment-sheets.pdf');
+
+    Route::get('weekly-payment-schedule', [WeeklyPaymentScheduleController::class, 'index'])->name('weekly-payment-schedule.index');
+    Route::post('weekly-payment-schedule', [WeeklyPaymentScheduleController::class, 'store'])->name('weekly-payment-schedule.store');
 
     Route::get('guide', fn () => Inertia::render('guide/index'))->name('guide');
 

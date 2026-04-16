@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\InvestmentPaymentApproval;
 use App\Models\InvestmentRequestApproval;
 use App\Models\PaymentRequestApproval;
+use App\Models\WeeklyPaymentScheduleApproval;
 use App\Services\ApprovalService;
 use App\Services\InvestmentApprovalService;
 use App\Services\InvestmentPaymentApprovalService;
+use App\Services\WeeklyPaymentScheduleApprovalService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,6 +20,7 @@ class EmailApprovalController extends Controller
         private ApprovalService $approvalService,
         private InvestmentApprovalService $investmentApprovalService,
         private InvestmentPaymentApprovalService $investmentPaymentApprovalService,
+        private WeeklyPaymentScheduleApprovalService $weeklyPaymentScheduleApprovalService,
     ) {}
 
     public function show(string $token): View
@@ -64,7 +67,20 @@ class EmailApprovalController extends Controller
             return $approval;
         }
 
-        if ($approval instanceof InvestmentPaymentApproval) {
+        if ($approval instanceof WeeklyPaymentScheduleApproval) {
+            $this->weeklyPaymentScheduleApprovalService->approve(
+                $approval->schedule,
+                $approval->user,
+            );
+
+            return view('approval.result', [
+                'success' => true,
+                'message' => 'La programación de pagos semanal ha sido autorizada correctamente. Puedes cerrar esta ventana.',
+                'action' => 'approved',
+                'folioNumber' => 'S'.$approval->schedule->week_number.'-'.$approval->schedule->year,
+                'provider' => 'Programación Semana '.$approval->schedule->week_number,
+            ]);
+        } elseif ($approval instanceof InvestmentPaymentApproval) {
             $this->investmentPaymentApprovalService->approve(
                 $approval->investmentPaymentRequest,
                 $approval->user,
@@ -108,7 +124,21 @@ class EmailApprovalController extends Controller
             'comments.min' => 'Los comentarios deben tener al menos 10 caracteres.',
         ]);
 
-        if ($approval instanceof InvestmentPaymentApproval) {
+        if ($approval instanceof WeeklyPaymentScheduleApproval) {
+            $this->weeklyPaymentScheduleApprovalService->reject(
+                $approval->schedule,
+                $approval->user,
+                $validated['comments'],
+            );
+
+            return view('approval.result', [
+                'success' => true,
+                'message' => 'La programación de pagos semanal ha sido rechazada. Puedes cerrar esta ventana.',
+                'action' => 'rejected',
+                'folioNumber' => 'S'.$approval->schedule->week_number.'-'.$approval->schedule->year,
+                'provider' => 'Programación Semana '.$approval->schedule->week_number,
+            ]);
+        } elseif ($approval instanceof InvestmentPaymentApproval) {
             $this->investmentPaymentApprovalService->reject(
                 $approval->investmentPaymentRequest,
                 $approval->user,
@@ -140,15 +170,22 @@ class EmailApprovalController extends Controller
         ]);
     }
 
-    private function findApprovalByToken(string $token): PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval|null
+    private function findApprovalByToken(string $token): PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval|WeeklyPaymentScheduleApproval|null
     {
         return PaymentRequestApproval::where('approval_token', $token)->first()
             ?? InvestmentRequestApproval::where('approval_token', $token)->first()
-            ?? InvestmentPaymentApproval::where('approval_token', $token)->first();
+            ?? InvestmentPaymentApproval::where('approval_token', $token)->first()
+            ?? WeeklyPaymentScheduleApproval::where('approval_token', $token)->first();
     }
 
-    private function loadRequestRelation(PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval $approval): Model
+    private function loadRequestRelation(PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval|WeeklyPaymentScheduleApproval $approval): Model
     {
+        if ($approval instanceof WeeklyPaymentScheduleApproval) {
+            $approval->load(['schedule.creator', 'schedule.items.investmentPaymentRequest', 'user']);
+
+            return $approval->schedule;
+        }
+
         if ($approval instanceof InvestmentPaymentApproval) {
             $approval->load(['investmentPaymentRequest.user', 'investmentPaymentRequest.department', 'investmentPaymentRequest.currency', 'investmentPaymentRequest.branch', 'investmentPaymentRequest.expenseConcept', 'user']);
 
@@ -166,7 +203,7 @@ class EmailApprovalController extends Controller
         return $approval->paymentRequest;
     }
 
-    private function resolveValidApproval(string $token): PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval|View
+    private function resolveValidApproval(string $token): PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval|WeeklyPaymentScheduleApproval|View
     {
         $approval = $this->findApprovalByToken($token);
 
