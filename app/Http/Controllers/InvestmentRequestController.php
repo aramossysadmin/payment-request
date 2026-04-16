@@ -137,7 +137,7 @@ class InvestmentRequestController extends Controller
     {
         Gate::authorize('view', $investmentRequest);
 
-        $investmentRequest->load(['user', 'department', 'currency', 'branch', 'project', 'expenseConcept', 'investmentExpenseConcept', 'approvals.user']);
+        $investmentRequest->load(['user', 'department', 'currency', 'branch', 'project', 'expenseConcept', 'investmentExpenseConcept', 'paymentType', 'approvals.user']);
 
         $user = $request->user();
         $pendingApproval = $investmentRequest->approvals
