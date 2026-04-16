@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentViewController;
 use App\Http\Controllers\EmailApprovalController;
+use App\Http\Controllers\InvestmentDashboardController;
 use App\Http\Controllers\InvestmentPaymentRequestController;
 use App\Http\Controllers\InvestmentRequestApprovalController;
 use App\Http\Controllers\InvestmentRequestController;
@@ -39,6 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('payment-requests/{payment_request}/sap-folios', [PaymentRequestApprovalController::class, 'updateSapFolios'])->name('payment-requests.sap-folios');
     Route::get('payment-requests/{payment_request}/pdf', PaymentRequestPdfController::class)->name('payment-requests.pdf');
 
+    Route::get('investment-dashboard', InvestmentDashboardController::class)->name('investment-dashboard');
     Route::get('investment-sheets/consolidated', InvestmentSheetConsolidatedIndexController::class)->name('investment-sheets.consolidated.index');
     Route::get('investment-sheets/consolidated/{project}', InvestmentSheetConsolidatedController::class)->name('investment-sheets.consolidated');
     Route::get('investment-payment-requests/{investmentRequestId}', [InvestmentPaymentRequestController::class, 'index'])->name('investment-payment-requests.index');

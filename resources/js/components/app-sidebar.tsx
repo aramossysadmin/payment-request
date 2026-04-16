@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { Banknote, BookOpen, ClipboardList, FileText, LayoutGrid } from 'lucide-react';
+import { Banknote, BarChart3, BookOpen, ClipboardList, FileText, LayoutGrid } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -41,6 +41,11 @@ const investmentItems: NavItem[] = [
         title: 'Hojas de Inversión',
         href: '/investment-sheets/consolidated',
         icon: ClipboardList,
+    },
+    {
+        title: 'Control Presupuestal',
+        href: '/investment-dashboard',
+        icon: BarChart3,
     },
 ];
 
