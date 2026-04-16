@@ -984,8 +984,11 @@ function PaymentRequestModal({
                                         rows={3}
                                         value={values.description}
                                         onChange={(e) => handleChange('description', e.target.value)}
-                                        placeholder="Notas adicionales..."
+                                        placeholder="Ej: Pago del 30% de anticipo por concepto de..."
                                     />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Si el pago corresponde a un porcentaje de avance, ind&iacute;calo aqu&iacute; (ej. &quot;Pago del 50% de avance&quot;).
+                                    </p>
                                     <InputError message={errors.description} />
                                 </div>
                             </CardContent>
