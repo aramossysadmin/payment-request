@@ -37,6 +37,12 @@ class InvestmentExpenseCategoryResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
+                        Forms\Components\Select::make('department_id')
+                            ->label('Departamento')
+                            ->relationship('department', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required(),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Activo')
                             ->default(true)
@@ -52,6 +58,10 @@ class InvestmentExpenseCategoryResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('department.name')
+                    ->label('Departamento')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\ToggleColumn::make('is_active')

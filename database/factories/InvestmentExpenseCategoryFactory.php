@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Department;
 use App\Models\InvestmentExpenseCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -14,6 +15,7 @@ class InvestmentExpenseCategoryFactory extends Factory
     {
         return [
             'name' => fake()->unique()->word(),
+            'department_id' => Department::factory(),
             'is_active' => true,
         ];
     }

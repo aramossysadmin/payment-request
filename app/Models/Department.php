@@ -52,4 +52,9 @@ class Department extends Model
     {
         return $this->belongsTo(User::class, 'authorizer_level_2_id');
     }
+
+    public function investmentExpenseCategories(): HasMany
+    {
+        return $this->hasMany(InvestmentExpenseCategory::class);
+    }
 }
