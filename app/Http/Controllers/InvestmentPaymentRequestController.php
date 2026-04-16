@@ -14,8 +14,10 @@ class InvestmentPaymentRequestController extends Controller
 {
     public function __construct(private InvestmentPaymentApprovalService $approvalService) {}
 
-    public function index(InvestmentRequest $investmentRequest): JsonResponse
+    public function index(int $investmentRequestId): JsonResponse
     {
+        $investmentRequest = InvestmentRequest::findOrFail($investmentRequestId);
+
         $payments = $investmentRequest->investmentPaymentRequests()
             ->with(['user', 'currency', 'approvals.user'])
             ->latest()
