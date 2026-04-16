@@ -3,43 +3,37 @@
 namespace App\Models;
 
 use App\Enums\IvaRate;
-use App\States\InvestmentRequest\InvestmentRequestState;
-use Database\Factories\InvestmentRequestFactory;
-use Illuminate\Database\Eloquent\Builder;
+use Database\Factories\InvestmentPaymentRequestFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
-use Spatie\ModelStates\HasStates;
 
-class InvestmentRequest extends Model
+class InvestmentPaymentRequest extends Model
 {
-    /** @use HasFactory<InvestmentRequestFactory> */
-    use HasFactory, HasStates, SoftDeletes;
+    /** @use HasFactory<InvestmentPaymentRequestFactory> */
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'folio_number',
+        'investment_request_id',
         'provider',
         'rfc',
-        'contact_name',
-        'contact_email',
-        'contact_phone',
         'invoice_folio',
         'currency_id',
         'branch_id',
         'expense_concept_id',
-        'description',
         'payment_type_id',
+        'description',
+        'status',
         'advance_documents',
         'subtotal',
         'iva_rate',
         'iva',
         'retention',
         'total',
-        'number_purchase_invoices',
-        'number_vendor_payments',
     ];
 
     protected function setProviderAttribute(string $value): void
@@ -71,13 +65,13 @@ class InvestmentRequest extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (InvestmentRequest $investmentRequest) {
-            if (! $investmentRequest->uuid) {
-                $investmentRequest->uuid = (string) Str::uuid();
+        static::creating(function (self $model) {
+            if (! $model->uuid) {
+                $model->uuid = (string) Str::uuid();
             }
 
-            if (! $investmentRequest->folio_number) {
-                $investmentRequest->folio_number = (static::withTrashed()->max('folio_number') ?? 0) + 1;
+            if (! $model->folio_number) {
+                $model->folio_number = (static::withTrashed()->max('folio_number') ?? 0) + 1;
             }
         });
     }
@@ -93,7 +87,6 @@ class InvestmentRequest extends Model
     protected function casts(): array
     {
         return [
-            'status' => InvestmentRequestState::class,
             'iva_rate' => IvaRate::class,
             'advance_documents' => 'array',
             'subtotal' => 'decimal:2',
@@ -101,6 +94,11 @@ class InvestmentRequest extends Model
             'retention' => 'boolean',
             'total' => 'decimal:2',
         ];
+    }
+
+    public function investmentRequest(): BelongsTo
+    {
+        return $this->belongsTo(InvestmentRequest::class);
     }
 
     public function user(): BelongsTo
@@ -118,19 +116,9 @@ class InvestmentRequest extends Model
         return $this->belongsTo(Currency::class);
     }
 
-    public function project(): BelongsTo
-    {
-        return $this->belongsTo(Project::class);
-    }
-
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
-    }
-
-    public function paymentType(): BelongsTo
-    {
-        return $this->belongsTo(PaymentType::class);
     }
 
     public function expenseConcept(): BelongsTo
@@ -138,48 +126,13 @@ class InvestmentRequest extends Model
         return $this->belongsTo(ExpenseConcept::class);
     }
 
-    public function investmentExpenseConcept(): BelongsTo
+    public function paymentType(): BelongsTo
     {
-        return $this->belongsTo(InvestmentExpenseConcept::class);
+        return $this->belongsTo(PaymentType::class);
     }
 
     public function approvals(): HasMany
     {
-        return $this->hasMany(InvestmentRequestApproval::class);
-    }
-
-    public function investmentPaymentRequests(): HasMany
-    {
-        return $this->hasMany(InvestmentPaymentRequest::class);
-    }
-
-    public function getRemainingBalanceAttribute(): string
-    {
-        $paid = $this->investmentPaymentRequests()
-            ->whereIn('status', ['pending_approval', 'approved'])
-            ->sum('total');
-
-        return bcsub($this->total, (string) $paid, 2);
-    }
-
-    public function scopeVisibleTo(Builder $query, User $user): Builder
-    {
-        if ($user->hasRole('super_admin')) {
-            return $query;
-        }
-
-        if ($user->authorizedDepartments()->exists()) {
-            $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('id');
-
-            return $query->where(function ($q) use ($user, $authorizedDepartmentIds) {
-                $q->whereIn('department_id', $authorizedDepartmentIds)
-                    ->orWhere('user_id', $user->id)
-                    ->orWhereHas('approvals', function ($approvalQuery) use ($user) {
-                        $approvalQuery->where('user_id', $user->id);
-                    });
-            });
-        }
-
-        return $query->where('user_id', $user->id);
+        return $this->hasMany(InvestmentPaymentApproval::class);
     }
 }

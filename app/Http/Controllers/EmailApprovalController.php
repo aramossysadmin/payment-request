@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InvestmentPaymentApproval;
 use App\Models\InvestmentRequestApproval;
 use App\Models\PaymentRequestApproval;
 use App\Services\ApprovalService;
 use App\Services\InvestmentApprovalService;
+use App\Services\InvestmentPaymentApprovalService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,6 +17,7 @@ class EmailApprovalController extends Controller
     public function __construct(
         private ApprovalService $approvalService,
         private InvestmentApprovalService $investmentApprovalService,
+        private InvestmentPaymentApprovalService $investmentPaymentApprovalService,
     ) {}
 
     public function show(string $token): View
@@ -61,7 +64,13 @@ class EmailApprovalController extends Controller
             return $approval;
         }
 
-        if ($approval instanceof InvestmentRequestApproval) {
+        if ($approval instanceof InvestmentPaymentApproval) {
+            $this->investmentPaymentApprovalService->approve(
+                $approval->investmentPaymentRequest,
+                $approval->user,
+            );
+            $request = $approval->investmentPaymentRequest;
+        } elseif ($approval instanceof InvestmentRequestApproval) {
             $this->investmentApprovalService->approve(
                 $approval->investmentRequest,
                 $approval->user,
@@ -99,7 +108,14 @@ class EmailApprovalController extends Controller
             'comments.min' => 'Los comentarios deben tener al menos 10 caracteres.',
         ]);
 
-        if ($approval instanceof InvestmentRequestApproval) {
+        if ($approval instanceof InvestmentPaymentApproval) {
+            $this->investmentPaymentApprovalService->reject(
+                $approval->investmentPaymentRequest,
+                $approval->user,
+                $validated['comments'],
+            );
+            $requestModel = $approval->investmentPaymentRequest;
+        } elseif ($approval instanceof InvestmentRequestApproval) {
             $this->investmentApprovalService->reject(
                 $approval->investmentRequest,
                 $approval->user,
@@ -124,14 +140,21 @@ class EmailApprovalController extends Controller
         ]);
     }
 
-    private function findApprovalByToken(string $token): PaymentRequestApproval|InvestmentRequestApproval|null
+    private function findApprovalByToken(string $token): PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval|null
     {
         return PaymentRequestApproval::where('approval_token', $token)->first()
-            ?? InvestmentRequestApproval::where('approval_token', $token)->first();
+            ?? InvestmentRequestApproval::where('approval_token', $token)->first()
+            ?? InvestmentPaymentApproval::where('approval_token', $token)->first();
     }
 
-    private function loadRequestRelation(PaymentRequestApproval|InvestmentRequestApproval $approval): Model
+    private function loadRequestRelation(PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval $approval): Model
     {
+        if ($approval instanceof InvestmentPaymentApproval) {
+            $approval->load(['investmentPaymentRequest.user', 'investmentPaymentRequest.department', 'investmentPaymentRequest.currency', 'investmentPaymentRequest.branch', 'investmentPaymentRequest.expenseConcept', 'investmentPaymentRequest.paymentType', 'user']);
+
+            return $approval->investmentPaymentRequest;
+        }
+
         if ($approval instanceof InvestmentRequestApproval) {
             $approval->load(['investmentRequest.user', 'investmentRequest.department', 'investmentRequest.currency', 'investmentRequest.branch', 'investmentRequest.expenseConcept', 'investmentRequest.paymentType', 'user']);
 
@@ -143,7 +166,7 @@ class EmailApprovalController extends Controller
         return $approval->paymentRequest;
     }
 
-    private function resolveValidApproval(string $token): PaymentRequestApproval|InvestmentRequestApproval|View
+    private function resolveValidApproval(string $token): PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval|View
     {
         $approval = $this->findApprovalByToken($token);
 

@@ -20,6 +20,9 @@ class InvestmentRequestResource extends JsonResource
             'folio_number' => $this->folio_number,
             'provider' => $this->provider,
             'rfc' => $this->rfc,
+            'contact_name' => $this->contact_name,
+            'contact_email' => $this->contact_email,
+            'contact_phone' => $this->contact_phone,
             'invoice_folio' => $this->invoice_folio,
             'description' => $this->description,
             'payment_type' => [
@@ -70,6 +73,11 @@ class InvestmentRequestResource extends JsonResource
                 'id' => $this->expenseConcept?->id,
                 'name' => $this->expenseConcept?->name,
             ],
+            'investment_expense_concept' => [
+                'id' => $this->investmentExpenseConcept?->id,
+                'name' => $this->investmentExpenseConcept?->name,
+            ],
+            'remaining_balance' => $this->getAttribute('remaining_balance') ?? $this->remaining_balance,
             'approvals' => InvestmentRequestApprovalResource::collection($this->whenLoaded('approvals')),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

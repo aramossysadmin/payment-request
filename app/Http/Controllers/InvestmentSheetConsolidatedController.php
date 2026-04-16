@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\InvestmentRequestResource;
+use App\Models\Branch;
+use App\Models\Currency;
+use App\Models\ExpenseConcept;
 use App\Models\InvestmentRequest;
+use App\Models\PaymentType;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,6 +18,11 @@ class InvestmentSheetConsolidatedController extends Controller
     public function __invoke(Request $request, Project $project): Response
     {
         $user = $request->user();
+
+        // Default department filter to user's department on first load
+        $departmentId = $request->filled('department_id')
+            ? ($request->input('department_id') ?: null)
+            : (string) $user->department_id;
 
         $query = InvestmentRequest::query()
             ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user'])
@@ -33,11 +42,16 @@ class InvestmentSheetConsolidatedController extends Controller
             $query->whereState('status', $request->string('status')->toString());
         }
 
-        if ($request->filled('department_id')) {
-            $query->where('department_id', $request->integer('department_id'));
+        if ($departmentId) {
+            $query->where('department_id', (int) $departmentId);
         }
 
         $investmentRequests = $query->latest()->paginate(10)->withQueryString();
+
+        // Compute remaining balance for each investment request
+        $investmentRequests->getCollection()->each(function (InvestmentRequest $ir) {
+            $ir->setAttribute('remaining_balance', $ir->remaining_balance);
+        });
 
         $totals = InvestmentRequest::query()
             ->where('project_id', $project->id)
@@ -76,7 +90,16 @@ class InvestmentSheetConsolidatedController extends Controller
                 'count' => (int) $d->department_count,
             ]),
             'investmentRequests' => InvestmentRequestResource::collection($investmentRequests),
-            'filters' => $request->only(['search', 'status', 'department_id']),
+            'filters' => [
+                'search' => $request->input('search'),
+                'status' => $request->input('status'),
+                'department_id' => $departmentId,
+            ],
+            'userDepartmentId' => $user->department_id,
+            'currencies' => Currency::all(['id', 'name', 'prefix']),
+            'branches' => Branch::orderBy('name')->get(['id', 'name']),
+            'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
+            'paymentTypes' => PaymentType::active()->get(['id', 'name', 'slug', 'invoice_documents_mode', 'additional_documents_mode']),
         ]);
     }
 }
