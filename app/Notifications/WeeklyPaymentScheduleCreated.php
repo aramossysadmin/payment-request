@@ -32,7 +32,11 @@ class WeeklyPaymentScheduleCreated extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $schedule = $this->schedule->load(['items.investmentPaymentRequest.currency', 'creator']);
+        $schedule = $this->schedule->load([
+            'items.investmentPaymentRequest.currency',
+            'items.investmentPaymentRequest.investmentRequest.investmentExpenseConcept',
+            'creator',
+        ]);
 
         $includedItems = $schedule->items->where('included', true);
         $excludedItems = $schedule->items->where('included', false);
@@ -61,6 +65,17 @@ class WeeklyPaymentScheduleCreated extends Notification implements ShouldQueue
             ['label' => 'Monto total a procesar', 'value' => '$ '.number_format($totalAmount, 2)],
         ];
 
+        $paymentItems = $schedule->items->map(fn ($item) => [
+            'folio' => $item->investmentPaymentRequest?->folio_number ?? 0,
+            'provider' => $item->investmentPaymentRequest?->provider ?? '-',
+            'concept' => $item->investmentPaymentRequest?->investmentRequest?->investmentExpenseConcept?->name ?? '-',
+            'total' => number_format((float) ($item->investmentPaymentRequest?->total ?? 0), 2),
+            'currency' => $item->investmentPaymentRequest?->currency?->prefix ?? 'MXN',
+            'description' => $item->investmentPaymentRequest?->description ?? '-',
+            'included' => $item->included,
+            'exclusion_reason' => $item->exclusion_reason,
+        ])->all();
+
         return $this->buildMailMessage(
             'Programación de Pagos Semanal - Semana '.$schedule->week_number.'/'.$schedule->year,
             [
@@ -72,6 +87,7 @@ class WeeklyPaymentScheduleCreated extends Notification implements ShouldQueue
                     'department' => 'Inversiones',
                     'stage' => null,
                 ],
+                'paymentItems' => $paymentItems,
                 'documents' => [],
                 'actionUrl' => $actionUrl,
                 'actionText' => $actionText,
