@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckIcon, ChevronsUpDownIcon, DollarSign, FileText, Search, X } from 'lucide-react';
-import { useCallback, useState, type FormEvent } from 'react';
+import { Banknote, Building2, CheckIcon, ChevronsUpDownIcon, Clock, DollarSign, Eye, FileText, Search, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { Pagination } from '@/components/pagination';
@@ -38,6 +38,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Branch, Currency, PaginatedData } from '@/types';
@@ -47,6 +54,30 @@ type DepartmentBreakdown = {
     id: number;
     name: string;
     total: string;
+    count: number;
+};
+
+type InvestmentPayment = {
+    id: number;
+    uuid: string;
+    folio_number: number;
+    provider: string;
+    rfc: string | null;
+    payment_type: 'factura' | 'anticipo';
+    currency_prefix: string;
+    subtotal: string;
+    iva: string;
+    total: string;
+    status: string;
+    user_name: string;
+    created_at: string;
+    approval_status: 'pending' | 'approved' | 'rejected';
+};
+
+type PaymentsSummary = {
+    total_concept: string;
+    total_paid: number;
+    remaining: string;
     count: number;
 };
 
@@ -101,6 +132,11 @@ export default function Consolidated() {
     const [search, setSearch] = useState(filters.search ?? '');
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedIr, setSelectedIr] = useState<InvestmentRequest | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerIr, setDrawerIr] = useState<InvestmentRequest | null>(null);
+    const [payments, setPayments] = useState<InvestmentPayment[]>([]);
+    const [paymentsSummary, setPaymentsSummary] = useState<PaymentsSummary | null>(null);
+    const [loadingPayments, setLoadingPayments] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Hojas de Inversión', href: '/investment-sheets/consolidated' },
@@ -135,6 +171,33 @@ export default function Consolidated() {
     const openPaymentModal = (ir: InvestmentRequest) => {
         setSelectedIr(ir);
         setModalOpen(true);
+    };
+
+    const openDrawer = (ir: InvestmentRequest) => {
+        setDrawerIr(ir);
+        setDrawerOpen(true);
+        fetchPayments(ir.id);
+    };
+
+    const fetchPayments = (investmentRequestId: number) => {
+        setLoadingPayments(true);
+        fetch(`/investment-payment-requests/${investmentRequestId}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                setPayments(data.payments ?? []);
+                setPaymentsSummary(data.summary ?? null);
+            })
+            .finally(() => setLoadingPayments(false));
+    };
+
+    const handlePaymentModalClose = () => {
+        setModalOpen(false);
+        setSelectedIr(null);
+        if (drawerIr) {
+            fetchPayments(drawerIr.id);
+        }
     };
 
     return (
@@ -377,17 +440,17 @@ export default function Consolidated() {
                                                             </Badge>
                                                         </td>
                                                         <td className="py-3">
-                                                            {canRequestPayment && (
+                                                            {isCompleted && (
                                                                 <Button
                                                                     size="sm"
-                                                                    variant="outline"
+                                                                    variant="ghost"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        openPaymentModal(ir);
+                                                                        openDrawer(ir);
                                                                     }}
                                                                 >
-                                                                    <Banknote className="mr-1.5 h-3.5 w-3.5" />
-                                                                    Solicitar Pago
+                                                                    <Eye className="mr-1.5 h-3.5 w-3.5" />
+                                                                    Pagos
                                                                 </Button>
                                                             )}
                                                         </td>
@@ -406,11 +469,23 @@ export default function Consolidated() {
                 </Card>
             </div>
 
+            {/* Payments Drawer */}
+            <PaymentsDrawer
+                open={drawerOpen}
+                onClose={() => { setDrawerOpen(false); setDrawerIr(null); }}
+                investmentRequest={drawerIr}
+                payments={payments}
+                summary={paymentsSummary}
+                loading={loadingPayments}
+                userDepartmentId={userDepartmentId}
+                onRequestPayment={(ir) => openPaymentModal(ir)}
+            />
+
             {/* Payment Request Modal */}
             {selectedIr && (
                 <PaymentRequestModal
                     open={modalOpen}
-                    onClose={() => { setModalOpen(false); setSelectedIr(null); }}
+                    onClose={handlePaymentModalClose}
                     investmentRequest={selectedIr}
                     currencies={currencies}
                     branches={branches}
@@ -418,6 +493,164 @@ export default function Consolidated() {
                 />
             )}
         </AppLayout>
+    );
+}
+
+/* ─── Payments Drawer ─── */
+
+const paymentStatusConfig: Record<string, { label: string; icon: typeof CheckIcon; color: string }> = {
+    pending: { label: 'Pendiente', icon: Clock, color: 'text-yellow-600 dark:text-yellow-400' },
+    approved: { label: 'Aprobado', icon: CheckIcon, color: 'text-green-600 dark:text-green-400' },
+    rejected: { label: 'Rechazado', icon: XCircle, color: 'text-red-600 dark:text-red-400' },
+    pending_approval: { label: 'Pendiente', icon: Clock, color: 'text-yellow-600 dark:text-yellow-400' },
+};
+
+type PaymentsDrawerProps = {
+    open: boolean;
+    onClose: () => void;
+    investmentRequest: InvestmentRequest | null;
+    payments: InvestmentPayment[];
+    summary: PaymentsSummary | null;
+    loading: boolean;
+    userDepartmentId: number;
+    onRequestPayment: (ir: InvestmentRequest) => void;
+};
+
+function PaymentsDrawer({
+    open, onClose, investmentRequest: ir, payments, summary, loading, userDepartmentId, onRequestPayment,
+}: PaymentsDrawerProps) {
+    if (!ir) return null;
+
+    const isUserDept = ir.department?.id === userDepartmentId;
+    const hasBalance = Number(ir.remaining_balance) > 0;
+    const canRequestPayment = isUserDept && hasBalance;
+
+    const progressPercent = summary
+        ? Math.min(100, (summary.total_paid / Number(summary.total_concept)) * 100)
+        : 0;
+
+    return (
+        <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+            <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
+                <SheetHeader>
+                    <SheetTitle className="flex items-center gap-2">
+                        Concepto #{String(ir.folio_number).padStart(5, '0')}
+                    </SheetTitle>
+                    <SheetDescription>{ir.provider}{ir.rfc ? ` · ${ir.rfc}` : ''}</SheetDescription>
+                </SheetHeader>
+
+                <div className="space-y-5 px-4 pb-6">
+                    {/* Summary */}
+                    <div className="space-y-3 rounded-lg border p-4">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Total del concepto</span>
+                            <span className="font-mono font-semibold">{formatCurrency(ir.total)}</span>
+                        </div>
+                        {summary && (
+                            <>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Total pagado / solicitado</span>
+                                    <span className="font-mono font-medium text-blue-600 dark:text-blue-400">{formatCurrency(summary.total_paid)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Saldo disponible</span>
+                                    <span className={cn('font-mono font-semibold', Number(summary.remaining) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
+                                        {formatCurrency(summary.remaining)}
+                                    </span>
+                                </div>
+                                {/* Progress bar */}
+                                <div className="space-y-1">
+                                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                                        <div
+                                            className={cn(
+                                                'h-full rounded-full transition-all',
+                                                progressPercent >= 100
+                                                    ? 'bg-red-500'
+                                                    : progressPercent >= 75
+                                                      ? 'bg-yellow-500'
+                                                      : 'bg-green-500',
+                                            )}
+                                            style={{ width: `${progressPercent}%` }}
+                                        />
+                                    </div>
+                                    <p className="text-right text-xs text-muted-foreground">
+                                        {progressPercent.toFixed(0)}% consumido · {summary.count} {summary.count === 1 ? 'pago' : 'pagos'}
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Action button */}
+                    {canRequestPayment && (
+                        <Button className="w-full" onClick={() => onRequestPayment(ir)}>
+                            <Banknote className="mr-2 h-4 w-4" />
+                            Solicitar Pago
+                        </Button>
+                    )}
+
+                    {/* Payments List */}
+                    <div>
+                        <h3 className="mb-3 text-sm font-semibold text-foreground">Pagos registrados</h3>
+
+                        {loading ? (
+                            <div className="space-y-3">
+                                {[1, 2].map((i) => (
+                                    <div key={i} className="animate-pulse rounded-lg border p-4">
+                                        <div className="h-4 w-2/3 rounded bg-gray-200 dark:bg-gray-700" />
+                                        <div className="mt-2 h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                                        <div className="mt-2 h-3 w-1/3 rounded bg-gray-200 dark:bg-gray-700" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : payments.length === 0 ? (
+                            <div className="rounded-lg border border-dashed py-8 text-center">
+                                <Banknote className="mx-auto mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" />
+                                <p className="text-sm text-muted-foreground">No hay pagos registrados</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {payments.map((payment) => {
+                                    const statusConf = paymentStatusConfig[payment.approval_status] ?? paymentStatusConfig.pending;
+                                    const StatusIcon = statusConf.icon;
+
+                                    return (
+                                        <div key={payment.id} className="rounded-lg border p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                            <div className="flex items-start justify-between">
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-mono text-xs font-medium">
+                                                            #{String(payment.folio_number).padStart(5, '0')}
+                                                        </span>
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {payment.payment_type === 'factura' ? 'Factura' : 'Anticipo'}
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="mt-1 text-sm font-medium">{payment.provider}</p>
+                                                    {payment.rfc && (
+                                                        <p className="text-xs text-muted-foreground">{payment.rfc}</p>
+                                                    )}
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        {payment.user_name} · {new Date(payment.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-mono text-sm font-semibold">{formatCurrency(payment.total)}</p>
+                                                    <div className={cn('mt-1 flex items-center justify-end gap-1 text-xs', statusConf.color)}>
+                                                        <StatusIcon className="h-3.5 w-3.5" />
+                                                        {statusConf.label}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </SheetContent>
+        </Sheet>
     );
 }
 
