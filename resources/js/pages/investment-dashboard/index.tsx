@@ -128,11 +128,11 @@ export default function InvestmentDashboard() {
                             Análisis de ejecución presupuestal de inversión
                         </p>
                     </div>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto">
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Proyecto</label>
                             <Select value={filters.project_id} onValueChange={(v) => applyFilter('project_id', v)}>
-                                <SelectTrigger className="w-56">
+                                <SelectTrigger className="w-full sm:w-56">
                                     <SelectValue placeholder="Seleccionar proyecto" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -145,7 +145,7 @@ export default function InvestmentDashboard() {
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Departamento</label>
                             <Select value={filters.department_id} onValueChange={(v) => applyFilter('department_id', v)}>
-                                <SelectTrigger className="w-52">
+                                <SelectTrigger className="w-full sm:w-52">
                                     <SelectValue placeholder="Todos" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -159,7 +159,105 @@ export default function InvestmentDashboard() {
                     </div>
                 </div>
 
-                {/* KPIs */}
+                {/* 1. Presupuesto Inicial vs Aditivas + Ejecución por Departamento */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Budget: Initial vs Addendums */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <PieChart className="h-4 w-4 text-gray-400" />
+                                Presupuesto Inicial vs Aditivas
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {Number(budgetComparison.total) === 0 ? (
+                                <p className="py-6 text-center text-sm text-gray-400">Sin datos</p>
+                            ) : (
+                                <div className="space-y-5">
+                                    <div className="text-center">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Presupuesto Total</p>
+                                        <p className="text-3xl font-bold">{formatCurrency(budgetComparison.total)}</p>
+                                        {budgetComparison.growthPercent > 0 && (
+                                            <p className="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">
+                                                +{budgetComparison.growthPercent}% por aditivas
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="h-8 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 flex">
+                                        {Number(budgetComparison.initial) > 0 && (
+                                            <div
+                                                className="h-full bg-blue-500 transition-all flex items-center justify-center text-[10px] font-semibold text-white"
+                                                style={{ width: `${(Number(budgetComparison.initial) / Number(budgetComparison.total)) * 100}%` }}
+                                            >
+                                                {`${((Number(budgetComparison.initial) / Number(budgetComparison.total)) * 100).toFixed(0)}%`}
+                                            </div>
+                                        )}
+                                        {Number(budgetComparison.addendum) > 0 && (
+                                            <div
+                                                className="h-full bg-amber-400 transition-all flex items-center justify-center text-[10px] font-semibold text-white"
+                                                style={{ width: `${(Number(budgetComparison.addendum) / Number(budgetComparison.total)) * 100}%` }}
+                                            >
+                                                {((Number(budgetComparison.addendum) / Number(budgetComparison.total)) * 100).toFixed(0)}%
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-block h-3 w-3 rounded-full bg-blue-500" />
+                                                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Presupuesto Inicial</span>
+                                            </div>
+                                            <p className="mt-1 text-lg font-bold text-blue-900 dark:text-blue-100">{formatCurrency(budgetComparison.initial)}</p>
+                                        </div>
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-block h-3 w-3 rounded-full bg-amber-400" />
+                                                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Aditivas</span>
+                                            </div>
+                                            <p className="mt-1 text-lg font-bold text-amber-900 dark:text-amber-100">{formatCurrency(budgetComparison.addendum)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* By Department */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <TrendingUp className="h-4 w-4 text-gray-400" />
+                                Ejecución por Departamento
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {byDepartment.length === 0 ? (
+                                <p className="py-6 text-center text-sm text-gray-400">Sin datos</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {byDepartment.map((item) => (
+                                        <div key={item.name} className="space-y-1.5">
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="font-medium">{item.name}</span>
+                                                <span className="text-gray-500">
+                                                    {formatCurrency(item.executed)} / {formatCurrency(item.budget)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <ProgressBar percent={item.percent} className="flex-1" />
+                                                <span className="w-12 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                                    {item.percent}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* 2. KPIs */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <Card>
                         <CardContent className="pt-6">
@@ -215,110 +313,7 @@ export default function InvestmentDashboard() {
                     </Card>
                 </div>
 
-                {/* Execution bars */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                    {/* By Department */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <TrendingUp className="h-4 w-4 text-gray-400" />
-                                Ejecución por Departamento
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {byDepartment.length === 0 ? (
-                                <p className="py-6 text-center text-sm text-gray-400">Sin datos</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {byDepartment.map((item) => (
-                                        <div key={item.name} className="space-y-1.5">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="font-medium">{item.name}</span>
-                                                <span className="text-gray-500">
-                                                    {formatCurrency(item.executed)} / {formatCurrency(item.budget)}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <ProgressBar percent={item.percent} className="flex-1" />
-                                                <span className="w-12 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                                    {item.percent}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Budget: Initial vs Addendums */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <PieChart className="h-4 w-4 text-gray-400" />
-                                Presupuesto Inicial vs Aditivas
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {Number(budgetComparison.total) === 0 ? (
-                                <p className="py-6 text-center text-sm text-gray-400">Sin datos</p>
-                            ) : (
-                                <div className="space-y-5">
-                                    {/* Total */}
-                                    <div className="text-center">
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Presupuesto Total</p>
-                                        <p className="text-3xl font-bold">{formatCurrency(budgetComparison.total)}</p>
-                                        {budgetComparison.growthPercent > 0 && (
-                                            <p className="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">
-                                                +{budgetComparison.growthPercent}% por aditivas
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Stacked bar */}
-                                    <div className="h-8 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 flex">
-                                        {Number(budgetComparison.initial) > 0 && (
-                                            <div
-                                                className="h-full bg-blue-500 transition-all flex items-center justify-center text-[10px] font-semibold text-white"
-                                                style={{ width: `${(Number(budgetComparison.initial) / Number(budgetComparison.total)) * 100}%` }}
-                                            >
-                                                {Number(budgetComparison.total) > 0 && `${((Number(budgetComparison.initial) / Number(budgetComparison.total)) * 100).toFixed(0)}%`}
-                                            </div>
-                                        )}
-                                        {Number(budgetComparison.addendum) > 0 && (
-                                            <div
-                                                className="h-full bg-amber-400 transition-all flex items-center justify-center text-[10px] font-semibold text-white"
-                                                style={{ width: `${(Number(budgetComparison.addendum) / Number(budgetComparison.total)) * 100}%` }}
-                                            >
-                                                {((Number(budgetComparison.addendum) / Number(budgetComparison.total)) * 100).toFixed(0)}%
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Legend cards */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
-                                            <div className="flex items-center gap-2">
-                                                <span className="inline-block h-3 w-3 rounded-full bg-blue-500" />
-                                                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Presupuesto Inicial</span>
-                                            </div>
-                                            <p className="mt-1 text-lg font-bold text-blue-900 dark:text-blue-100">{formatCurrency(budgetComparison.initial)}</p>
-                                        </div>
-                                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
-                                            <div className="flex items-center gap-2">
-                                                <span className="inline-block h-3 w-3 rounded-full bg-amber-400" />
-                                                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Aditivas</span>
-                                            </div>
-                                            <p className="mt-1 text-lg font-bold text-amber-900 dark:text-amber-100">{formatCurrency(budgetComparison.addendum)}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Concept Summary Table */}
+                {/* 3. Concept Summary Table */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Resumen por Concepto</CardTitle>
