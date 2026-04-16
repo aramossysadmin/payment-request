@@ -178,6 +178,7 @@ export default function Index() {
                     canEditVendorPayments={false}
                     baseUrl="/investment-sheets"
                     showSapFolios={false}
+                    isInvestment={true}
                 />
             ) : (
                 <div className="flex h-full flex-col items-center justify-center text-muted-foreground">

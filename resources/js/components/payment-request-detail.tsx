@@ -19,6 +19,7 @@ type PaymentRequestDetailProps = {
     canEditVendorPayments?: boolean;
     baseUrl?: string;
     showSapFolios?: boolean;
+    isInvestment?: boolean;
 };
 
 export function PaymentRequestDetail({
@@ -29,6 +30,7 @@ export function PaymentRequestDetail({
     canEditVendorPayments = false,
     baseUrl = '/payment-requests',
     showSapFolios = true,
+    isInvestment = false,
 }: PaymentRequestDetailProps) {
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -228,12 +230,18 @@ export function PaymentRequestDetail({
                                 </div>
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Concepto de Gasto</dt>
-                                    <dd className="font-medium text-foreground">{pr.expense_concept?.name ?? '—'}</dd>
+                                    <dd className="font-medium text-foreground">
+                                        {isInvestment
+                                            ? ((pr as any).investment_expense_concept?.name ?? pr.expense_concept?.name ?? '—')
+                                            : (pr.expense_concept?.name ?? '—')}
+                                    </dd>
                                 </div>
-                                <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">Tipo de Pago</dt>
-                                    <dd className="font-medium text-foreground">{pr.payment_type?.name ?? '—'}</dd>
-                                </div>
+                                {!isInvestment && (
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">Tipo de Pago</dt>
+                                        <dd className="font-medium text-foreground">{pr.payment_type?.name ?? '—'}</dd>
+                                    </div>
+                                )}
                                 {pr.description && (
                                     <div>
                                         <dt className="mb-1 text-muted-foreground">Descripción</dt>
