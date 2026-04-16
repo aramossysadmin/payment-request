@@ -322,7 +322,7 @@ export default function Consolidated() {
                                                 <th className="pb-3 pr-4 font-medium">Folio</th>
                                                 <th className="pb-3 pr-4 font-medium">Proveedor</th>
                                                 <th className="pb-3 pr-4 font-medium">Departamento</th>
-                                                <th className="pb-3 pr-4 font-medium">Concepto</th>
+                                                <th className="pb-3 pr-4 font-medium">Gasto de Inversión</th>
                                                 <th className="pb-3 pr-4 font-medium text-right">Total</th>
                                                 <th className="pb-3 pr-4 font-medium text-right">Saldo</th>
                                                 <th className="pb-3 pr-4 font-medium">Estado</th>
@@ -360,7 +360,7 @@ export default function Consolidated() {
                                                             {ir.department?.name}
                                                         </td>
                                                         <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">
-                                                            {ir.expense_concept?.name}
+                                                            {ir.investment_expense_concept?.name}
                                                         </td>
                                                         <td className="py-3 pr-4 text-right font-mono font-semibold">
                                                             {formatCurrency(ir.total)}
@@ -532,6 +532,12 @@ function PaymentRequestModal({
                                 <CardTitle className="text-base">Información del Proveedor</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                {ir.investment_expense_concept?.name && (
+                                    <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 dark:border-blue-800 dark:bg-blue-900/20">
+                                        <p className="text-xs font-medium text-blue-600 dark:text-blue-400">Gasto de Inversión</p>
+                                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{ir.investment_expense_concept.name}</p>
+                                    </div>
+                                )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="modal_provider">Razón Social</Label>

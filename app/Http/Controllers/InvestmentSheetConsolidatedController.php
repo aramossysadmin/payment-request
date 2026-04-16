@@ -23,7 +23,7 @@ class InvestmentSheetConsolidatedController extends Controller
             : (string) $user->department_id;
 
         $query = InvestmentRequest::query()
-            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'approvals.user'])
+            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'investmentExpenseConcept', 'approvals.user'])
             ->where('project_id', $project->id)
             ->visibleTo($user);
 
