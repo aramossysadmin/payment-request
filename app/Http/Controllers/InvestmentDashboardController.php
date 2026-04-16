@@ -154,27 +154,27 @@ class InvestmentDashboardController extends Controller
         return InvestmentRequest::query()
             ->whereIn('investment_requests.id', $completedIds)
             ->join('investment_expense_concepts', 'investment_requests.investment_expense_concept_id', '=', 'investment_expense_concepts.id')
-            ->selectRaw('investment_expense_concepts.id as concept_id, investment_expense_concepts.name as concept_name, SUM(investment_requests.total) as budget')
+            ->selectRaw('
+                investment_expense_concepts.name as concept_name,
+                SUM(CASE WHEN investment_requests.is_addendum = 0 THEN investment_requests.total ELSE 0 END) as initial_budget,
+                SUM(CASE WHEN investment_requests.is_addendum = 1 THEN investment_requests.total ELSE 0 END) as addendum_total,
+                SUM(investment_requests.total) as total_budget
+            ')
             ->groupBy('investment_expense_concepts.id', 'investment_expense_concepts.name')
-            ->orderByDesc('budget')
+            ->orderByDesc('total_budget')
             ->get()
-            ->map(function ($row) use ($completedIds) {
-                $conceptConceptIds = InvestmentRequest::whereIn('id', $completedIds)
-                    ->where('investment_expense_concept_id', $row->concept_id)
-                    ->pluck('id');
-
-                $paid = (float) InvestmentPaymentRequest::query()
-                    ->whereIn('investment_request_id', $conceptConceptIds)
-                    ->whereIn('status', ['pending_approval', 'approved'])
-                    ->sum('total');
-
-                $budget = (float) $row->budget;
+            ->map(function ($row) {
+                $initial = (float) $row->initial_budget;
+                $addendum = (float) $row->addendum_total;
+                $total = (float) $row->total_budget;
+                $growthPercent = $initial > 0 ? round(($addendum / $initial) * 100, 1) : 0;
 
                 return [
                     'name' => $row->concept_name,
-                    'budget' => number_format($budget, 2, '.', ''),
-                    'executed' => number_format($paid, 2, '.', ''),
-                    'percent' => $budget > 0 ? round(($paid / $budget) * 100, 1) : 0,
+                    'initial' => number_format($initial, 2, '.', ''),
+                    'addendum' => number_format($addendum, 2, '.', ''),
+                    'total' => number_format($total, 2, '.', ''),
+                    'growthPercent' => $growthPercent,
                 ];
             })->values()->all();
     }

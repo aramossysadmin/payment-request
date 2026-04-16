@@ -22,6 +22,14 @@ type ExecutionItem = {
     percent: number;
 };
 
+type BudgetComparison = {
+    name: string;
+    initial: string;
+    addendum: string;
+    total: string;
+    growthPercent: number;
+};
+
 type ConceptRow = {
     concept: string;
     department: string;
@@ -39,7 +47,7 @@ type PageProps = {
     filters: { project_id: string; department_id: string };
     kpis: { budget: string; executed: string; remaining: string; percent: number };
     byDepartment: ExecutionItem[];
-    byConcept: ExecutionItem[];
+    byConcept: BudgetComparison[];
     conceptTable: ConceptRow[];
     departments: { id: number; name: string }[];
 };
@@ -244,32 +252,59 @@ export default function InvestmentDashboard() {
                         </CardContent>
                     </Card>
 
-                    {/* By Concept */}
+                    {/* Budget: Initial vs Addendums */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <PieChart className="h-4 w-4 text-gray-400" />
-                                Ejecución por Concepto de Gasto
+                                Presupuesto Inicial vs Aditivas
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             {byConcept.length === 0 ? (
                                 <p className="py-6 text-center text-sm text-gray-400">Sin datos</p>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-5">
                                     {byConcept.map((item) => (
-                                        <div key={item.name} className="space-y-1.5">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="font-medium">{item.name}</span>
-                                                <span className="text-gray-500">
-                                                    {formatCurrency(item.executed)} / {formatCurrency(item.budget)}
-                                                </span>
+                                        <div key={item.name} className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm font-medium">{item.name}</span>
+                                                <span className="text-sm font-semibold">{formatCurrency(item.total)}</span>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <ProgressBar percent={item.percent} className="flex-1" />
-                                                <span className="w-12 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                                    {item.percent}%
-                                                </span>
+                                            {/* Stacked bar */}
+                                            <div className="h-5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 flex">
+                                                {Number(item.initial) > 0 && (
+                                                    <div
+                                                        className="h-full bg-blue-500 transition-all"
+                                                        style={{ width: `${(Number(item.initial) / Number(item.total)) * 100}%` }}
+                                                        title={`Inicial: ${formatCurrency(item.initial)}`}
+                                                    />
+                                                )}
+                                                {Number(item.addendum) > 0 && (
+                                                    <div
+                                                        className="h-full bg-amber-400 transition-all"
+                                                        style={{ width: `${(Number(item.addendum) / Number(item.total)) * 100}%` }}
+                                                        title={`Aditivas: ${formatCurrency(item.addendum)}`}
+                                                    />
+                                                )}
+                                            </div>
+                                            {/* Legend */}
+                                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />
+                                                        Inicial: {formatCurrency(item.initial)}
+                                                    </span>
+                                                    {Number(item.addendum) > 0 && (
+                                                        <span className="flex items-center gap-1">
+                                                            <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />
+                                                            Aditivas: {formatCurrency(item.addendum)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {item.growthPercent > 0 && (
+                                                    <span className="font-semibold text-amber-600 dark:text-amber-400">+{item.growthPercent}%</span>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
