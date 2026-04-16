@@ -1,27 +1,27 @@
 ## Project Persistent Memory
-- Este proyecto tiene un sistema de memoria persistente en `.claude/memory/`.
-- El archivo `.claude/memory/MEMORY.md` es el indice principal. Cada entrada apunta a un archivo `.md` individual.
-- **Cuando guardar:** Al completar auditorias de seguridad, decisiones de arquitectura importantes, cambios significativos en el stack, o cualquier hallazgo que deba persistir entre conversaciones.
-- **Como guardar:** Crear o actualizar el archivo `.md` correspondiente en `.claude/memory/` y actualizar el indice `MEMORY.md`.
-- **Categorias disponibles:** Security (auditorias, vulnerabilidades), Architecture (decisiones tecnicas), Tech Stack (versiones y dependencias).
-- **Al iniciar una conversacion:** Leer `.claude/memory/MEMORY.md` para contexto del proyecto.
-- **No guardar:** Informacion efimera, progreso de tareas en curso, datos que se derivan del codigo o git log.
+- This project has a persistent memory system in `.claude/memory/`.
+- The file `.claude/memory/MEMORY.md` is the main index. Each entry points to an individual `.md` file.
+- **When to save:** After completing security audits, important architecture decisions, significant stack changes, or any findings that should persist across conversations.
+- **How to save:** Create or update the corresponding `.md` file in `.claude/memory/` and update the `MEMORY.md` index.
+- **Available categories:** Security (audits, vulnerabilities), Architecture (technical decisions), Tech Stack (versions and dependencies).
+- **On conversation start:** Read `.claude/memory/MEMORY.md` for project context.
+- **Do not save:** Ephemeral information, in-progress task status, or data derivable from code or git log.
 
 ## Git Commits
-- Al finalizar una funcionalidad, el commit es OBLIGATORIO sin excepcion. Siempre crear el commit al completar cada funcionalidad.
+- Upon completing a feature, committing is MANDATORY without exception. Always create a commit after finishing each feature.
 
-## Reglas de Trabajo
-- SIEMPRE presentar un plan detallado antes de ejecutar cualquier modificacion en el sistema y ESPERAR autorizacion del usuario antes de proceder.
-- SIEMPRE asegurarse de entender completamente lo que el usuario pide. Si hay CUALQUIER duda, preguntar TODAS las preguntas necesarias, TODAS las veces que sea necesario, hasta tener certeza total de la necesidad.
+## Workflow Rules
+- ALWAYS present a detailed plan before executing any system modification and WAIT for user authorization before proceeding.
+- ALWAYS make sure you fully understand what the user is asking. If there is ANY doubt, ask ALL necessary questions, AS MANY TIMES as needed, until you have complete certainty about the requirement.
 
-## Proteccion de Base de Datos (REGLA CRITICA - MAXIMA PRIORIDAD)
-- ESTA ABSOLUTAMENTE PROHIBIDO eliminar, borrar, truncar o modificar destructivamente registros de la base de datos real bajo CUALQUIER circunstancia, ya sea por testing, debugging, migraciones, seeders, comandos artisan, o cualquier otro motivo.
-- NUNCA modificar `.env.testing` para quitar o cambiar `DB_CONNECTION` o `DB_DATABASE`. El archivo `.env.testing` DEBE mantener siempre `DB_CONNECTION=sqlite` y `DB_DATABASE=:memory:` para garantizar aislamiento total.
-- NUNCA ejecutar tests sin antes verificar que `.env.testing` tiene `DB_DATABASE=:memory:`.
-- NUNCA ejecutar `migrate:fresh`, `migrate:refresh`, `db:wipe`, `truncate()`, `delete()`, `forceDelete()`, `DB::table()->delete()`, o cualquier operacion destructiva contra la BD real.
-- `RefreshDatabase` esta permitido UNICAMENTE porque `.env.testing` apunta a SQLite en memoria, completamente aislado de la BD real.
-- Si un test necesita datos, debe crearlos con factories dentro del test (operan sobre la BD en memoria).
-- Antes de ejecutar CUALQUIER comando que pueda afectar la BD, verificar que NO se esta apuntando a la BD real.
+## Database Protection (CRITICAL RULE - HIGHEST PRIORITY)
+- It is ABSOLUTELY FORBIDDEN to delete, drop, truncate, or destructively modify records in the production database under ANY circumstance, whether for testing, debugging, migrations, seeders, artisan commands, or any other reason.
+- NEVER modify `.env.testing` to remove or change `DB_CONNECTION` or `DB_DATABASE`. The `.env.testing` file MUST always keep `DB_CONNECTION=sqlite` and `DB_DATABASE=:memory:` to guarantee total isolation.
+- NEVER run tests without first verifying that `.env.testing` has `DB_DATABASE=:memory:`.
+- NEVER run `migrate:fresh`, `migrate:refresh`, `db:wipe`, `truncate()`, `delete()`, `forceDelete()`, `DB::table()->delete()`, or any destructive operation against the production database.
+- `RefreshDatabase` is allowed ONLY because `.env.testing` points to an in-memory SQLite database, completely isolated from the production database.
+- If a test needs data, it must create it using factories within the test (which operate on the in-memory database).
+- Before running ANY command that could affect the database, verify that it is NOT pointing to the production database.
 
 <laravel-boost-guidelines>
 === foundation rules ===
