@@ -52,6 +52,14 @@ class EmailApprovalController extends Controller
 
         $request = $this->loadRequestRelation($approval);
 
+        if ($approval instanceof WeeklyPaymentScheduleApproval) {
+            return view('approval.show-schedule', [
+                'approval' => $approval,
+                'schedule' => $request,
+                'token' => $token,
+            ]);
+        }
+
         return view('approval.show', [
             'approval' => $approval,
             'paymentRequest' => $request,
