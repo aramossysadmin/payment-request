@@ -6,6 +6,7 @@ use App\Http\Requests\StoreInvestmentPaymentRequest;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Services\InvestmentPaymentApprovalService;
+use App\States\InvestmentRequest\Completed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
@@ -18,8 +19,20 @@ class InvestmentPaymentRequestController extends Controller
     {
         $investmentRequest = InvestmentRequest::findOrFail($investmentRequestId);
 
-        $payments = $investmentRequest->investmentPaymentRequests()
-            ->with(['user', 'currency', 'approvals.user'])
+        // Get all concept IDs in the same group (same concept + project)
+        $groupIds = collect([$investmentRequest->id]);
+
+        if ($investmentRequest->investment_expense_concept_id && $investmentRequest->project_id) {
+            $groupIds = InvestmentRequest::query()
+                ->where('project_id', $investmentRequest->project_id)
+                ->where('investment_expense_concept_id', $investmentRequest->investment_expense_concept_id)
+                ->whereState('status', Completed::class)
+                ->pluck('id');
+        }
+
+        $payments = InvestmentPaymentRequest::query()
+            ->whereIn('investment_request_id', $groupIds)
+            ->with(['user', 'currency', 'approvals.user', 'investmentRequest'])
             ->latest()
             ->get()
             ->map(fn (InvestmentPaymentRequest $p) => [
@@ -37,14 +50,18 @@ class InvestmentPaymentRequestController extends Controller
                 'user_name' => $p->user?->name,
                 'created_at' => $p->created_at?->toISOString(),
                 'approval_status' => $p->approvals->first()?->status ?? 'pending',
+                'concept_folio' => $p->investmentRequest?->folio_number,
             ]);
+
+        $groupBudget = (float) InvestmentRequest::whereIn('id', $groupIds)->sum('total');
+        $groupPaid = (float) $payments->where('status', '!=', 'rejected')->sum(fn ($p) => (float) $p['total']);
 
         return response()->json([
             'payments' => $payments,
             'summary' => [
-                'total_concept' => (string) $investmentRequest->total,
-                'total_paid' => $payments->where('status', '!=', 'rejected')->sum(fn ($p) => (float) $p['total']),
-                'remaining' => $investmentRequest->remaining_balance,
+                'total_concept' => number_format($groupBudget, 2, '.', ''),
+                'total_paid' => $groupPaid,
+                'remaining' => number_format($groupBudget - $groupPaid, 2, '.', ''),
                 'count' => $payments->count(),
             ],
         ]);
