@@ -190,10 +190,12 @@ export default function Show() {
                                     <dt className="text-muted-foreground">Concepto de Gasto</dt>
                                     <dd className="font-medium text-foreground">{ir.investment_expense_concept?.name ?? ir.expense_concept?.name ?? '—'}</dd>
                                 </div>
+                                {/* Tipo de Pago - oculto temporalmente
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Tipo de Pago</dt>
                                     <dd className="font-medium text-foreground">{ir.payment_type?.name ?? '—'}</dd>
                                 </div>
+                                */}
                                 {ir.description && (
                                     <div>
                                         <dt className="mb-1 text-muted-foreground">Descripción</dt>
