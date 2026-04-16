@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckIcon, ChevronsUpDownIcon, Clock, DollarSign, Eye, FileText, Search, X, XCircle } from 'lucide-react';
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Eye, FileText, Search, X, XCircle } from 'lucide-react';
+import React, { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { Pagination } from '@/components/pagination';
@@ -123,6 +123,47 @@ function formatCurrency(value: string | number): string {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(value));
 }
 
+type ConceptGroup = {
+    key: string;
+    conceptName: string;
+    departmentName: string;
+    providerLabel: string;
+    groupBudget: string;
+    groupRemaining: string;
+    allCompleted: boolean;
+    items: InvestmentRequest[];
+};
+
+function groupByConcept(items: InvestmentRequest[]): ConceptGroup[] {
+    const map = new Map<string, InvestmentRequest[]>();
+
+    for (const ir of items) {
+        const conceptId = ir.investment_expense_concept?.id ?? 0;
+        const deptId = ir.department?.id ?? 0;
+        const key = `${conceptId}-${deptId}`;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(ir);
+    }
+
+    return Array.from(map.entries()).map(([key, groupItems]) => {
+        const first = groupItems[0];
+        const providers = new Set(groupItems.map((ir) => ir.provider));
+        const providerLabel = providers.size === 1 ? first.provider : 'Proveedores varios';
+        const allCompleted = groupItems.every((ir) => ir.status.name === 'completed');
+
+        return {
+            key,
+            conceptName: first.investment_expense_concept?.name ?? '—',
+            departmentName: first.department?.name ?? '—',
+            providerLabel,
+            groupBudget: first.group_budget ?? first.total,
+            groupRemaining: first.group_remaining ?? first.remaining_balance,
+            allCompleted,
+            items: groupItems,
+        };
+    });
+}
+
 export default function Consolidated() {
     const {
         project, totals, departmentBreakdown, investmentRequests, filters,
@@ -132,6 +173,18 @@ export default function Consolidated() {
     const [search, setSearch] = useState(filters.search ?? '');
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedIr, setSelectedIr] = useState<InvestmentRequest | null>(null);
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+    const groups = groupByConcept(investmentRequests.data);
+
+    const toggleGroup = (key: string) => {
+        setExpandedGroups((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    };
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerIr, setDrawerIr] = useState<InvestmentRequest | null>(null);
     const [payments, setPayments] = useState<InvestmentPayment[]>([]);
@@ -382,84 +435,130 @@ export default function Consolidated() {
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b text-left text-gray-500 dark:text-gray-400">
-                                                <th className="pb-3 pr-4 font-medium">Folio</th>
+                                                <th className="pb-3 pr-4 font-medium w-8"></th>
+                                                <th className="pb-3 pr-4 font-medium">Gasto de Inversión</th>
                                                 <th className="pb-3 pr-4 font-medium">Proveedor</th>
                                                 <th className="pb-3 pr-4 font-medium">Departamento</th>
-                                                <th className="pb-3 pr-4 font-medium">Gasto de Inversión</th>
-                                                <th className="pb-3 pr-4 font-medium text-right">Total</th>
+                                                <th className="pb-3 pr-4 font-medium text-right">Presupuesto</th>
                                                 <th className="pb-3 pr-4 font-medium text-right">Saldo</th>
-                                                <th className="pb-3 pr-4 font-medium">Estado</th>
                                                 <th className="pb-3 font-medium"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {investmentRequests.data.map((ir) => {
-                                                const isCompleted = ir.status.name === 'completed';
-                                                const isUserDept = ir.department?.id === userDepartmentId;
-                                                const hasBalance = Number(ir.remaining_balance) > 0;
-                                                const canRequestPayment = isCompleted && isUserDept && hasBalance;
+                                            {groups.map((group) => {
+                                                const isExpanded = expandedGroups.has(group.key);
+                                                const isSingle = group.items.length === 1;
+                                                const firstItem = group.items[0];
+                                                const isUserDept = firstItem.department?.id === userDepartmentId;
+                                                const hasBalance = Number(group.groupRemaining) > 0;
 
                                                 return (
-                                                    <tr
-                                                        key={ir.uuid}
-                                                        className="border-b last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                                                    >
-                                                        <td
-                                                            className="py-3 pr-4 cursor-pointer"
-                                                            onClick={() => router.visit(`/investment-sheets/${ir.uuid}`)}
-                                                        >
-                                                            <span className="font-mono text-xs">#{String(ir.folio_number).padStart(5, '0')}</span>
-                                                            {ir.is_addendum && (
-                                                                <Badge variant="outline" className="ml-2 border-amber-400 text-amber-600 text-[10px] dark:border-amber-600 dark:text-amber-400">
-                                                                    Aditiva
-                                                                </Badge>
+                                                    <React.Fragment key={group.key}>
+                                                        {/* Group Header Row */}
+                                                        <tr
+                                                            className={cn(
+                                                                'border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
+                                                                !isSingle && 'cursor-pointer',
                                                             )}
-                                                        </td>
-                                                        <td
-                                                            className="py-3 pr-4 cursor-pointer"
-                                                            onClick={() => router.visit(`/investment-sheets/${ir.uuid}`)}
+                                                            onClick={() => { if (!isSingle) toggleGroup(group.key); }}
                                                         >
-                                                            <div className="font-medium">{ir.provider}</div>
-                                                            {ir.rfc && (
-                                                                <div className="text-xs text-gray-500">{ir.rfc}</div>
-                                                            )}
-                                                        </td>
-                                                        <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">
-                                                            {ir.department?.name}
-                                                        </td>
-                                                        <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">
-                                                            {ir.investment_expense_concept?.name}
-                                                        </td>
-                                                        <td className="py-3 pr-4 text-right font-mono font-semibold">
-                                                            {formatCurrency(ir.total)}
-                                                        </td>
-                                                        <td className="py-3 pr-4 text-right font-mono">
-                                                            {formatCurrency(ir.group_remaining ?? ir.remaining_balance)}
-                                                        </td>
-                                                        <td className="py-3 pr-4">
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className={statusColors[ir.status.color] ?? statusColors.gray}
+                                                            <td className="py-3 pr-2 text-gray-400">
+                                                                {!isSingle && (
+                                                                    isExpanded
+                                                                        ? <ChevronDown className="h-4 w-4" />
+                                                                        : <ChevronRight className="h-4 w-4" />
+                                                                )}
+                                                            </td>
+                                                            <td className="py-3 pr-4">
+                                                                <div className="font-medium text-foreground">{group.conceptName}</div>
+                                                                {!isSingle && (
+                                                                    <div className="text-xs text-gray-500">{group.items.length} conceptos</div>
+                                                                )}
+                                                                {isSingle && firstItem.is_addendum && (
+                                                                    <Badge variant="outline" className="mt-0.5 border-amber-400 text-amber-600 text-[10px] dark:border-amber-600 dark:text-amber-400">
+                                                                        Aditiva
+                                                                    </Badge>
+                                                                )}
+                                                            </td>
+                                                            <td className="py-3 pr-4">
+                                                                {isSingle ? (
+                                                                    <div>
+                                                                        <div className="font-medium">{firstItem.provider}</div>
+                                                                        {firstItem.rfc && <div className="text-xs text-gray-500">{firstItem.rfc}</div>}
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-gray-500 italic">{group.providerLabel}</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">
+                                                                {group.departmentName}
+                                                            </td>
+                                                            <td className="py-3 pr-4 text-right font-mono font-semibold">
+                                                                {formatCurrency(group.groupBudget)}
+                                                            </td>
+                                                            <td className="py-3 pr-4 text-right font-mono">
+                                                                <span className={cn(
+                                                                    Number(group.groupRemaining) <= 0 && 'text-red-500',
+                                                                )}>
+                                                                    {formatCurrency(group.groupRemaining)}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-3">
+                                                                {group.allCompleted && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            openDrawer(firstItem);
+                                                                        }}
+                                                                    >
+                                                                        <Eye className="mr-1.5 h-3.5 w-3.5" />
+                                                                        Pagos
+                                                                    </Button>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+
+                                                        {/* Expanded Sub-Rows */}
+                                                        {isExpanded && group.items.map((ir) => (
+                                                            <tr
+                                                                key={ir.uuid}
+                                                                className="border-b bg-gray-50/50 dark:bg-gray-800/20 hover:bg-gray-100 dark:hover:bg-gray-800/40 cursor-pointer"
+                                                                onClick={() => router.visit(`/investment-sheets/${ir.uuid}`)}
                                                             >
-                                                                {ir.status.label}
-                                                            </Badge>
-                                                        </td>
-                                                        <td className="py-3">
-                                                            {isCompleted && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="ghost"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        openDrawer(ir);
-                                                                    }}
-                                                                >
-                                                                    <Eye className="mr-1.5 h-3.5 w-3.5" />
-                                                                    Pagos
-                                                                </Button>
-                                                            )}
-                                                        </td>
-                                                    </tr>
+                                                                <td className="py-2.5 pr-2"></td>
+                                                                <td className="py-2.5 pr-4 pl-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-mono text-xs text-gray-500">#{String(ir.folio_number).padStart(5, '0')}</span>
+                                                                        {ir.is_addendum && (
+                                                                            <Badge variant="outline" className="border-amber-400 text-amber-600 text-[10px] dark:border-amber-600 dark:text-amber-400">
+                                                                                Aditiva
+                                                                            </Badge>
+                                                                        )}
+                                                                        <Badge
+                                                                            variant="secondary"
+                                                                            className={cn('text-[10px]', statusColors[ir.status.color] ?? statusColors.gray)}
+                                                                        >
+                                                                            {ir.status.label}
+                                                                        </Badge>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2.5 pr-4">
+                                                                    <div className="text-sm">{ir.provider}</div>
+                                                                    {ir.rfc && <div className="text-xs text-gray-500">{ir.rfc}</div>}
+                                                                </td>
+                                                                <td className="py-2.5 pr-4 text-gray-500 text-xs">
+                                                                    {ir.department?.name}
+                                                                </td>
+                                                                <td className="py-2.5 pr-4 text-right font-mono text-sm">
+                                                                    {formatCurrency(ir.total)}
+                                                                </td>
+                                                                <td className="py-2.5 pr-4"></td>
+                                                                <td className="py-2.5"></td>
+                                                            </tr>
+                                                        ))}
+                                                    </React.Fragment>
                                                 );
                                             })}
                                         </tbody>
