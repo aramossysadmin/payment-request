@@ -8,7 +8,11 @@
 - **No guardar:** Informacion efimera, progreso de tareas en curso, datos que se derivan del codigo o git log.
 
 ## Git Commits
-- NEVER create git commits unless the user explicitly asks for it. Only commit when directly instructed to do so.
+- Al finalizar una funcionalidad, el commit es OBLIGATORIO sin excepcion. Siempre crear el commit al completar cada funcionalidad.
+
+## Reglas de Trabajo
+- SIEMPRE presentar un plan detallado antes de ejecutar cualquier modificacion en el sistema y ESPERAR autorizacion del usuario antes de proceder.
+- SIEMPRE asegurarse de entender completamente lo que el usuario pide. Si hay CUALQUIER duda, preguntar TODAS las preguntas necesarias, TODAS las veces que sea necesario, hasta tener certeza total de la necesidad.
 
 ## Proteccion de Base de Datos (REGLA CRITICA - MAXIMA PRIORIDAD)
 - ESTA ABSOLUTAMENTE PROHIBIDO eliminar, borrar, truncar o modificar destructivamente registros de la base de datos real bajo CUALQUIER circunstancia, ya sea por testing, debugging, migraciones, seeders, comandos artisan, o cualquier otro motivo.
