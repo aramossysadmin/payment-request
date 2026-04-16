@@ -257,61 +257,51 @@ export default function InvestmentDashboard() {
                     </Card>
                 </div>
 
-                {/* 2. KPIs */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-900/20">
-                                    <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                {/* 2. Resumen de Ejecución */}
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-900/20">
+                                        <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Presupuesto Total</p>
+                                        <p className="text-lg font-bold">{formatCurrency(kpis.budget)}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Presupuesto Total</p>
-                                    <p className="text-xl font-bold">{formatCurrency(kpis.budget)}</p>
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-purple-50 p-2 dark:bg-purple-900/20">
+                                        <Banknote className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Total Ejecutado</p>
+                                        <p className="text-lg font-bold">{formatCurrency(kpis.executed)}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-purple-50 p-2 dark:bg-purple-900/20">
-                                    <Banknote className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Total Ejecutado</p>
-                                    <p className="text-xl font-bold">{formatCurrency(kpis.executed)}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
-                                    <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Saldo Disponible</p>
-                                    <p className="text-xl font-bold">{formatCurrency(kpis.remaining)}</p>
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
+                                        <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Saldo Disponible</p>
+                                        <p className="text-lg font-bold">{formatCurrency(kpis.remaining)}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Ejecución</p>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        {formatCurrency(kpis.executed)} de {formatCurrency(kpis.budget)}
-                                    </p>
-                                </div>
+                            <div className="flex justify-center sm:justify-end">
                                 <CircularProgress percent={kpis.percent} />
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
+                        <div className="mt-4">
+                            <ProgressBar percent={kpis.percent} className="h-3" />
+                            <p className="mt-1.5 text-right text-xs text-gray-500 dark:text-gray-400">
+                                {kpis.percent}% ejecutado
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {/* 3. Concept Summary Table */}
                 <Card>
