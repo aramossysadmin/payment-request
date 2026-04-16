@@ -48,7 +48,7 @@ class InvestmentRequestResource extends JsonResource
             ],
             'subtotal' => (string) $this->subtotal,
             'iva' => (string) $this->iva,
-            'retention' => (string) $this->retention,
+            'retention' => (bool) $this->retention,
             'total' => (string) $this->total,
             'number_purchase_invoices' => $this->number_purchase_invoices,
             'number_vendor_payments' => $this->number_vendor_payments,
