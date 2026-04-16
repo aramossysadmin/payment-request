@@ -13,7 +13,7 @@ import type { BreadcrumbItem, PaginatedData } from '@/types';
 import type { InvestmentRequest } from '@/types/investment-request';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Hojas de Inversión', href: '/investment-sheets' },
+    { title: 'Conceptos de Inversión', href: '/investment-sheets' },
 ];
 
 type PageProps = {
@@ -194,7 +194,7 @@ export default function Index() {
     if (isMobile) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Hojas de Inversión" />
+                <Head title="Conceptos de Inversión" />
                 <div className="flex h-[calc(100vh-4rem)] flex-col">
                     {mobileView === 'list' ? (
                         listPanel
@@ -224,7 +224,7 @@ export default function Index() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Hojas de Inversión" />
+            <Head title="Conceptos de Inversión" />
             <div className="grid h-[calc(100vh-4rem)] grid-cols-[380px_1px_1fr]">
                 <div className="overflow-hidden">
                     {listPanel}

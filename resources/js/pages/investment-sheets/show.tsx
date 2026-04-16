@@ -19,7 +19,7 @@ export default function Show() {
     const pr = resource.data;
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Hojas de Inversión', href: '/investment-sheets' },
+        { title: 'Conceptos de Inversión', href: '/investment-sheets' },
         {
             title: `#${String(pr.folio_number).padStart(5, '0')}`,
             href: `/investment-sheets/${pr.uuid}`,
@@ -42,7 +42,7 @@ export default function Show() {
                         <ArrowLeft className="size-4" />
                     </Button>
                     <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                        Hoja de Inversión
+                        Concepto de Inversión
                     </h1>
                 </div>
 

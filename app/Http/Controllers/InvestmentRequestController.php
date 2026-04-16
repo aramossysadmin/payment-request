@@ -30,7 +30,7 @@ class InvestmentRequestController extends Controller
         $user = $request->user();
 
         $query = InvestmentRequest::query()
-            ->with(['user', 'department', 'currency', 'branch', 'project', 'expenseConcept', 'approvals.user'])
+            ->with(['user', 'department', 'currency', 'branch', 'project', 'expenseConcept', 'investmentExpenseConcept', 'approvals.user'])
             ->visibleTo($user);
 
         if ($request->filled('search')) {
@@ -89,7 +89,11 @@ class InvestmentRequestController extends Controller
         return Inertia::render('investment-sheets/create', [
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
-            'investmentExpenseConcepts' => InvestmentExpenseConcept::active()->orderBy('name')->get(['id', 'name']),
+            'investmentExpenseConcepts' => InvestmentExpenseConcept::active()
+                ->whereHas('category', fn ($q) => $q->where('department_id', auth()->user()->department_id))
+                ->with('category:id,name')
+                ->orderBy('name')
+                ->get(['id', 'name', 'investment_expense_category_id']),
             'projects' => Project::active()->orderBy('name')->get(['id', 'name', 'branch_id']),
         ]);
     }
@@ -103,6 +107,7 @@ class InvestmentRequestController extends Controller
         $investmentRequest->user_id = $user->id;
         $investmentRequest->department_id = $user->department_id;
         $investmentRequest->project_id = $request->input('project_id') ?: null;
+        $investmentRequest->investment_expense_concept_id = $request->input('investment_expense_concept_id') ?: null;
         $investmentRequest->save();
 
         $directory = 'investment-advance-documents/'.now()->format('Y/m').'/'.$investmentRequest->folio_number;
@@ -132,7 +137,7 @@ class InvestmentRequestController extends Controller
     {
         Gate::authorize('view', $investmentRequest);
 
-        $investmentRequest->load(['user', 'department', 'currency', 'branch', 'project', 'expenseConcept', 'approvals.user']);
+        $investmentRequest->load(['user', 'department', 'currency', 'branch', 'project', 'expenseConcept', 'investmentExpenseConcept', 'approvals.user']);
 
         $user = $request->user();
         $pendingApproval = $investmentRequest->approvals
@@ -155,13 +160,17 @@ class InvestmentRequestController extends Controller
 
         abort_unless($investmentRequest->status->equals(PendingDepartment::class), 403);
 
-        $investmentRequest->load(['currency', 'branch', 'expenseConcept']);
+        $investmentRequest->load(['currency', 'branch', 'project', 'expenseConcept', 'investmentExpenseConcept']);
 
         return Inertia::render('investment-sheets/edit', [
             'investmentRequest' => new InvestmentRequestResource($investmentRequest),
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
-            'investmentExpenseConcepts' => InvestmentExpenseConcept::active()->orderBy('name')->get(['id', 'name']),
+            'investmentExpenseConcepts' => InvestmentExpenseConcept::active()
+                ->whereHas('category', fn ($q) => $q->where('department_id', auth()->user()->department_id))
+                ->with('category:id,name')
+                ->orderBy('name')
+                ->get(['id', 'name', 'investment_expense_category_id']),
             'projects' => Project::active()->orderBy('name')->get(['id', 'name', 'branch_id']),
         ]);
     }
@@ -195,10 +204,11 @@ class InvestmentRequestController extends Controller
             }
         }
 
-        $investmentRequest->update([
-            ...$validated,
-            'advance_documents' => $allDocuments ?: null,
-        ]);
+        $investmentRequest->project_id = $request->input('project_id') ?: $investmentRequest->project_id;
+        $investmentRequest->investment_expense_concept_id = $request->input('investment_expense_concept_id') ?: $investmentRequest->investment_expense_concept_id;
+        $investmentRequest->fill($validated);
+        $investmentRequest->advance_documents = $allDocuments ?: null;
+        $investmentRequest->save();
 
         return redirect()->route('investment-sheets.show', $investmentRequest)
             ->with('success', 'Hoja de inversión actualizada exitosamente.');

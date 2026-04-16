@@ -29,13 +29,16 @@ const requestItems: NavItem[] = [
         href: '/payment-requests',
         icon: FileText,
     },
+];
+
+const investmentItems: NavItem[] = [
     {
         title: 'Conceptos de Inversión',
         href: '/investment-sheets',
         icon: Banknote,
     },
     {
-        title: 'Consolidado Inversión',
+        title: 'Hojas de Inversión',
         href: '/investment-sheets/consolidated',
         icon: ClipboardList,
     },
@@ -67,6 +70,7 @@ export function AppSidebar() {
             <SidebarContent>
                 <NavMain items={platformItems} label="Plataforma" />
                 <NavMain items={requestItems} label="Solicitudes" />
+                <NavMain items={investmentItems} label="Presupuestos de Inversión" />
                 <NavMain items={docsItems} label="Documentación" />
             </SidebarContent>
 

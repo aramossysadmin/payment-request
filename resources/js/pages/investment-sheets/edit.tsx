@@ -1,4 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
+import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
@@ -6,8 +7,21 @@ import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     Select,
     SelectContent,
@@ -15,8 +29,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Branch, Currency, PaymentRequest, Project } from '@/types';
+import type { BreadcrumbItem, Branch, Currency, Project } from '@/types';
+import type { InvestmentRequest } from '@/types/investment-request';
 
 const ivaRateOptions = [
     { value: '0.00', label: 'IVA 0%' },
@@ -24,10 +40,10 @@ const ivaRateOptions = [
     { value: '0.16', label: 'IVA 16%' },
 ];
 
-type InvestmentExpenseConceptOption = { id: number; name: string };
+type InvestmentExpenseConceptOption = { id: number; name: string; category?: { id: number; name: string } | null };
 
 type PageProps = {
-    investmentRequest: { data: PaymentRequest };
+    investmentRequest: { data: InvestmentRequest };
     currencies: Currency[];
     branches: Branch[];
     investmentExpenseConcepts: InvestmentExpenseConceptOption[];
@@ -41,7 +57,7 @@ export default function Edit() {
     const pr = resource.data;
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Hojas de Inversión', href: '/investment-sheets' },
+        { title: 'Conceptos de Inversión', href: '/investment-sheets' },
         { title: `#${String(pr.folio_number).padStart(5, '0')}`, href: `/investment-sheets/${pr.uuid}` },
         { title: 'Editar', href: `/investment-sheets/${pr.uuid}/edit` },
     ];
@@ -49,10 +65,13 @@ export default function Edit() {
     const [values, setValues] = useState({
         provider: pr.provider,
         rfc: pr.rfc ?? '',
-        invoice_folio: pr.invoice_folio,
+        contact_name: pr.contact_name ?? '',
+        contact_email: pr.contact_email ?? '',
+        contact_phone: pr.contact_phone ?? '',
+        invoice_folio: pr.invoice_folio ?? '',
         currency_id: String(pr.currency?.id ?? ''),
         branch_id: String(pr.branch?.id ?? ''),
-        expense_concept_id: String(pr.expense_concept?.id ?? ''),
+        investment_expense_concept_id: String(pr.investment_expense_concept?.id ?? ''),
         description: pr.description ?? '',
         subtotal: pr.subtotal,
         iva_rate: pr.iva_rate.value,
@@ -61,7 +80,10 @@ export default function Edit() {
         total: pr.total,
     });
 
-    const [selectedProjectId, setSelectedProjectId] = useState('');
+    const [selectedProjectId, setSelectedProjectId] = useState(String(pr.project?.id ?? ''));
+    const [expenseConceptOpen, setExpenseConceptOpen] = useState(false);
+    const [files, setFiles] = useState<File[]>([]);
+    const [processing, setProcessing] = useState(false);
 
     const handleProjectChange = (projectId: string) => {
         setSelectedProjectId(projectId);
@@ -70,11 +92,6 @@ export default function Edit() {
             setValues((prev) => ({ ...prev, branch_id: String(project.branch_id) }));
         }
     };
-
-    const [files, setFiles] = useState<File[]>([]);
-    const [invoicePdf, setInvoicePdf] = useState<File | null>(null);
-    const [invoiceXml, setInvoiceXml] = useState<File | null>(null);
-    const [processing, setProcessing] = useState(false);
 
     const recalculate = (subtotal: number, ivaRate: number) => {
         const iva = Math.round(subtotal * ivaRate * 100) / 100;
@@ -104,12 +121,11 @@ export default function Edit() {
 
         const formData = new FormData();
         formData.append('_method', 'PUT');
+        if (selectedProjectId) formData.append('project_id', selectedProjectId);
         Object.entries(values).forEach(([key, val]) => {
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
 
-        if (invoicePdf) formData.append('invoice_documents[]', invoicePdf);
-        if (invoiceXml) formData.append('invoice_documents[]', invoiceXml);
         files.forEach((file) => formData.append('advance_documents[]', file));
 
         router.post(`/investment-sheets/${pr.uuid}`, formData, {
@@ -120,15 +136,123 @@ export default function Edit() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Editar Hoja #${String(pr.folio_number).padStart(5, '0')}`} />
+            <Head title={`Editar Concepto #${String(pr.folio_number).padStart(5, '0')}`} />
 
             <div className="p-4 md:p-6">
                 <h1 className="mb-6 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-                    Editar Hoja #{String(pr.folio_number).padStart(5, '0')}
+                    Editar Concepto #{String(pr.folio_number).padStart(5, '0')}
                 </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Row 1: Datos Generales + Información del Proveedor */}
                     <div className="grid gap-6 lg:grid-cols-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Datos Generales del Concepto de Inversión</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Proyecto</Label>
+                                    <Select
+                                        value={selectedProjectId}
+                                        onValueChange={handleProjectChange}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seleccionar proyecto" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {projects.map((p) => (
+                                                <SelectItem key={p.id} value={String(p.id)}>
+                                                    {p.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Sucursal</Label>
+                                    <Input
+                                        value={branches.find((b) => String(b.id) === values.branch_id)?.name ?? ''}
+                                        readOnly
+                                        disabled
+                                        placeholder="Se asigna al seleccionar proyecto"
+                                        className="bg-gray-50 dark:bg-gray-800"
+                                    />
+                                    <InputError message={errors.branch_id} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Gasto de Inversión</Label>
+                                    <Popover open={expenseConceptOpen} onOpenChange={setExpenseConceptOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={expenseConceptOpen}
+                                                className="w-full justify-between font-normal"
+                                            >
+                                                {values.investment_expense_concept_id
+                                                    ? (() => {
+                                                        const selected = investmentExpenseConcepts.find(
+                                                            (ec) => String(ec.id) === values.investment_expense_concept_id,
+                                                        );
+                                                        return selected
+                                                            ? `${selected.category?.name ?? ''} - ${selected.name}`
+                                                            : 'Seleccionar';
+                                                    })()
+                                                    : 'Seleccionar'}
+                                                <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                            <Command>
+                                                <CommandInput placeholder="Buscar gasto de inversión..." />
+                                                <CommandList>
+                                                    <CommandEmpty>Sin resultados.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {investmentExpenseConcepts.map((ec) => (
+                                                            <CommandItem
+                                                                key={ec.id}
+                                                                value={`${ec.category?.name ?? ''} - ${ec.name}`}
+                                                                onSelect={() => {
+                                                                    handleChange('investment_expense_concept_id', String(ec.id));
+                                                                    setExpenseConceptOpen(false);
+                                                                }}
+                                                            >
+                                                                <CheckIcon
+                                                                    className={cn(
+                                                                        'mr-2 size-4',
+                                                                        values.investment_expense_concept_id === String(ec.id)
+                                                                            ? 'opacity-100'
+                                                                            : 'opacity-0',
+                                                                    )}
+                                                                />
+                                                                {ec.category?.name ?? ''} - {ec.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <InputError message={errors.investment_expense_concept_id} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="description">
+                                        Descripción del concepto <span className="text-gray-400">(opcional)</span>
+                                    </Label>
+                                    <textarea
+                                        id="description"
+                                        className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+                                        rows={3}
+                                        value={values.description}
+                                        onChange={(e) => handleChange('description', e.target.value)}
+                                        placeholder="Descripción detallada del concepto de inversión..."
+                                    />
+                                    <InputError message={errors.description} />
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle>Información del Proveedor</CardTitle>
@@ -174,93 +298,64 @@ export default function Edit() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="invoice_folio">Folio de Factura</Label>
+                                    <Label htmlFor="contact_name">Nombre del Contacto</Label>
                                     <Input
-                                        id="invoice_folio"
-                                        value={values.invoice_folio}
-                                        onChange={(e) => handleChange('invoice_folio', e.target.value)}
+                                        id="contact_name"
+                                        value={values.contact_name}
+                                        onChange={(e) => handleChange('contact_name', e.target.value)}
+                                        placeholder="Nombre completo del contacto"
                                     />
-                                    <InputError message={errors.invoice_folio} />
+                                    <InputError message={errors.contact_name} />
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Clasificación</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label>Proyecto</Label>
-                                    <Select
-                                        value={selectedProjectId}
-                                        onValueChange={handleProjectChange}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seleccionar proyecto" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {projects.map((p) => (
-                                                <SelectItem key={p.id} value={String(p.id)}>
-                                                    {p.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Sucursal</Label>
-                                    <Input
-                                        value={branches.find((b) => String(b.id) === values.branch_id)?.name ?? ''}
-                                        readOnly
-                                        disabled
-                                        placeholder="Se asigna al seleccionar proyecto"
-                                        className="bg-gray-50 dark:bg-gray-800"
-                                    />
-                                    <InputError message={errors.branch_id} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Gasto de Inversión</Label>
-                                    <Select
-                                        value={values.expense_concept_id}
-                                        onValueChange={(v) => handleChange('expense_concept_id', v)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seleccionar" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {investmentExpenseConcepts.map((ec) => (
-                                                <SelectItem key={ec.id} value={String(ec.id)}>
-                                                    {ec.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError message={errors.expense_concept_id} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="description">
-                                        Descripción <span className="text-gray-400">(opcional)</span>
-                                    </Label>
-                                    <textarea
-                                        id="description"
-                                        className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
-                                        rows={3}
-                                        value={values.description}
-                                        onChange={(e) => handleChange('description', e.target.value)}
-                                    />
-                                    <InputError message={errors.description} />
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="contact_email">Correo del Contacto</Label>
+                                        <Input
+                                            id="contact_email"
+                                            type="email"
+                                            value={values.contact_email}
+                                            onChange={(e) => handleChange('contact_email', e.target.value)}
+                                            placeholder="correo@ejemplo.com"
+                                        />
+                                        <InputError message={errors.contact_email} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="contact_phone">Teléfono del Contacto</Label>
+                                        <Input
+                                            id="contact_phone"
+                                            value={values.contact_phone}
+                                            onChange={(e) => handleChange('contact_phone', e.target.value)}
+                                            placeholder="(000) 000-0000"
+                                        />
+                                        <InputError message={errors.contact_phone} />
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
 
+                    {/* Row 2: Datos Financieros + Documentos Adjuntos */}
                     <div className="grid gap-6 lg:grid-cols-2">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Montos</CardTitle>
+                                <CardTitle>Datos Financieros</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="invoice_folio">
+                                        Folio de Factura o Cotización <span className="text-gray-400">(opcional)</span>
+                                    </Label>
+                                    <Input
+                                        id="invoice_folio"
+                                        value={values.invoice_folio}
+                                        onChange={(e) => handleChange('invoice_folio', e.target.value)}
+                                        placeholder="FAC-0001 / COT-0001"
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Si no cuenta con folio de factura o cotización, puede dejar este campo en blanco.
+                                    </p>
+                                    <InputError message={errors.invoice_folio} />
+                                </div>
                                 <div className="space-y-2">
                                     <Label>Moneda</Label>
                                     <Select
@@ -370,13 +465,16 @@ export default function Edit() {
                         <Card>
                             <CardHeader>
                                 <CardTitle>
-                                    Documentos <span className="text-sm font-normal text-gray-400">(opcional)</span>
+                                    Documentos Adjuntos <span className="text-sm font-normal text-gray-400">(opcional)</span>
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-6">
+                            <CardContent>
+                                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                                    Es recomendable adjuntar la cotización correspondiente a este concepto de inversión.
+                                </p>
                                 {pr.advance_documents &&
                                     pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).length > 0 && (
-                                        <div>
+                                        <div className="mb-4">
                                             <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                                                 Documentos actuales:
                                             </p>
@@ -391,44 +489,12 @@ export default function Edit() {
                                             </ul>
                                         </div>
                                     )}
-                                <div>
-                                    <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Factura (PDF + XML)
-                                    </p>
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label>Factura PDF</Label>
-                                            <FileUpload
-                                                files={invoicePdf ? [invoicePdf] : []}
-                                                onChange={(f) => setInvoicePdf(f[0] ?? null)}
-                                                maxFiles={1}
-                                                accept=".pdf"
-                                                error={errors['invoice_documents'] || errors['invoice_documents.0']}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Factura XML</Label>
-                                            <FileUpload
-                                                files={invoiceXml ? [invoiceXml] : []}
-                                                onChange={(f) => setInvoiceXml(f[0] ?? null)}
-                                                maxFiles={1}
-                                                accept=".xml"
-                                                error={errors['invoice_documents.1']}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Documentos Adicionales
-                                    </p>
-                                    <FileUpload
-                                        files={files}
-                                        onChange={setFiles}
-                                        maxFiles={10}
-                                        error={errors.advance_documents || errors['advance_documents.0']}
-                                    />
-                                </div>
+                                <FileUpload
+                                    files={files}
+                                    onChange={setFiles}
+                                    maxFiles={10}
+                                    error={errors.advance_documents || errors['advance_documents.0']}
+                                />
                             </CardContent>
                         </Card>
                     </div>

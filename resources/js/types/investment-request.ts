@@ -24,7 +24,10 @@ export type InvestmentRequest = {
     folio_number: number;
     provider: string;
     rfc: string | null;
-    invoice_folio: string;
+    contact_name: string | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    invoice_folio: string | null;
     description: string | null;
     payment_type: {
         id: number;
@@ -67,6 +70,11 @@ export type InvestmentRequest = {
         id: number;
         name: string;
     };
+    investment_expense_concept: {
+        id: number;
+        name: string;
+    } | null;
+    remaining_balance: string;
     approvals: InvestmentRequestApproval[];
     created_at: string;
     updated_at: string;
