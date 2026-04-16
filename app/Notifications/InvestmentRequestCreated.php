@@ -47,12 +47,20 @@ class InvestmentRequestCreated extends Notification implements ShouldQueue
             $footerLines[] = '[Ver solicitud en el panel de administración]('.url('/admin/investment-requests/'.$this->investmentRequest->uuid.'/edit').')';
         }
 
+        $isAddendum = (bool) $this->investmentRequest->is_addendum;
+        $subject = $isAddendum
+            ? 'ADITIVA — Concepto de Inversión #'.$this->investmentRequest->folio_number
+            : 'Nuevo Concepto de Inversión #'.$this->investmentRequest->folio_number;
+
         return $this->buildMailMessage(
-            'Nuevo Concepto de Inversión #'.$this->investmentRequest->folio_number,
+            $subject,
             [
+                'banner' => $isAddendum ? '⚠ ADITIVA AL PRESUPUESTO' : null,
                 'sectionTitle' => 'Detalles de la Solicitud',
                 'greeting' => 'Hola '.$notifiable->name,
-                'description' => 'Se ha creado una nueva concepto de inversión que requiere tu autorización.',
+                'description' => $isAddendum
+                    ? 'Se ha creado una aditiva al presupuesto de inversión que requiere tu autorización.'
+                    : 'Se ha creado un nuevo concepto de inversión que requiere tu autorización.',
                 'details' => $this->getFullDetails($this->investmentRequest),
                 'stageInfo' => $this->getStageInfo($this->investmentRequest),
                 'documents' => $this->getDocuments($this->investmentRequest),
@@ -69,8 +77,11 @@ class InvestmentRequestCreated extends Notification implements ShouldQueue
      */
     public function toDatabase(User $notifiable): array
     {
+        $isAddendum = (bool) $this->investmentRequest->is_addendum;
+        $title = $isAddendum ? 'ADITIVA — Concepto de Inversión' : 'Nuevo Concepto de Inversión';
+
         return FilamentNotification::make()
-            ->title('Nuevo Concepto de Inversión')
+            ->title($title)
             ->body('Solicitud #'.$this->investmentRequest->folio_number.' de '.$this->investmentRequest->user->name.' por $'.number_format($this->investmentRequest->total, 2))
             ->icon('heroicon-o-document-plus')
             ->warning()

@@ -1,5 +1,11 @@
 <x-mail::message>
 
+@if (!empty($banner))
+<div style="background-color: #F59E0B; color: #FFFFFF; text-align: center; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 16px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
+{{ $banner }}
+</div>
+@endif
+
 {{-- Section: Request Details --}}
 <div style="border-bottom: 1px solid #D4C9A9; padding-bottom: 4px; margin-bottom: 16px;">
 <span style="font-size: 14px; font-weight: 600; color: #191731; text-transform: uppercase; letter-spacing: 0.5px;">{{ $sectionTitle ?? 'Detalles de la Solicitud' }}</span>

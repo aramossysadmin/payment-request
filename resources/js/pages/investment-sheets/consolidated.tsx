@@ -405,10 +405,15 @@ export default function Consolidated() {
                                                         className="border-b last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                                                     >
                                                         <td
-                                                            className="py-3 pr-4 font-mono text-xs cursor-pointer"
+                                                            className="py-3 pr-4 cursor-pointer"
                                                             onClick={() => router.visit(`/investment-sheets/${ir.uuid}`)}
                                                         >
-                                                            #{String(ir.folio_number).padStart(5, '0')}
+                                                            <span className="font-mono text-xs">#{String(ir.folio_number).padStart(5, '0')}</span>
+                                                            {ir.is_addendum && (
+                                                                <Badge variant="outline" className="ml-2 border-amber-400 text-amber-600 text-[10px] dark:border-amber-600 dark:text-amber-400">
+                                                                    Aditiva
+                                                                </Badge>
+                                                            )}
                                                         </td>
                                                         <td
                                                             className="py-3 pr-4 cursor-pointer"
@@ -429,7 +434,7 @@ export default function Consolidated() {
                                                             {formatCurrency(ir.total)}
                                                         </td>
                                                         <td className="py-3 pr-4 text-right font-mono">
-                                                            {formatCurrency(ir.remaining_balance)}
+                                                            {formatCurrency(ir.group_remaining ?? ir.remaining_balance)}
                                                         </td>
                                                         <td className="py-3 pr-4">
                                                             <Badge
@@ -522,12 +527,12 @@ function PaymentsDrawer({
     if (!ir) return null;
 
     const isUserDept = ir.department?.id === userDepartmentId;
-    const hasBalance = Number(ir.remaining_balance) > 0;
-    const canRequestPayment = isUserDept && hasBalance;
+    const groupRemaining = Number(ir.group_remaining ?? ir.remaining_balance);
+    const canRequestPayment = isUserDept && groupRemaining > 0;
 
-    const progressPercent = summary
-        ? Math.min(100, (summary.total_paid / Number(summary.total_concept)) * 100)
-        : 0;
+    const groupBudget = Number(ir.group_budget ?? (summary?.total_concept ?? ir.total));
+    const groupPaid = Number(ir.group_paid ?? (summary?.total_paid ?? 0));
+    const progressPercent = groupBudget > 0 ? Math.min(100, (groupPaid / groupBudget) * 100) : 0;
 
     return (
         <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -541,11 +546,23 @@ function PaymentsDrawer({
 
                 <div className="space-y-5 px-4 pb-6">
                     {/* Summary */}
+                    {ir.is_addendum && (
+                        <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-700 dark:bg-amber-900/20">
+                            <span className="text-amber-600 dark:text-amber-400">&#9888;</span>
+                            <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">ADITIVA AL PRESUPUESTO</span>
+                        </div>
+                    )}
                     <div className="space-y-3 rounded-lg border p-4">
                         <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Total del concepto</span>
+                            <span className="text-muted-foreground">Este concepto</span>
                             <span className="font-mono font-semibold">{formatCurrency(ir.total)}</span>
                         </div>
+                        {ir.group_budget && ir.group_budget !== String(ir.total) && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Presupuesto total (base + aditivas)</span>
+                                <span className="font-mono font-semibold text-purple-600 dark:text-purple-400">{formatCurrency(ir.group_budget)}</span>
+                            </div>
+                        )}
                         {summary && (
                             <>
                                 <div className="flex justify-between text-sm">
@@ -554,8 +571,8 @@ function PaymentsDrawer({
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Saldo disponible</span>
-                                    <span className={cn('font-mono font-semibold', Number(summary.remaining) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
-                                        {formatCurrency(summary.remaining)}
+                                    <span className={cn('font-mono font-semibold', Number(ir.group_remaining ?? summary.remaining) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
+                                        {formatCurrency(ir.group_remaining ?? summary.remaining)}
                                     </span>
                                 </div>
                                 {/* Progress bar */}
@@ -690,7 +707,7 @@ function PaymentRequestModal({
     const [processing, setProcessing] = useState(false);
     const [branchOpen, setBranchOpen] = useState(false);
 
-    const remainingBalance = Number(ir.remaining_balance);
+    const remainingBalance = Number(ir.group_remaining ?? ir.remaining_balance);
 
     const recalculate = (subtotal: number, ivaRate: number) => {
         const iva = Math.round(subtotal * ivaRate * 100) / 100;

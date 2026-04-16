@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Resources\InvestmentRequestResource;
 use App\Models\Branch;
 use App\Models\Currency;
+use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Models\Project;
+use App\States\InvestmentRequest\Completed;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -46,9 +48,34 @@ class InvestmentSheetConsolidatedController extends Controller
 
         $investmentRequests = $query->latest()->paginate(10)->withQueryString();
 
-        // Compute remaining balance for each investment request
-        $investmentRequests->getCollection()->each(function (InvestmentRequest $ir) {
+        // Compute grouped budget totals (base + addendums with same concept + project)
+        $investmentRequests->getCollection()->each(function (InvestmentRequest $ir) use ($project) {
             $ir->setAttribute('remaining_balance', $ir->remaining_balance);
+
+            if ($ir->investment_expense_concept_id) {
+                $groupIds = InvestmentRequest::query()
+                    ->where('project_id', $project->id)
+                    ->where('investment_expense_concept_id', $ir->investment_expense_concept_id)
+                    ->whereState('status', Completed::class)
+                    ->pluck('id');
+
+                $groupBudget = InvestmentRequest::query()
+                    ->whereIn('id', $groupIds)
+                    ->sum('total');
+
+                $groupPaid = InvestmentPaymentRequest::query()
+                    ->whereIn('investment_request_id', $groupIds)
+                    ->whereIn('status', ['pending_approval', 'approved'])
+                    ->sum('total');
+
+                $ir->setAttribute('group_budget', number_format((float) $groupBudget, 2, '.', ''));
+                $ir->setAttribute('group_paid', number_format((float) $groupPaid, 2, '.', ''));
+                $ir->setAttribute('group_remaining', number_format((float) ($groupBudget - $groupPaid), 2, '.', ''));
+            } else {
+                $ir->setAttribute('group_budget', (string) $ir->total);
+                $ir->setAttribute('group_paid', '0.00');
+                $ir->setAttribute('group_remaining', $ir->remaining_balance);
+            }
         });
 
         $totals = InvestmentRequest::query()

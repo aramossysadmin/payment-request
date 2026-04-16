@@ -108,6 +108,20 @@ class InvestmentRequestController extends Controller
         $investmentRequest->department_id = $user->department_id;
         $investmentRequest->project_id = $request->input('project_id') ?: null;
         $investmentRequest->investment_expense_concept_id = $request->input('investment_expense_concept_id') ?: null;
+
+        $projectId = $investmentRequest->project_id;
+        $conceptId = $investmentRequest->investment_expense_concept_id;
+
+        if ($projectId && $conceptId) {
+            $existsCompleted = InvestmentRequest::query()
+                ->where('project_id', $projectId)
+                ->where('investment_expense_concept_id', $conceptId)
+                ->whereState('status', Completed::class)
+                ->exists();
+
+            $investmentRequest->is_addendum = $existsCompleted;
+        }
+
         $investmentRequest->save();
 
         $directory = 'investment-advance-documents/'.now()->format('Y/m').'/'.$investmentRequest->folio_number;

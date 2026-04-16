@@ -74,7 +74,11 @@ export type InvestmentRequest = {
         id: number;
         name: string;
     } | null;
+    is_addendum: boolean;
     remaining_balance: string;
+    group_budget: string | null;
+    group_paid: string | null;
+    group_remaining: string | null;
     approvals: InvestmentRequestApproval[];
     created_at: string;
     updated_at: string;
