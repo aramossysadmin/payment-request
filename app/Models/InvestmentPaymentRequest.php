@@ -32,6 +32,8 @@ class InvestmentPaymentRequest extends Model
         'subtotal',
         'iva_rate',
         'iva',
+        'payment_provision_date',
+        'payment_week_number',
         'retention',
         'total',
     ];
@@ -87,6 +89,8 @@ class InvestmentPaymentRequest extends Model
     protected function casts(): array
     {
         return [
+            'payment_provision_date' => 'date',
+            'payment_week_number' => 'integer',
             'iva_rate' => IvaRate::class,
             'advance_documents' => 'array',
             'subtotal' => 'decimal:2',

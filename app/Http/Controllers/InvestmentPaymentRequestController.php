@@ -9,6 +9,7 @@ use App\Services\InvestmentPaymentApprovalService;
 use App\States\InvestmentRequest\Completed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class InvestmentPaymentRequestController extends Controller
@@ -76,6 +77,7 @@ class InvestmentPaymentRequestController extends Controller
         $paymentRequest->user_id = $user->id;
         $paymentRequest->department_id = $user->department_id;
         $paymentRequest->payment_type = $request->boolean('is_invoice') ? 'factura' : 'anticipo';
+        $paymentRequest->payment_week_number = Carbon::parse($validated['payment_provision_date'])->weekOfYear;
         $paymentRequest->save();
 
         $directory = 'investment-payment-documents/'.now()->format('Y/m').'/'.$paymentRequest->folio_number;

@@ -793,6 +793,7 @@ function PaymentRequestModal({
         provider: ir.provider ?? '',
         rfc: ir.rfc ?? '',
         invoice_folio: '',
+        payment_provision_date: '',
         currency_id: ir.currency?.id ? String(ir.currency.id) : '',
         branch_id: ir.branch?.id ? String(ir.branch.id) : '',
         is_invoice: false,
@@ -811,6 +812,16 @@ function PaymentRequestModal({
     const [branchOpen, setBranchOpen] = useState(false);
 
     const remainingBalance = Number(ir.group_remaining ?? ir.remaining_balance);
+
+    const getWeekNumber = (dateStr: string): number | null => {
+        if (!dateStr) return null;
+        const date = new Date(dateStr + 'T00:00:00');
+        if (isNaN(date.getTime())) return null;
+        const startOfYear = new Date(date.getFullYear(), 0, 1);
+        const diff = date.getTime() - startOfYear.getTime();
+        const oneDay = 86400000;
+        return Math.ceil((diff / oneDay + startOfYear.getDay() + 1) / 7);
+    };
 
     const recalculate = (subtotal: number, ivaRate: number) => {
         const iva = Math.round(subtotal * ivaRate * 100) / 100;
@@ -983,12 +994,31 @@ function PaymentRequestModal({
 
                     {/* Row 2: Montos + Documentos */}
                     <div className="grid gap-6 lg:grid-cols-2">
-                        {/* Montos */}
+                        {/* Información de Pago */}
                         <Card>
                             <CardHeader className="pb-3">
-                                <CardTitle className="text-base">Montos</CardTitle>
+                                <CardTitle className="text-base">Información de Pago</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="modal_payment_provision_date">Fecha provisión pago</Label>
+                                    <div className="flex items-center gap-3">
+                                        <Input
+                                            id="modal_payment_provision_date"
+                                            type="date"
+                                            value={values.payment_provision_date}
+                                            onChange={(e) => handleChange('payment_provision_date', e.target.value)}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            className="flex-1"
+                                        />
+                                        {values.payment_provision_date && getWeekNumber(values.payment_provision_date) && (
+                                            <span className="whitespace-nowrap rounded-md bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+                                                Semana {getWeekNumber(values.payment_provision_date)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <InputError message={errors.payment_provision_date} />
+                                </div>
                                 <div className="space-y-2">
                                     <Label>Moneda</Label>
                                     <Select value={values.currency_id} onValueChange={(v) => handleChange('currency_id', v)}>
