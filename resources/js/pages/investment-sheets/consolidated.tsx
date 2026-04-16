@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Branch, Currency, ExpenseConcept, PaginatedData, PaymentTypeOption } from '@/types';
+import type { BreadcrumbItem, Branch, Currency, PaginatedData } from '@/types';
 import type { InvestmentRequest } from '@/types/investment-request';
 
 type DepartmentBreakdown = {
@@ -69,8 +69,6 @@ type PageProps = {
     userDepartmentId: number;
     currencies: Currency[];
     branches: Branch[];
-    expenseConcepts: ExpenseConcept[];
-    paymentTypes: PaymentTypeOption[];
     errors: Record<string, string>;
 };
 
@@ -97,7 +95,7 @@ function formatCurrency(value: string | number): string {
 export default function Consolidated() {
     const {
         project, totals, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, currencies, branches, expenseConcepts, paymentTypes, errors,
+        userDepartmentId, currencies, branches, errors,
     } = usePage<PageProps>().props;
 
     const [search, setSearch] = useState(filters.search ?? '');
@@ -416,8 +414,6 @@ export default function Consolidated() {
                     investmentRequest={selectedIr}
                     currencies={currencies}
                     branches={branches}
-                    expenseConcepts={expenseConcepts}
-                    paymentTypes={paymentTypes}
                     errors={errors}
                 />
             )}
@@ -433,23 +429,20 @@ type PaymentRequestModalProps = {
     investmentRequest: InvestmentRequest;
     currencies: Currency[];
     branches: Branch[];
-    expenseConcepts: ExpenseConcept[];
-    paymentTypes: PaymentTypeOption[];
     errors: Record<string, string>;
 };
 
 function PaymentRequestModal({
     open, onClose, investmentRequest: ir,
-    currencies, branches, expenseConcepts, paymentTypes, errors,
+    currencies, branches, errors,
 }: PaymentRequestModalProps) {
     const [values, setValues] = useState({
-        provider: '',
-        rfc: '',
+        provider: ir.provider ?? '',
+        rfc: ir.rfc ?? '',
         invoice_folio: '',
         currency_id: ir.currency?.id ? String(ir.currency.id) : '',
         branch_id: ir.branch?.id ? String(ir.branch.id) : '',
-        expense_concept_id: '',
-        payment_type_id: '',
+        is_invoice: false,
         description: '',
         subtotal: '',
         iva_rate: '',
@@ -485,12 +478,14 @@ function PaymentRequestModal({
             setValues((prev) => ({ ...prev, iva_rate: value, iva, total }));
             return;
         }
-        if (field === 'payment_type_id') {
-            setFiles([]);
-            setInvoicePdf(null);
-            setInvoiceXml(null);
-        }
         setValues((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const toggleIsInvoice = (checked: boolean) => {
+        setValues((prev) => ({ ...prev, is_invoice: checked }));
+        setFiles([]);
+        setInvoicePdf(null);
+        setInvoiceXml(null);
     };
 
     const handleSubmit = (e: FormEvent) => {
@@ -503,12 +498,10 @@ function PaymentRequestModal({
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
 
-        const selectedType = paymentTypes.find((pt) => String(pt.id) === values.payment_type_id);
-        if (selectedType?.invoice_documents_mode !== 'disabled') {
+        if (values.is_invoice) {
             if (invoicePdf) formData.append('invoice_documents[]', invoicePdf);
             if (invoiceXml) formData.append('invoice_documents[]', invoiceXml);
-        }
-        if (selectedType?.additional_documents_mode !== 'disabled') {
+        } else {
             files.forEach((file) => formData.append('advance_documents[]', file));
         }
 
@@ -518,12 +511,6 @@ function PaymentRequestModal({
             onFinish: () => setProcessing(false),
         });
     };
-
-    const selectedType = paymentTypes.find((pt) => String(pt.id) === values.payment_type_id);
-    const invoiceMode = selectedType?.invoice_documents_mode ?? 'disabled';
-    const additionalMode = selectedType?.additional_documents_mode ?? 'disabled';
-    const showInvoice = invoiceMode !== 'disabled';
-    const showAdditional = additionalMode !== 'disabled';
 
     return (
         <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -618,32 +605,6 @@ function PaymentRequestModal({
                                         </PopoverContent>
                                     </Popover>
                                     <InputError message={errors.branch_id} />
-                                </div>
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label>Concepto de Gasto</Label>
-                                        <Select value={values.expense_concept_id} onValueChange={(v) => handleChange('expense_concept_id', v)}>
-                                            <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                            <SelectContent>
-                                                {expenseConcepts.map((ec) => (
-                                                    <SelectItem key={ec.id} value={String(ec.id)}>{ec.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <InputError message={errors.expense_concept_id} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Tipo de Pago</Label>
-                                        <Select value={values.payment_type_id} onValueChange={(v) => handleChange('payment_type_id', v)}>
-                                            <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                                            <SelectContent>
-                                                {paymentTypes.map((pt) => (
-                                                    <SelectItem key={pt.id} value={String(pt.id)}>{pt.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <InputError message={errors.payment_type_id} />
-                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="modal_description">Descripción <span className="text-gray-400">(opcional)</span></Label>
@@ -766,62 +727,55 @@ function PaymentRequestModal({
                         {/* Documentos */}
                         <Card>
                             <CardHeader className="pb-3">
-                                <CardTitle className="text-base">
-                                    Documentos <span className="text-sm font-normal text-gray-400">(según tipo de pago)</span>
-                                </CardTitle>
+                                <CardTitle className="text-base">Documentos Adjuntos</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {!values.payment_type_id && (
-                                    <p className="py-6 text-center text-sm text-gray-400">
-                                        Selecciona un tipo de pago para ver los documentos requeridos.
-                                    </p>
-                                )}
-                                {showInvoice && (
-                                    <div>
-                                        <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Factura (PDF + XML){invoiceMode === 'required' && <span className="text-red-500"> *</span>}
-                                        </p>
-                                        <div className="grid gap-4 sm:grid-cols-2">
-                                            <div className="space-y-2">
-                                                <Label>Factura PDF{invoiceMode === 'required' && <span className="text-red-500"> *</span>}</Label>
-                                                <FileUpload
-                                                    files={invoicePdf ? [invoicePdf] : []}
-                                                    onChange={(f) => setInvoicePdf(f[0] ?? null)}
-                                                    maxFiles={1}
-                                                    accept=".pdf"
-                                                    error={errors['invoice_documents'] || errors['invoice_documents.0']}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Factura XML{invoiceMode === 'required' && <span className="text-red-500"> *</span>}</Label>
-                                                <FileUpload
-                                                    files={invoiceXml ? [invoiceXml] : []}
-                                                    onChange={(f) => setInvoiceXml(f[0] ?? null)}
-                                                    maxFiles={1}
-                                                    accept=".xml"
-                                                    error={errors['invoice_documents.1']}
-                                                />
-                                            </div>
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="modal_is_invoice"
+                                        checked={values.is_invoice}
+                                        onCheckedChange={(checked) => toggleIsInvoice(checked === true)}
+                                    />
+                                    <Label htmlFor="modal_is_invoice" className="cursor-pointer">
+                                        Factura
+                                    </Label>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {values.is_invoice
+                                        ? 'Adjunta el PDF y XML de la factura.'
+                                        : 'Adjunta los documentos de soporte para el anticipo.'}
+                                </p>
+
+                                {values.is_invoice ? (
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label>Factura PDF <span className="text-red-500">*</span></Label>
+                                            <FileUpload
+                                                files={invoicePdf ? [invoicePdf] : []}
+                                                onChange={(f) => setInvoicePdf(f[0] ?? null)}
+                                                maxFiles={1}
+                                                accept=".pdf"
+                                                error={errors['invoice_documents'] || errors['invoice_documents.0']}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Factura XML <span className="text-red-500">*</span></Label>
+                                            <FileUpload
+                                                files={invoiceXml ? [invoiceXml] : []}
+                                                onChange={(f) => setInvoiceXml(f[0] ?? null)}
+                                                maxFiles={1}
+                                                accept=".xml"
+                                                error={errors['invoice_documents.1']}
+                                            />
                                         </div>
                                     </div>
-                                )}
-                                {showAdditional && (
-                                    <div>
-                                        <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Documentos Adicionales{additionalMode === 'required' && <span className="text-red-500"> *</span>}
-                                        </p>
-                                        <FileUpload
-                                            files={files}
-                                            onChange={setFiles}
-                                            maxFiles={10}
-                                            error={errors.advance_documents || errors['advance_documents.0']}
-                                        />
-                                    </div>
-                                )}
-                                {values.payment_type_id && !showInvoice && !showAdditional && (
-                                    <p className="py-6 text-center text-sm text-gray-400">
-                                        Este tipo de pago no requiere documentos.
-                                    </p>
+                                ) : (
+                                    <FileUpload
+                                        files={files}
+                                        onChange={setFiles}
+                                        maxFiles={10}
+                                        error={errors.advance_documents || errors['advance_documents.0']}
+                                    />
                                 )}
                             </CardContent>
                         </Card>

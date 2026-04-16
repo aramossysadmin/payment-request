@@ -25,7 +25,7 @@ class InvestmentPaymentRequest extends Model
         'currency_id',
         'branch_id',
         'expense_concept_id',
-        'payment_type_id',
+        'payment_type',
         'description',
         'status',
         'advance_documents',
@@ -124,11 +124,6 @@ class InvestmentPaymentRequest extends Model
     public function expenseConcept(): BelongsTo
     {
         return $this->belongsTo(ExpenseConcept::class);
-    }
-
-    public function paymentType(): BelongsTo
-    {
-        return $this->belongsTo(PaymentType::class);
     }
 
     public function approvals(): HasMany

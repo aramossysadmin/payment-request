@@ -150,7 +150,7 @@ class EmailApprovalController extends Controller
     private function loadRequestRelation(PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval $approval): Model
     {
         if ($approval instanceof InvestmentPaymentApproval) {
-            $approval->load(['investmentPaymentRequest.user', 'investmentPaymentRequest.department', 'investmentPaymentRequest.currency', 'investmentPaymentRequest.branch', 'investmentPaymentRequest.expenseConcept', 'investmentPaymentRequest.paymentType', 'user']);
+            $approval->load(['investmentPaymentRequest.user', 'investmentPaymentRequest.department', 'investmentPaymentRequest.currency', 'investmentPaymentRequest.branch', 'investmentPaymentRequest.expenseConcept', 'user']);
 
             return $approval->investmentPaymentRequest;
         }

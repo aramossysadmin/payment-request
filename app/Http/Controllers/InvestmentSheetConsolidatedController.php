@@ -5,9 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\InvestmentRequestResource;
 use App\Models\Branch;
 use App\Models\Currency;
-use App\Models\ExpenseConcept;
 use App\Models\InvestmentRequest;
-use App\Models\PaymentType;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -98,8 +96,6 @@ class InvestmentSheetConsolidatedController extends Controller
             'userDepartmentId' => $user->department_id,
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
-            'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
-            'paymentTypes' => PaymentType::active()->get(['id', 'name', 'slug', 'invoice_documents_mode', 'additional_documents_mode']),
         ]);
     }
 }
