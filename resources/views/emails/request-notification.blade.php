@@ -50,43 +50,30 @@
 
 {{-- Section: Payment Items Table --}}
 @if (!empty($paymentItems))
+@php $includedItems = array_filter($paymentItems, fn($item) => $item['included']); @endphp
+@if (count($includedItems) > 0)
 <div style="border-bottom: 1px solid #D4C9A9; padding-bottom: 4px; margin-top: 24px; margin-bottom: 16px;">
-<span style="font-size: 14px; font-weight: 600; color: #191731; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de Pagos</span>
+<span style="font-size: 14px; font-weight: 600; color: #191731; text-transform: uppercase; letter-spacing: 0.5px;">Pagos a Procesar</span>
 </div>
 
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 8px 0; border-collapse: collapse;">
-<thead>
+@foreach ($includedItems as $item)
 <tr>
-<th style="padding: 8px 6px; font-size: 12px; font-weight: 600; color: #191731; text-align: left; border-bottom: 2px solid #D4C9A9; text-transform: uppercase; letter-spacing: 0.5px;">Folio</th>
-<th style="padding: 8px 6px; font-size: 12px; font-weight: 600; color: #191731; text-align: left; border-bottom: 2px solid #D4C9A9; text-transform: uppercase; letter-spacing: 0.5px;">Proveedor</th>
-<th style="padding: 8px 6px; font-size: 12px; font-weight: 600; color: #191731; text-align: left; border-bottom: 2px solid #D4C9A9; text-transform: uppercase; letter-spacing: 0.5px;">Concepto</th>
-<th style="padding: 8px 6px; font-size: 12px; font-weight: 600; color: #191731; text-align: right; border-bottom: 2px solid #D4C9A9; text-transform: uppercase; letter-spacing: 0.5px;">Monto</th>
-<th style="padding: 8px 6px; font-size: 12px; font-weight: 600; color: #191731; text-align: left; border-bottom: 2px solid #D4C9A9; text-transform: uppercase; letter-spacing: 0.5px;">Descripción</th>
-<th style="padding: 8px 6px; font-size: 12px; font-weight: 600; color: #191731; text-align: center; border-bottom: 2px solid #D4C9A9; text-transform: uppercase; letter-spacing: 0.5px;">Estado</th>
-</tr>
-</thead>
-<tbody>
-@foreach ($paymentItems as $item)
-<tr>
-<td style="padding: 6px; font-size: 13px; color: #191731; border-bottom: 1px solid #E5E7EB;">#{{ str_pad($item['folio'], 5, '0', STR_PAD_LEFT) }}</td>
-<td style="padding: 6px; font-size: 13px; color: #191731; border-bottom: 1px solid #E5E7EB;">{{ $item['provider'] }}</td>
-<td style="padding: 6px; font-size: 13px; color: #191731; border-bottom: 1px solid #E5E7EB;">{{ $item['concept'] }}</td>
-<td style="padding: 6px; font-size: 13px; color: #191731; border-bottom: 1px solid #E5E7EB; text-align: right; font-weight: 600;">$ {{ $item['total'] }} {{ $item['currency'] }}</td>
-<td style="padding: 6px; font-size: 13px; color: #191731; border-bottom: 1px solid #E5E7EB;">{{ $item['description'] ?? '-' }}</td>
-<td style="padding: 6px; font-size: 13px; border-bottom: 1px solid #E5E7EB; text-align: center;">
-@if ($item['included'])
-<span style="color: #16A34A; font-weight: 600;">&#10003; Incluido</span>
-@else
-<span style="color: #DC2626; font-weight: 600;">&#10007; Excluido</span>
-@if (!empty($item['exclusion_reason']))
-<br><span style="font-size: 11px; color: #6B7280;">{{ $item['exclusion_reason'] }}</span>
+<td style="padding: 10px 0; border-bottom: 1px solid #E5E7EB; vertical-align: top;">
+<div style="font-size: 14px; font-weight: 600; color: #191731;">{{ $item['provider'] }}</div>
+<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">#{{ str_pad($item['folio'], 5, '0', STR_PAD_LEFT) }} · {{ $item['concept'] }}</div>
+@if (!empty($item['description']) && $item['description'] !== '-')
+<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">{{ $item['description'] }}</div>
 @endif
-@endif
+</td>
+<td style="padding: 10px 0; border-bottom: 1px solid #E5E7EB; text-align: right; vertical-align: top; white-space: nowrap;">
+<div style="font-size: 14px; font-weight: 700; color: #191731;">$ {{ $item['total'] }}</div>
+<div style="font-size: 12px; color: #6B7280;">{{ $item['currency'] }}</div>
 </td>
 </tr>
 @endforeach
-</tbody>
 </table>
+@endif
 @endif
 
 {{-- Section: Attached Documents --}}
