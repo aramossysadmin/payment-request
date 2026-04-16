@@ -722,7 +722,13 @@ function PaymentRequestModal({
                                             />
                                         </div>
                                         {Number(values.total) > remainingBalance && (
-                                            <p className="text-xs text-red-500">El total excede el saldo disponible ({formatCurrency(remainingBalance)})</p>
+                                            <div className="flex items-start gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-900/20">
+                                                <span className="mt-0.5 text-red-500">&#9888;</span>
+                                                <div className="text-xs text-red-700 dark:text-red-300">
+                                                    <p className="font-semibold">El total excede el saldo disponible</p>
+                                                    <p>Saldo: {formatCurrency(remainingBalance)} · Excedente: {formatCurrency(Number(values.total) - remainingBalance)}</p>
+                                                </div>
+                                            </div>
                                         )}
                                         <InputError message={errors.total} />
                                     </div>
