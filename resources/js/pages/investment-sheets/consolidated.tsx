@@ -531,9 +531,13 @@ export default function Consolidated() {
                                                                 <td className="py-2.5 pr-4 pl-2">
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="font-mono text-xs text-gray-500">#{String(ir.folio_number).padStart(5, '0')}</span>
-                                                                        {ir.is_addendum && (
+                                                                        {ir.is_addendum ? (
                                                                             <Badge variant="outline" className="border-amber-400 text-amber-600 text-[10px] dark:border-amber-600 dark:text-amber-400">
                                                                                 Aditiva
+                                                                            </Badge>
+                                                                        ) : group.items.length > 1 && (
+                                                                            <Badge variant="outline" className="border-blue-400 text-blue-600 text-[10px] dark:border-blue-600 dark:text-blue-400">
+                                                                                Inicial
                                                                             </Badge>
                                                                         )}
                                                                         <Badge
