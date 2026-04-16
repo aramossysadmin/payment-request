@@ -156,7 +156,7 @@ class EmailApprovalController extends Controller
         }
 
         if ($approval instanceof InvestmentRequestApproval) {
-            $approval->load(['investmentRequest.user', 'investmentRequest.department', 'investmentRequest.currency', 'investmentRequest.branch', 'investmentRequest.expenseConcept', 'investmentRequest.paymentType', 'user']);
+            $approval->load(['investmentRequest.user', 'investmentRequest.department', 'investmentRequest.currency', 'investmentRequest.branch', 'investmentRequest.expenseConcept', 'investmentRequest.investmentExpenseConcept', 'investmentRequest.paymentType', 'user']);
 
             return $approval->investmentRequest;
         }

@@ -87,21 +87,30 @@ trait IncludesRequestDetails
      */
     private function getFullDetails(mixed $request): array
     {
+        $isInvestment = $request instanceof InvestmentRequest;
+
+        $conceptName = $isInvestment
+            ? ($request->investmentExpenseConcept?->name ?? $request->expenseConcept?->name ?? '-')
+            : ($request->expenseConcept?->name ?? '-');
+
         $details = [
             ['label' => 'Solicitante', 'value' => $request->user->name ?? '-'],
             ['label' => 'Sucursal', 'value' => $request->branch->name ?? '-'],
-            ['label' => 'Concepto de Gasto', 'value' => $request->expenseConcept->name ?? '-'],
+            ['label' => 'Concepto de Gasto', 'value' => $conceptName],
         ];
 
         if ($request->description) {
             $details[] = ['label' => 'Descripción', 'value' => $request->description];
         }
 
+        if (! $isInvestment) {
+            $details[] = ['label' => 'Tipo de Pago', 'value' => $request->paymentType->name ?? '-'];
+        }
+
         return [
             ...$details,
-            ['label' => 'Tipo de Pago', 'value' => $request->paymentType->name ?? '-'],
             ['label' => 'Proveedor', 'value' => $request->provider],
-            ['label' => 'Folio', 'value' => $request->invoice_folio],
+            ['label' => 'Folio', 'value' => $request->invoice_folio ?? '-'],
             ['label' => 'Total', 'value' => '$ '.number_format($request->total, 2).' '.($request->currency->prefix ?? 'MXN')],
         ];
     }

@@ -59,12 +59,20 @@
                     </div>
                     <div class="col-span-2">
                         <span class="text-brand-muted dark:text-brand-muted-dark text-xs">Concepto de Gasto</span>
-                        <p class="font-semibold text-navy dark:text-cream mt-0.5">{{ $paymentRequest->expenseConcept->name ?? '-' }}</p>
+                        <p class="font-semibold text-navy dark:text-cream mt-0.5">
+                            @if($paymentRequest instanceof \App\Models\InvestmentRequest)
+                                {{ $paymentRequest->investmentExpenseConcept->name ?? $paymentRequest->expenseConcept->name ?? '-' }}
+                            @else
+                                {{ $paymentRequest->expenseConcept->name ?? '-' }}
+                            @endif
+                        </p>
                     </div>
+                    @if(!($paymentRequest instanceof \App\Models\InvestmentRequest))
                     <div>
                         <span class="text-brand-muted dark:text-brand-muted-dark text-xs">Tipo de Pago</span>
                         <p class="font-semibold text-navy dark:text-cream mt-0.5">{{ $paymentRequest->paymentType->name ?? '-' }}</p>
                     </div>
+                    @endif
                     <div>
                         <span class="text-brand-muted dark:text-brand-muted-dark text-xs">Moneda</span>
                         <p class="font-semibold text-navy dark:text-cream mt-0.5">{{ $paymentRequest->currency->prefix ?? '-' }}</p>
