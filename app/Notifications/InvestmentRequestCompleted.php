@@ -30,11 +30,11 @@ class InvestmentRequestCompleted extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return $this->buildMailMessage(
-            'Solicitud de Inversión #'.$this->investmentRequest->folio_number.' - Finalizada',
+            'Concepto de Inversión #'.$this->investmentRequest->folio_number.' - Finalizada',
             [
                 'sectionTitle' => 'Detalles de la Solicitud',
                 'greeting' => 'Hola '.$notifiable->name,
-                'description' => 'Tu solicitud de inversión ha completado la aprobación.',
+                'description' => 'Tu concepto de inversión ha completado la aprobación.',
                 'details' => $this->getMinimalDetails($this->investmentRequest),
                 'stageInfo' => $this->getStageInfo($this->investmentRequest),
                 'documents' => $this->getDocuments($this->investmentRequest),
@@ -52,7 +52,7 @@ class InvestmentRequestCompleted extends Notification implements ShouldQueue
     public function toDatabase(User $notifiable): array
     {
         return FilamentNotification::make()
-            ->title('Solicitud de Inversión Finalizada')
+            ->title('Concepto de Inversión Finalizada')
             ->body('La solicitud #'.$this->investmentRequest->folio_number.' ha completado todas las aprobaciones.')
             ->icon('heroicon-o-check-badge')
             ->success()

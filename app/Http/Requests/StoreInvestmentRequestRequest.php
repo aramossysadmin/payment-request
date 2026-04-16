@@ -21,12 +21,16 @@ class StoreInvestmentRequestRequest extends FormRequest
     {
         return [
             'project_id' => ['nullable', 'integer', Rule::exists('projects', 'id')],
+            'investment_expense_concept_id' => ['nullable', 'integer', Rule::exists('investment_expense_concepts', 'id')],
             'provider' => ['required', 'string', 'max:255'],
             'rfc' => ['nullable', 'string', 'alpha_num', 'min:12', 'max:13'],
-            'invoice_folio' => ['required', 'string', 'max:255'],
+            'contact_name' => ['nullable', 'string', 'max:255'],
+            'contact_email' => ['nullable', 'string', 'email', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:20'],
+            'invoice_folio' => ['nullable', 'string', 'max:255'],
             'currency_id' => ['required', 'integer', Rule::exists('currencies', 'id')],
             'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')],
-            'expense_concept_id' => ['required', 'integer', Rule::exists('expense_concepts', 'id')],
+            'expense_concept_id' => ['nullable', 'integer', Rule::exists('expense_concepts', 'id')],
             'description' => ['nullable', 'string', 'max:1000'],
             'invoice_documents' => ['nullable', 'array', 'size:2'],
             'invoice_documents.*' => ['file', 'max:10240', 'mimes:pdf,xml'],

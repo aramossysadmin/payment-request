@@ -56,11 +56,11 @@ class InvestmentRequestLevel2Rejected extends Notification implements ShouldQueu
         }
 
         return $this->buildMailMessage(
-            'Solicitud de Inversión #'.$this->investmentRequest->folio_number.' - Rechazada por Nivel 2',
+            'Concepto de Inversión #'.$this->investmentRequest->folio_number.' - Rechazada por Nivel 2',
             [
                 'sectionTitle' => 'Detalles de la Solicitud',
                 'greeting' => 'Hola '.$notifiable->name,
-                'description' => 'El Autorizador Nivel 2 ('.$this->rejector->name.') ha rechazado la solicitud de inversión y requiere tu revisión nuevamente.',
+                'description' => 'El Autorizador Nivel 2 ('.$this->rejector->name.') ha rechazado la concepto de inversión y requiere tu revisión nuevamente.',
                 'details' => $details,
                 'stageInfo' => $this->getStageInfo($this->investmentRequest),
                 'documents' => $this->getDocuments($this->investmentRequest),
@@ -78,7 +78,7 @@ class InvestmentRequestLevel2Rejected extends Notification implements ShouldQueu
     public function toDatabase(User $notifiable): array
     {
         return FilamentNotification::make()
-            ->title('Solicitud de Inversión Rechazada por Nivel 2')
+            ->title('Concepto de Inversión Rechazada por Nivel 2')
             ->body($this->rejector->name.' rechazó la solicitud #'.$this->investmentRequest->folio_number.'. Requiere tu revisión: '.$this->comments)
             ->icon('heroicon-o-arrow-uturn-left')
             ->warning()

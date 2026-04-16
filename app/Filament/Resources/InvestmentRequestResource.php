@@ -31,9 +31,9 @@ class InvestmentRequestResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $modelLabel = 'Solicitud de Inversión';
+    protected static ?string $modelLabel = 'Concepto de Inversión';
 
-    protected static ?string $pluralModelLabel = 'Solicitudes de Inversión';
+    protected static ?string $pluralModelLabel = 'Conceptos de Inversión';
 
     public static function form(Form $form): Form
     {
@@ -127,7 +127,7 @@ class InvestmentRequestResource extends Resource
                             ->required()
                             ->live(),
                         Forms\Components\FileUpload::make('advance_documents')
-                            ->label('Documentos Solicitudes de Inversión')
+                            ->label('Documentos Conceptos de Inversión')
                             ->multiple()
                             ->disk('local')
                             ->directory('investment-advance-documents')

@@ -19,7 +19,7 @@ class InvestmentRequestPdfController extends Controller
 
         $pdf = Pdf::loadView('pdf.payment-request', [
             'request' => $investmentRequest,
-            'title' => 'Solicitud de Inversión',
+            'title' => 'Concepto de Inversión',
         ]);
 
         return $pdf->download('solicitud-inversion-'.$investmentRequest->folio_number.'.pdf');

@@ -11,7 +11,7 @@ enum PaymentTypeCategory: string
     {
         return match ($this) {
             self::Payment => 'Solicitud de Pago',
-            self::Investment => 'Solicitud de Inversión',
+            self::Investment => 'Concepto de Inversión',
         };
     }
 }

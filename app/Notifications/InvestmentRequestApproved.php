@@ -49,11 +49,11 @@ class InvestmentRequestApproved extends Notification implements ShouldQueue
         }
 
         return $this->buildMailMessage(
-            'Solicitud de Inversión #'.$this->investmentRequest->folio_number.' - Requiere tu Autorización',
+            'Concepto de Inversión #'.$this->investmentRequest->folio_number.' - Requiere tu Autorización',
             [
                 'sectionTitle' => 'Detalles de la Solicitud',
                 'greeting' => 'Hola '.$notifiable->name,
-                'description' => 'La solicitud de inversión fue aprobada por '.$this->approver->name.' y ahora requiere tu autorización.',
+                'description' => 'La concepto de inversión fue aprobada por '.$this->approver->name.' y ahora requiere tu autorización.',
                 'details' => $this->getFullDetails($this->investmentRequest),
                 'stageInfo' => $this->getStageInfo($this->investmentRequest),
                 'documents' => $this->getDocuments($this->investmentRequest),
@@ -71,7 +71,7 @@ class InvestmentRequestApproved extends Notification implements ShouldQueue
     public function toDatabase(User $notifiable): array
     {
         return FilamentNotification::make()
-            ->title('Solicitud de Inversión Requiere tu Autorización')
+            ->title('Concepto de Inversión Requiere tu Autorización')
             ->body('Solicitud #'.$this->investmentRequest->folio_number.' aprobada por '.$this->approver->name.'. Requiere tu autorización.')
             ->icon('heroicon-o-check-circle')
             ->warning()

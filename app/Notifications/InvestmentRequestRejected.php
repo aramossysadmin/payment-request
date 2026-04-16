@@ -39,11 +39,11 @@ class InvestmentRequestRejected extends Notification implements ShouldQueue
         ];
 
         return $this->buildMailMessage(
-            'Solicitud de Inversión #'.$this->investmentRequest->folio_number.' - Rechazada',
+            'Concepto de Inversión #'.$this->investmentRequest->folio_number.' - Rechazada',
             [
                 'sectionTitle' => 'Detalles de la Solicitud',
                 'greeting' => 'Hola '.$notifiable->name,
-                'description' => $this->rejector->name.' ha rechazado la solicitud de inversión.',
+                'description' => $this->rejector->name.' ha rechazado la concepto de inversión.',
                 'details' => $details,
                 'stageInfo' => $this->getStageInfo($this->investmentRequest),
                 'documents' => $this->getDocuments($this->investmentRequest),
@@ -61,7 +61,7 @@ class InvestmentRequestRejected extends Notification implements ShouldQueue
     public function toDatabase(User $notifiable): array
     {
         return FilamentNotification::make()
-            ->title('Solicitud de Inversión Rechazada')
+            ->title('Concepto de Inversión Rechazada')
             ->body($this->rejector->name.' rechazó la solicitud #'.$this->investmentRequest->folio_number.': '.$this->comments)
             ->icon('heroicon-o-x-circle')
             ->danger()

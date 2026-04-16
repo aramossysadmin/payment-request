@@ -48,11 +48,11 @@ class InvestmentRequestCreated extends Notification implements ShouldQueue
         }
 
         return $this->buildMailMessage(
-            'Nueva Solicitud de Inversión #'.$this->investmentRequest->folio_number,
+            'Nuevo Concepto de Inversión #'.$this->investmentRequest->folio_number,
             [
                 'sectionTitle' => 'Detalles de la Solicitud',
                 'greeting' => 'Hola '.$notifiable->name,
-                'description' => 'Se ha creado una nueva solicitud de inversión que requiere tu autorización.',
+                'description' => 'Se ha creado una nueva concepto de inversión que requiere tu autorización.',
                 'details' => $this->getFullDetails($this->investmentRequest),
                 'stageInfo' => $this->getStageInfo($this->investmentRequest),
                 'documents' => $this->getDocuments($this->investmentRequest),
@@ -70,7 +70,7 @@ class InvestmentRequestCreated extends Notification implements ShouldQueue
     public function toDatabase(User $notifiable): array
     {
         return FilamentNotification::make()
-            ->title('Nueva Solicitud de Inversión')
+            ->title('Nuevo Concepto de Inversión')
             ->body('Solicitud #'.$this->investmentRequest->folio_number.' de '.$this->investmentRequest->user->name.' por $'.number_format($this->investmentRequest->total, 2))
             ->icon('heroicon-o-document-plus')
             ->warning()
