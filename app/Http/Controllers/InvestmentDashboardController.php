@@ -33,7 +33,7 @@ class InvestmentDashboardController extends Controller
         $data = [
             'kpis' => ['budget' => '0', 'executed' => '0', 'remaining' => '0', 'percent' => 0],
             'byDepartment' => [],
-            'byConcept' => [],
+            'budgetComparison' => ['initial' => '0', 'addendum' => '0', 'total' => '0', 'growthPercent' => 0],
             'conceptTable' => [],
             'departments' => [],
         ];
@@ -93,8 +93,17 @@ class InvestmentDashboardController extends Controller
         // By department
         $byDepartment = $this->getExecutionByDepartment($completedIds);
 
-        // By concept
-        $byConcept = $this->getExecutionByConcept($completedIds);
+        // Budget comparison (initial vs addendums)
+        $initialBudget = (float) InvestmentRequest::whereIn('id', $completedIds)->where('is_addendum', false)->sum('total');
+        $addendumBudget = (float) InvestmentRequest::whereIn('id', $completedIds)->where('is_addendum', true)->sum('total');
+        $growthPercent = $initialBudget > 0 ? round(($addendumBudget / $initialBudget) * 100, 1) : 0;
+
+        $budgetComparison = [
+            'initial' => number_format($initialBudget, 2, '.', ''),
+            'addendum' => number_format($addendumBudget, 2, '.', ''),
+            'total' => number_format($totalBudget, 2, '.', ''),
+            'growthPercent' => $growthPercent,
+        ];
 
         // Concept table
         $conceptTable = $this->getConceptTable($completedIds);
@@ -107,7 +116,7 @@ class InvestmentDashboardController extends Controller
                 'percent' => $percent,
             ],
             'byDepartment' => $byDepartment,
-            'byConcept' => $byConcept,
+            'budgetComparison' => $budgetComparison,
             'conceptTable' => $conceptTable,
             'departments' => $departments,
         ];
@@ -144,39 +153,6 @@ class InvestmentDashboardController extends Controller
                 'percent' => $budget > 0 ? round(($paid / $budget) * 100, 1) : 0,
             ];
         })->values()->all();
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function getExecutionByConcept(Collection $completedIds): array
-    {
-        return InvestmentRequest::query()
-            ->whereIn('investment_requests.id', $completedIds)
-            ->join('investment_expense_concepts', 'investment_requests.investment_expense_concept_id', '=', 'investment_expense_concepts.id')
-            ->selectRaw('
-                investment_expense_concepts.name as concept_name,
-                SUM(CASE WHEN investment_requests.is_addendum = 0 THEN investment_requests.total ELSE 0 END) as initial_budget,
-                SUM(CASE WHEN investment_requests.is_addendum = 1 THEN investment_requests.total ELSE 0 END) as addendum_total,
-                SUM(investment_requests.total) as total_budget
-            ')
-            ->groupBy('investment_expense_concepts.id', 'investment_expense_concepts.name')
-            ->orderByDesc('total_budget')
-            ->get()
-            ->map(function ($row) {
-                $initial = (float) $row->initial_budget;
-                $addendum = (float) $row->addendum_total;
-                $total = (float) $row->total_budget;
-                $growthPercent = $initial > 0 ? round(($addendum / $initial) * 100, 1) : 0;
-
-                return [
-                    'name' => $row->concept_name,
-                    'initial' => number_format($initial, 2, '.', ''),
-                    'addendum' => number_format($addendum, 2, '.', ''),
-                    'total' => number_format($total, 2, '.', ''),
-                    'growthPercent' => $growthPercent,
-                ];
-            })->values()->all();
     }
 
     /**

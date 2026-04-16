@@ -23,7 +23,6 @@ type ExecutionItem = {
 };
 
 type BudgetComparison = {
-    name: string;
     initial: string;
     addendum: string;
     total: string;
@@ -47,7 +46,7 @@ type PageProps = {
     filters: { project_id: string; department_id: string };
     kpis: { budget: string; executed: string; remaining: string; percent: number };
     byDepartment: ExecutionItem[];
-    byConcept: BudgetComparison[];
+    budgetComparison: BudgetComparison;
     conceptTable: ConceptRow[];
     departments: { id: number; name: string }[];
 };
@@ -100,7 +99,7 @@ function CircularProgress({ percent }: { percent: number }) {
 }
 
 export default function InvestmentDashboard() {
-    const { projects, filters, kpis, byDepartment, byConcept, conceptTable, departments } =
+    const { projects, filters, kpis, byDepartment, budgetComparison, conceptTable, departments } =
         usePage<PageProps>().props;
 
     const applyFilter = (key: string, value: string) => {
@@ -261,53 +260,58 @@ export default function InvestmentDashboard() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {byConcept.length === 0 ? (
+                            {Number(budgetComparison.total) === 0 ? (
                                 <p className="py-6 text-center text-sm text-gray-400">Sin datos</p>
                             ) : (
                                 <div className="space-y-5">
-                                    {byConcept.map((item) => (
-                                        <div key={item.name} className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm font-medium">{item.name}</span>
-                                                <span className="text-sm font-semibold">{formatCurrency(item.total)}</span>
+                                    {/* Total */}
+                                    <div className="text-center">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Presupuesto Total</p>
+                                        <p className="text-3xl font-bold">{formatCurrency(budgetComparison.total)}</p>
+                                        {budgetComparison.growthPercent > 0 && (
+                                            <p className="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">
+                                                +{budgetComparison.growthPercent}% por aditivas
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Stacked bar */}
+                                    <div className="h-8 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 flex">
+                                        {Number(budgetComparison.initial) > 0 && (
+                                            <div
+                                                className="h-full bg-blue-500 transition-all flex items-center justify-center text-[10px] font-semibold text-white"
+                                                style={{ width: `${(Number(budgetComparison.initial) / Number(budgetComparison.total)) * 100}%` }}
+                                            >
+                                                {Number(budgetComparison.total) > 0 && `${((Number(budgetComparison.initial) / Number(budgetComparison.total)) * 100).toFixed(0)}%`}
                                             </div>
-                                            {/* Stacked bar */}
-                                            <div className="h-5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 flex">
-                                                {Number(item.initial) > 0 && (
-                                                    <div
-                                                        className="h-full bg-blue-500 transition-all"
-                                                        style={{ width: `${(Number(item.initial) / Number(item.total)) * 100}%` }}
-                                                        title={`Inicial: ${formatCurrency(item.initial)}`}
-                                                    />
-                                                )}
-                                                {Number(item.addendum) > 0 && (
-                                                    <div
-                                                        className="h-full bg-amber-400 transition-all"
-                                                        style={{ width: `${(Number(item.addendum) / Number(item.total)) * 100}%` }}
-                                                        title={`Aditivas: ${formatCurrency(item.addendum)}`}
-                                                    />
-                                                )}
+                                        )}
+                                        {Number(budgetComparison.addendum) > 0 && (
+                                            <div
+                                                className="h-full bg-amber-400 transition-all flex items-center justify-center text-[10px] font-semibold text-white"
+                                                style={{ width: `${(Number(budgetComparison.addendum) / Number(budgetComparison.total)) * 100}%` }}
+                                            >
+                                                {((Number(budgetComparison.addendum) / Number(budgetComparison.total)) * 100).toFixed(0)}%
                                             </div>
-                                            {/* Legend */}
-                                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="flex items-center gap-1">
-                                                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />
-                                                        Inicial: {formatCurrency(item.initial)}
-                                                    </span>
-                                                    {Number(item.addendum) > 0 && (
-                                                        <span className="flex items-center gap-1">
-                                                            <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />
-                                                            Aditivas: {formatCurrency(item.addendum)}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {item.growthPercent > 0 && (
-                                                    <span className="font-semibold text-amber-600 dark:text-amber-400">+{item.growthPercent}%</span>
-                                                )}
+                                        )}
+                                    </div>
+
+                                    {/* Legend cards */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-block h-3 w-3 rounded-full bg-blue-500" />
+                                                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Presupuesto Inicial</span>
                                             </div>
+                                            <p className="mt-1 text-lg font-bold text-blue-900 dark:text-blue-100">{formatCurrency(budgetComparison.initial)}</p>
                                         </div>
-                                    ))}
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-block h-3 w-3 rounded-full bg-amber-400" />
+                                                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Aditivas</span>
+                                            </div>
+                                            <p className="mt-1 text-lg font-bold text-amber-900 dark:text-amber-100">{formatCurrency(budgetComparison.addendum)}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </CardContent>
