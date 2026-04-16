@@ -189,7 +189,7 @@ class EmailApprovalController extends Controller
     private function loadRequestRelation(PaymentRequestApproval|InvestmentRequestApproval|InvestmentPaymentApproval|WeeklyPaymentScheduleApproval $approval): Model
     {
         if ($approval instanceof WeeklyPaymentScheduleApproval) {
-            $approval->load(['schedule.creator', 'schedule.items.investmentPaymentRequest', 'user']);
+            $approval->load(['schedule.creator', 'schedule.items.investmentPaymentRequest.investmentRequest.investmentExpenseConcept', 'user']);
 
             return $approval->schedule;
         }

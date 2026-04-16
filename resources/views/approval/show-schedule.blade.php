@@ -42,42 +42,26 @@
                 </div>
             </div>
 
-            {{-- Detalle de Pagos --}}
+            {{-- Pagos a Procesar --}}
             <div class="px-6 py-4 space-y-3">
-                <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-muted dark:text-brand-muted-dark">Detalle de Pagos</h2>
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-muted dark:text-brand-muted-dark">Pagos a Procesar</h2>
                 <div class="space-y-2">
-                    @foreach($schedule->items as $item)
+                    @foreach($schedule->items->where('included', true) as $item)
                         @php $payment = $item->investmentPaymentRequest; @endphp
-                        <div class="rounded-lg border {{ $item->included ? 'border-green-200 dark:border-green-800/50 bg-green-50/50 dark:bg-green-900/10' : 'border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-900/10' }} p-3">
+                        <div class="rounded-lg border border-brand-border dark:border-brand-border-dark p-3">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="font-mono text-xs text-brand-muted dark:text-brand-muted-dark">#{{ str_pad($payment->folio_number ?? 0, 5, '0', STR_PAD_LEFT) }}</span>
-                                        <span class="font-semibold text-sm text-navy dark:text-cream">{{ $payment->provider ?? '-' }}</span>
-                                    </div>
+                                    <p class="font-semibold text-sm text-navy dark:text-cream">{{ $payment->provider ?? '-' }}</p>
+                                    <p class="text-xs text-brand-muted dark:text-brand-muted-dark mt-0.5">
+                                        #{{ str_pad($payment->folio_number ?? 0, 5, '0', STR_PAD_LEFT) }} · {{ $payment->investmentRequest?->investmentExpenseConcept?->name ?? '-' }}
+                                    </p>
                                     @if($payment->description)
                                         <p class="text-xs text-brand-muted dark:text-brand-muted-dark mt-1">{{ $payment->description }}</p>
-                                    @endif
-                                    @if(!$item->included && $item->exclusion_reason)
-                                        <div class="flex items-start gap-1.5 mt-2 text-xs text-red-600 dark:text-red-400">
-                                            <svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                                            </svg>
-                                            <span>{{ $item->exclusion_reason }}</span>
-                                        </div>
                                     @endif
                                 </div>
                                 <div class="text-right shrink-0">
                                     <p class="font-bold text-sm text-navy dark:text-cream">$ {{ number_format($payment->total ?? 0, 2) }}</p>
-                                    @if($item->included)
-                                        <span class="inline-flex items-center gap-1 mt-1 rounded-full bg-green-100 dark:bg-green-800/40 px-2.5 py-1 text-xs font-semibold text-green-700 dark:text-green-300">
-                                            &#10003; Incluido
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1 mt-1 rounded-full bg-red-100 dark:bg-red-800/40 px-2.5 py-1 text-xs font-semibold text-red-700 dark:text-red-300">
-                                            &#10007; Excluido
-                                        </span>
-                                    @endif
+                                    <p class="text-xs text-brand-muted dark:text-brand-muted-dark mt-0.5">{{ $payment->currency->prefix ?? 'MXN' }}</p>
                                 </div>
                             </div>
                         </div>
