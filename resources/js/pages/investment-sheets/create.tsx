@@ -257,24 +257,6 @@ export default function Create() {
                             <CardContent className="space-y-4">
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label htmlFor="provider">Razón Social</Label>
-                                        <ProviderAutocomplete
-                                            id="provider"
-                                            value={values.provider}
-                                            field="provider"
-                                            placeholder="Razón Social"
-                                            onChange={(v) => handleChange('provider', v)}
-                                            onSelect={(s) => {
-                                                setValues((prev) => ({
-                                                    ...prev,
-                                                    provider: s.provider,
-                                                    rfc: s.rfc ?? prev.rfc,
-                                                }));
-                                            }}
-                                        />
-                                        <InputError message={errors.provider} />
-                                    </div>
-                                    <div className="space-y-2">
                                         <Label htmlFor="rfc">RFC</Label>
                                         <ProviderAutocomplete
                                             id="rfc"
@@ -292,6 +274,24 @@ export default function Create() {
                                             }}
                                         />
                                         <InputError message={errors.rfc} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="provider">Razón Social</Label>
+                                        <ProviderAutocomplete
+                                            id="provider"
+                                            value={values.provider}
+                                            field="provider"
+                                            placeholder="Razón Social"
+                                            onChange={(v) => handleChange('provider', v)}
+                                            onSelect={(s) => {
+                                                setValues((prev) => ({
+                                                    ...prev,
+                                                    provider: s.provider,
+                                                    rfc: s.rfc ?? prev.rfc,
+                                                }));
+                                            }}
+                                        />
+                                        <InputError message={errors.provider} />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
