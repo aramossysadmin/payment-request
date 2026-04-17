@@ -172,6 +172,12 @@ export function PaymentRequestDetail({
                             <div className="text-right">
                                 <div className="space-y-1 text-sm text-muted-foreground">
                                     <p>
+                                        Moneda:{' '}
+                                        <span className="font-medium text-foreground">
+                                            {pr.currency?.prefix ?? '—'}
+                                        </span>
+                                    </p>
+                                    <p>
                                         Subtotal:{' '}
                                         <span className="font-mono font-medium text-foreground">
                                             {formatCurrency(pr.subtotal)}
@@ -220,10 +226,12 @@ export function PaymentRequestDetail({
                                     <dt className="text-muted-foreground">Folio Factura</dt>
                                     <dd className="font-mono font-medium text-foreground">{pr.invoice_folio}</dd>
                                 </div>
-                                <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">Moneda</dt>
-                                    <dd className="font-medium text-foreground">{pr.currency?.prefix ?? '—'}</dd>
-                                </div>
+                                {isInvestment && (pr as any).project?.name && (
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">Proyecto</dt>
+                                        <dd className="font-medium text-foreground">{(pr as any).project.name}</dd>
+                                    </div>
+                                )}
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Sucursal</dt>
                                     <dd className="font-medium text-foreground">{pr.branch?.name ?? '—'}</dd>
