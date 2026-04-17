@@ -122,6 +122,7 @@ export default function Show() {
                             </div>
                             <div className="text-right">
                                 <div className="space-y-1 text-sm text-muted-foreground">
+                                    <p>Moneda: <span className="font-medium text-foreground">{ir.currency?.prefix ?? '—'}</span></p>
                                     <p>Subtotal: <span className="font-mono font-medium text-foreground">{formatCurrency(ir.subtotal)}</span></p>
                                     <p>IVA ({ir.iva_rate.label}): <span className="font-mono font-medium text-foreground">{formatCurrency(ir.iva)}</span></p>
                                     <p>Retención: <span className="font-medium text-foreground">{ir.retention ? 'Sí' : 'No'}</span></p>
@@ -172,20 +173,16 @@ export default function Show() {
                                     <dt className="text-muted-foreground">Folio Factura</dt>
                                     <dd className="font-mono font-medium text-foreground">{ir.invoice_folio ?? '—'}</dd>
                                 </div>
-                                <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">Moneda</dt>
-                                    <dd className="font-medium text-foreground">{ir.currency?.prefix ?? '—'}</dd>
-                                </div>
-                                <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">Sucursal</dt>
-                                    <dd className="font-medium text-foreground">{ir.branch?.name ?? '—'}</dd>
-                                </div>
                                 {ir.project && (
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">Proyecto</dt>
                                         <dd className="font-medium text-foreground">{ir.project.name}</dd>
                                     </div>
                                 )}
+                                <div className="flex justify-between">
+                                    <dt className="text-muted-foreground">Sucursal</dt>
+                                    <dd className="font-medium text-foreground">{ir.branch?.name ?? '—'}</dd>
+                                </div>
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Concepto de Gasto</dt>
                                     <dd className="font-medium text-foreground">{ir.investment_expense_concept?.name ?? ir.expense_concept?.name ?? '—'}</dd>

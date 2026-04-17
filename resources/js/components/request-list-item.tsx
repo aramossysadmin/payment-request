@@ -6,10 +6,13 @@ import type { PaymentRequest } from '@/types';
 type RequestListItemProps = {
     paymentRequest: PaymentRequest;
     isSelected: boolean;
+    isInvestment?: boolean;
     onClick: () => void;
 };
 
-export function RequestListItem({ paymentRequest: pr, isSelected, onClick }: RequestListItemProps) {
+export function RequestListItem({ paymentRequest: pr, isSelected, isInvestment, onClick }: RequestListItemProps) {
+    const ir = pr as any;
+
     return (
         <button
             type="button"
@@ -30,6 +33,21 @@ export function RequestListItem({ paymentRequest: pr, isSelected, onClick }: Req
             <p className="mt-1 truncate text-sm font-medium text-foreground">
                 {pr.provider}
             </p>
+            {isInvestment && (
+                <div className="mt-1.5 space-y-0.5">
+                    {ir.project?.name && (
+                        <p className="truncate text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground/70">Proyecto:</span> {ir.project.name}
+                        </p>
+                    )}
+                    <p className="truncate text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground/70">Concepto:</span> {ir.investment_expense_concept?.name ?? ir.expense_concept?.name ?? '—'}
+                    </p>
+                    {ir.description && (
+                        <p className="line-clamp-2 text-xs text-muted-foreground italic">{ir.description}</p>
+                    )}
+                </div>
+            )}
             <div className="mt-1 flex items-center justify-between gap-2">
                 <span className="truncate text-xs text-muted-foreground">
                     {pr.user?.name ?? '—'}

@@ -155,6 +155,7 @@ export default function Index() {
                             key={ir.uuid}
                             paymentRequest={ir as any}
                             isSelected={ir.uuid === selectedId}
+                            isInvestment
                             onClick={() => handleSelectItem(ir.uuid)}
                         />
                     ))
