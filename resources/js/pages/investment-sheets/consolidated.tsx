@@ -930,7 +930,7 @@ function PaymentRequestModal({
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="modal_invoice_folio">Folio de Factura <span className="text-gray-400">(opcional)</span></Label>
+                                    <Label htmlFor="modal_invoice_folio">Folio de Factura o Cotización <span className="text-gray-400">(opcional)</span></Label>
                                     <Input
                                         id="modal_invoice_folio"
                                         value={values.invoice_folio}
