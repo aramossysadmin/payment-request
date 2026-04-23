@@ -3,6 +3,7 @@ import {
     ArrowRight,
     Banknote,
     Bell,
+    Calendar,
     CheckCircle,
     Clock,
     Download,
@@ -14,6 +15,7 @@ import {
     Settings,
     Upload,
     User,
+    Wallet,
     XCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -270,22 +272,22 @@ function PaymentRequestsGuide() {
 function InvestmentRequestsGuide() {
     return (
         <div className="space-y-6">
-            {/* Crear solicitud */}
+            {/* Crear concepto */}
             <Card>
                 <CardHeader>
                     <CardTitle>
                         <SectionTitle>
                             <Plus className="size-5 text-primary" />
-                            Crear una Hoja de Inversión
+                            Crear un Concepto de Inversión
                         </SectionTitle>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <Step number={1}>
-                        Desde el panel de <strong>Hojas de Inversión</strong>, haz clic en el botón <strong>Nueva</strong>.
+                        Desde el panel de <strong>Presupuestos de Inversión</strong> > <strong>Conceptos</strong>, haz clic en el botón <strong>Nueva</strong>.
                     </Step>
                     <Step number={2}>
-                        Completa los campos del formulario: <strong>Razón Social</strong>, <strong>RFC</strong>, <strong>Folio Factura</strong>, <strong>Moneda</strong>, <strong>Sucursal</strong>, <strong>Concepto de Gasto</strong> y <strong>Descripción</strong> (opcional).
+                        Completa los campos del formulario: <strong>Razón Social</strong>, <strong>RFC</strong>, <strong>Folio Factura</strong>, <strong>Moneda</strong>, <strong>Proyecto</strong>, <strong>Sucursal</strong>, <strong>Concepto de Gasto</strong> y <strong>Descripción</strong> (opcional).
                     </Step>
                     <Step number={3}>
                         Selecciona el <strong>Tipo de Pago</strong> (solo se muestran tipos de pago de inversiones).
@@ -302,19 +304,22 @@ function InvestmentRequestsGuide() {
                 </CardContent>
             </Card>
 
-            {/* Consultar solicitudes */}
+            {/* Consultar conceptos */}
             <Card>
                 <CardHeader>
                     <CardTitle>
                         <SectionTitle>
                             <Search className="size-5 text-primary" />
-                            Consultar Solicitudes
+                            Consultar Conceptos
                         </SectionTitle>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <p className="text-sm text-muted-foreground">
                         Funciona igual que el panel de Solicitudes de Pago: <strong>panel dividido</strong> con lista a la izquierda y detalle a la derecha. Los mismos filtros de <strong>Pendientes</strong>, <strong>Finalizados</strong> y <strong>Todos</strong> están disponibles.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Usa la <strong>barra de búsqueda</strong> para encontrar conceptos por razón social, folio factura o número de folio.
                     </p>
                 </CardContent>
             </Card>
@@ -331,7 +336,7 @@ function InvestmentRequestsGuide() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                        A diferencia de las solicitudes de pago, las hojas de inversión tienen un <strong>flujo simplificado con un único autorizador</strong>.
+                        A diferencia de las solicitudes de pago, los conceptos de inversión tienen un <strong>flujo simplificado con un único autorizador</strong>.
                     </p>
 
                     {/* Diagrama de flujo */}
@@ -380,36 +385,102 @@ function InvestmentRequestsGuide() {
                 </CardContent>
             </Card>
 
-            {/* Descargar PDF */}
+            {/* Hojas Consolidadas */}
             <Card>
                 <CardHeader>
                     <CardTitle>
                         <SectionTitle>
-                            <Download className="size-5 text-primary" />
-                            Descargar PDF
+                            <FileText className="size-5 text-primary" />
+                            Hojas Consolidadas
                         </SectionTitle>
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
                     <p className="text-sm text-muted-foreground">
-                        Disponible una vez que la solicitud alcanza el estado <StatusBadgeGuide label="Completado" color="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" />. El botón <strong>PDF</strong> aparece en el detalle de la solicitud.
+                        El panel de <strong>Hojas Consolidadas</strong> agrupa todos los conceptos completados por <strong>concepto de gasto</strong> y <strong>departamento solicitante</strong>.
                     </p>
+                    <Step number={1}>
+                        Desde <strong>Presupuestos de Inversión</strong> > <strong>Hojas Consolidadas</strong>, visualiza el resumen de conceptos agrupados.
+                    </Step>
+                    <Step number={2}>
+                        Expande cada grupo para ver el detalle de conceptos incluidos, con su subtotal, IVA y total.
+                    </Step>
+                    <Step number={3}>
+                        En cada grupo consolidado aparece un botón <strong>Solicitar Pago</strong> que permite generar una solicitud de pago para todos los conceptos del grupo.
+                    </Step>
                 </CardContent>
             </Card>
 
-            {/* Editar solicitud */}
+            {/* Solicitar Pago */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <SectionTitle>
+                            <Banknote className="size-5 text-primary" />
+                            Solicitar Pago
+                        </SectionTitle>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        Una vez que tienes conceptos completados, puedes generar una <strong>solicitud de pago</strong> basada en estos conceptos.
+                    </p>
+                    <Step number={1}>
+                        Desde el panel de <strong>Hojas Consolidadas</strong>, haz clic en <strong>Solicitar Pago</strong> en el grupo que deseas pagar.
+                    </Step>
+                    <Step number={2}>
+                        Se abrirá un modal con los conceptos del grupo. Selecciona los conceptos que deseas incluir en la solicitud de pago.
+                    </Step>
+                    <Step number={3}>
+                        Haz clic en <strong>Solicitar Pago</strong> para crear la solicitud. Esta se agregará al panel de <strong>Solicitudes de Pago</strong> y seguirá el flujo de aprobación estándar.
+                    </Step>
+                </CardContent>
+            </Card>
+
+            {/* Control Presupuestal */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <SectionTitle>
+                            <LayoutGrid className="size-5 text-primary" />
+                            Control Presupuestal
+                        </SectionTitle>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        El panel de <strong>Control Presupuestal</strong> muestra el estado del presupuesto de inversión.
+                    </p>
+                    <Step number={1}>
+                        Desde <strong>Presupuestos de Inversión</strong> > <strong>Control Presupuestal</strong>, visualiza el presupuesto asignado por concepto y departamento.
+                    </Step>
+                    <Step number={2}>
+                        Para cada concepto se muestra: presupuesto disponible, monto comprometido en conceptos pendientes, y monto ejecutado en conceptos completados.
+                    </Step>
+                    <Step number={3}>
+                        Esta información te ayuda a controlar que no se supere el presupuesto asignado en cada concepto.
+                    </Step>
+                </CardContent>
+            </Card>
+
+            {/* Editar y PDF */}
             <Card>
                 <CardHeader>
                     <CardTitle>
                         <SectionTitle>
                             <Pencil className="size-5 text-primary" />
-                            Editar una Solicitud
+                            Editar y Descargar PDF
                         </SectionTitle>
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
+                    <p className="text-sm font-medium text-foreground">Editar:</p>
                     <p className="text-sm text-muted-foreground">
-                        Solo es posible editar una solicitud en estado <StatusBadgeGuide label="Pendiente Departamento" color="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" />. Una vez aprobada por el autorizador, ya no puede modificarse.
+                        Solo es posible editar un concepto en estado <StatusBadgeGuide label="Pendiente Departamento" color="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" />. Una vez aprobado por el autorizador, ya no puede modificarse.
+                    </p>
+                    <p className="text-sm font-medium text-foreground">Descargar PDF:</p>
+                    <p className="text-sm text-muted-foreground">
+                        Disponible una vez que el concepto alcanza el estado <StatusBadgeGuide label="Completado" color="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" />. El botón <strong>PDF</strong> aparece en el detalle del concepto.
                     </p>
                 </CardContent>
             </Card>
@@ -420,6 +491,40 @@ function InvestmentRequestsGuide() {
 function GeneralGuide() {
     return (
         <div className="space-y-6">
+            {/* Navegación */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <SectionTitle>
+                            <LayoutGrid className="size-5 text-primary" />
+                            Navegación del Sistema
+                        </SectionTitle>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <p className="text-muted-foreground">
+                        El menú lateral (sidebar) organiza todas las funcionalidades del sistema en las siguientes secciones:
+                    </p>
+                    <ul className="space-y-2 text-muted-foreground">
+                        <li>
+                            <strong>Plataforma:</strong> Acceso rápido al Dashboard y principal del sistema.
+                        </li>
+                        <li>
+                            <strong>Solicitudes:</strong> Gestión de Solicitudes de Pago con opciones para crear, consultar y aprobar solicitudes.
+                        </li>
+                        <li>
+                            <strong>Presupuestos de Inversión:</strong> Gestión de Conceptos de Inversión, Hojas Consolidadas, Control Presupuestal y Solicitud de Pagos desde inversiones.
+                        </li>
+                        <li>
+                            <strong>Tesorería:</strong> Programación semanal de pagos, autorización de lotes de pago e historial de ejecuciones.
+                        </li>
+                        <li>
+                            <strong>Documentación:</strong> Acceso a esta guía de usuario.
+                        </li>
+                    </ul>
+                </CardContent>
+            </Card>
+
             {/* Dashboard */}
             <Card>
                 <CardHeader>
@@ -504,6 +609,140 @@ function GeneralGuide() {
     );
 }
 
+function TesoreryGuide() {
+    return (
+        <div className="space-y-6">
+            {/* Programación de pagos semanal */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <SectionTitle>
+                            <Calendar className="size-5 text-primary" />
+                            Programación de Pagos Semanal
+                        </SectionTitle>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        El módulo de <strong>Tesorería</strong> permite programar los pagos a realizar durante la semana. Los pagos se organizan por <strong>número de semana natural</strong> (semana del año calendario).
+                    </p>
+                    <Step number={1}>
+                        Desde <strong>Tesorería</strong> > <strong>Programación de Pagos</strong>, visualiza el navegador de semanas.
+                    </Step>
+                    <Step number={2}>
+                        Selecciona la semana que deseas programar usando los botones de navegación o directamente desde el selector de semana.
+                    </Step>
+                    <Step number={3}>
+                        Para cada semana se muestra una lista de <strong>solicitudes de pago completadas</strong> disponibles para pagar.
+                    </Step>
+                </CardContent>
+            </Card>
+
+            {/* Seleccionar pagos */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <SectionTitle>
+                            <CheckCircle className="size-5 text-primary" />
+                            Seleccionar Pagos
+                        </SectionTitle>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        En la pantalla de programación puedes <strong>seleccionar cuáles solicitudes deseas ejecutar</strong> esa semana.
+                    </p>
+                    <Step number={1}>
+                        Marca el <strong>checkbox</strong> de cada solicitud que deseas incluir en el pago de esta semana.
+                    </Step>
+                    <Step number={2}>
+                        Si hay motivos para excluir una solicitud de la semana programada, selecciona el <strong>motivo de exclusión</strong> en el dropdown correspondiente.
+                    </Step>
+                    <Step number={3}>
+                        Usa el botón <strong>Guardar Programación</strong> para confirmar la selección de pagos para la semana.
+                    </Step>
+                </CardContent>
+            </Card>
+
+            {/* Autorizar lote de pagos */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <SectionTitle>
+                            <CheckCircle className="size-5 text-green-500" />
+                            Autorizar Lote de Pagos
+                        </SectionTitle>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        Una vez programados los pagos de la semana, los <strong>autorizadores de tesorería</strong> deben autorizar el lote para que se ejecuten los pagos.
+                    </p>
+                    <Step number={1}>
+                        Desde <strong>Tesorería</strong> > <strong>Programación de Pagos</strong>, selecciona la semana que requiere autorización.
+                    </Step>
+                    <Step number={2}>
+                        Revisa el <strong>monto total</strong> a pagar y los detalles de cada solicitud programada.
+                    </Step>
+                    <Step number={3}>
+                        Haz clic en el botón <strong>Autorizar Lote</strong> para autorizar todos los pagos de la semana. Si necesitas rechazar, haz clic en <strong>Rechazar Lote</strong> y proporciona un motivo.
+                    </Step>
+                    <Step number={4}>
+                        Una vez autorizado el lote, el estado de cada solicitud de pago incluida pasará a <strong>Pagado</strong> y se marcará con la fecha de autorización.
+                    </Step>
+                </CardContent>
+            </Card>
+
+            {/* Historial de pagos */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <SectionTitle>
+                            <Clock className="size-5 text-primary" />
+                            Historial de Pagos
+                        </SectionTitle>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        El panel muestra un <strong>historial de todos los lotes de pagos autorizados</strong> organizados cronológicamente.
+                    </p>
+                    <Step number={1}>
+                        Desde <strong>Tesorería</strong> > <strong>Programación de Pagos</strong>, desplázate hasta la sección <strong>Historial</strong> en la parte inferior.
+                    </Step>
+                    <Step number={2}>
+                        Para cada lote autorizado, se muestra: semana, fecha de autorización, cantidad de solicitudes pagadas, monto total pagado y estado.
+                    </Step>
+                    <Step number={3}>
+                        Puedes hacer clic en cada registro para ver el detalle de solicitudes incluidas en ese lote de pago.
+                    </Step>
+                </CardContent>
+            </Card>
+
+            {/* Notificaciones de tesorería */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <SectionTitle>
+                            <Bell className="size-5 text-primary" />
+                            Notificaciones
+                        </SectionTitle>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                    <p>El sistema envía notificaciones sobre actividades en Tesorería:</p>
+                    <ul className="list-inside list-disc space-y-1">
+                        <li><strong>Programación actualizada:</strong> Cuando se actualiza la programación de pagos de una semana.</li>
+                        <li><strong>Solicitud de autorización:</strong> Notificación al autorizador de tesorería cuando hay un lote listo para autorizar.</li>
+                        <li><strong>Lote autorizado:</strong> Confirmación cuando el lote de pagos ha sido autorizado exitosamente.</li>
+                        <li><strong>Lote rechazado:</strong> Notificación cuando un lote es rechazado, con el motivo del rechazo.</li>
+                    </ul>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 export default function Guide() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -527,7 +766,11 @@ export default function Guide() {
                         </TabsTrigger>
                         <TabsTrigger value="investment-requests">
                             <Banknote className="size-4" />
-                            Hojas de Inversión
+                            Presupuestos de Inversión
+                        </TabsTrigger>
+                        <TabsTrigger value="tesorery">
+                            <Wallet className="size-4" />
+                            Tesorería
                         </TabsTrigger>
                         <TabsTrigger value="general">
                             <Settings className="size-4" />
@@ -541,6 +784,10 @@ export default function Guide() {
 
                     <TabsContent value="investment-requests">
                         <InvestmentRequestsGuide />
+                    </TabsContent>
+
+                    <TabsContent value="tesorery">
+                        <TesoreryGuide />
                     </TabsContent>
 
                     <TabsContent value="general">
