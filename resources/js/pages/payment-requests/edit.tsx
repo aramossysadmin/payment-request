@@ -230,7 +230,7 @@ export default function Edit() {
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="invoice_folio">
-                                        Folio de Factura
+                                        Folio de Documento o Factura
                                     </Label>
                                     <Input
                                         id="invoice_folio"
