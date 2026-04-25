@@ -10,6 +10,13 @@
 ## Git Commits
 - Upon completing a feature, committing is MANDATORY without exception. Always create a commit after finishing each feature.
 
+## Git Authentication (Remote Operations)
+- For ANY git operation that communicates with the remote (push, pull, fetch, clone, ls-remote, etc.), ALWAYS authenticate using the `GITHUB_TOKEN` defined in the project's `.env` file. Do NOT rely on `~/.git-credentials`, SSH keys, or interactive prompts — those may contain credentials from a different account without the required permissions.
+- Read the token at runtime from `.env` (e.g., `GITHUB_TOKEN=$(grep '^GITHUB_TOKEN=' .env | cut -d'=' -f2)`) and use it inline in the remote URL: `https://${GITHUB_TOKEN}@github.com/<owner>/<repo>.git`.
+- ALWAYS mask the token in command output before displaying it (e.g., pipe through `sed "s|${GITHUB_TOKEN}|***TOKEN***|g"`) so it never appears in logs or conversation history.
+- NEVER modify, overwrite, or persist the token into `~/.git-credentials` or the repository's `.git/config` — keep it confined to the `.env` and inline URL usage.
+- NEVER commit, echo, or print the raw token value. Treat it as a secret at all times.
+
 ## Workflow Rules
 - ALWAYS present a detailed plan before executing any system modification and WAIT for user authorization before proceeding.
 - ALWAYS make sure you fully understand what the user is asking. If there is ANY doubt, ask ALL necessary questions, AS MANY TIMES as needed, until you have complete certainty about the requirement.
