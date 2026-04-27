@@ -10,11 +10,9 @@ use Illuminate\Support\Str;
 
 class InvestmentPaymentApprovalService
 {
-    private const APPROVER_EMAIL = 'victor.setien@grupocosteno.com';
-
     public function createApproval(InvestmentPaymentRequest $paymentRequest): void
     {
-        $approver = User::where('email', self::APPROVER_EMAIL)->first();
+        $approver = User::where('email', config('investment-requests.authorizer_email'))->first();
 
         if (! $approver) {
             return;

@@ -12,6 +12,6 @@ return [
     |
     */
 
-    'authorizer_email' => env('INVESTMENT_AUTHORIZER_EMAIL', 'victor.setien@grupocosteno.com'),
+    'authorizer_email' => env('INVESTMENT_AUTHORIZER_EMAIL', 'moises.monrroy@grupocosteno.com'),
 
 ];

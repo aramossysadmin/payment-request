@@ -11,11 +11,9 @@ use Illuminate\Support\Str;
 
 class WeeklyPaymentScheduleApprovalService
 {
-    private const APPROVER_EMAIL = 'victor.setien@grupocosteno.com';
-
     public function createApproval(WeeklyPaymentSchedule $schedule): void
     {
-        $approver = User::where('email', self::APPROVER_EMAIL)->first();
+        $approver = User::where('email', config('investment-requests.authorizer_email'))->first();
 
         if (! $approver) {
             return;

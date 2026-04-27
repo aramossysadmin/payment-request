@@ -15,12 +15,12 @@ beforeEach(function () {
     Notification::fake();
 
     $this->authorizer = User::factory()->create([
-        'email' => 'victor.setien@grupocosteno.com',
+        'email' => 'moises.monrroy@grupocosteno.com',
     ]);
 
     $this->requester = User::factory()->create();
 
-    config(['investment-requests.authorizer_email' => 'victor.setien@grupocosteno.com']);
+    config(['investment-requests.authorizer_email' => 'moises.monrroy@grupocosteno.com']);
 
     $this->service = app(InvestmentApprovalService::class);
 });
