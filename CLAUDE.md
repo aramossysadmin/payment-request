@@ -21,14 +21,17 @@
 - ALWAYS present a detailed plan before executing any system modification and WAIT for user authorization before proceeding.
 - ALWAYS make sure you fully understand what the user is asking. If there is ANY doubt, ask ALL necessary questions, AS MANY TIMES as needed, until you have complete certainty about the requirement.
 
-## Database Protection (CRITICAL RULE - HIGHEST PRIORITY)
-- It is ABSOLUTELY FORBIDDEN to delete, drop, truncate, or destructively modify records in the production database under ANY circumstance, whether for testing, debugging, migrations, seeders, artisan commands, or any other reason.
+## Database Protection (CRITICAL RULE - HIGHEST PRIORITY - NEVER VIOLATE)
+- **RECORDS MUST NEVER BE DELETED FROM ANY TABLE, UNDER ANY CIRCUMSTANCE.** This is an absolute rule with zero exceptions. Not for testing, debugging, migrations, seeders, artisan commands, cleanup, or any other reason.
+- Only one developer (the user) works on this project alongside Claude. Any deletion of records is a critical error.
+- It is ABSOLUTELY FORBIDDEN to delete, drop, truncate, or destructively modify records in the database under ANY circumstance.
 - NEVER modify `.env.testing` to remove or change `DB_CONNECTION` or `DB_DATABASE`. The `.env.testing` file MUST always keep `DB_CONNECTION=sqlite` and `DB_DATABASE=:memory:` to guarantee total isolation.
 - NEVER run tests without first verifying that `.env.testing` has `DB_DATABASE=:memory:`.
-- NEVER run `migrate:fresh`, `migrate:refresh`, `db:wipe`, `truncate()`, `delete()`, `forceDelete()`, `DB::table()->delete()`, or any destructive operation against the production database.
+- NEVER run `migrate:fresh`, `migrate:refresh`, `db:wipe`, `truncate()`, `delete()`, `forceDelete()`, `DB::table()->delete()`, or any destructive operation against the database.
 - `RefreshDatabase` is allowed ONLY because `.env.testing` points to an in-memory SQLite database, completely isolated from the production database.
 - If a test needs data, it must create it using factories within the test (which operate on the in-memory database).
 - Before running ANY command that could affect the database, verify that it is NOT pointing to the production database.
+- If Claude ever needs to suggest a command that could delete records, it MUST stop, warn the user, and propose a safe alternative instead.
 
 <laravel-boost-guidelines>
 === foundation rules ===

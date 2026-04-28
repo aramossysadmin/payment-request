@@ -22,7 +22,7 @@ class StoreInvestmentRequestRequest extends FormRequest
         return [
             'project_id' => ['nullable', 'integer', Rule::exists('projects', 'id')],
             'investment_expense_concept_id' => ['nullable', 'integer', Rule::exists('investment_expense_concepts', 'id')],
-            'provider' => ['required', 'string', 'max:255'],
+            'provider' => ['nullable', 'string', 'max:255'],
             'rfc' => ['nullable', 'string', 'alpha_num', 'min:12', 'max:13'],
             'contact_name' => ['nullable', 'string', 'max:255'],
             'contact_email' => ['nullable', 'string', 'email', 'max:255'],

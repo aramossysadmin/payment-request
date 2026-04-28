@@ -42,9 +42,9 @@ class InvestmentRequest extends Model
         'number_vendor_payments',
     ];
 
-    protected function setProviderAttribute(string $value): void
+    protected function setProviderAttribute(?string $value): void
     {
-        $this->attributes['provider'] = mb_strtoupper(trim($value));
+        $this->attributes['provider'] = $value ? mb_strtoupper(trim($value)) : null;
     }
 
     protected function setRfcAttribute(?string $value): void
