@@ -809,7 +809,6 @@ function PaymentRequestModal({
     const [invoicePdf, setInvoicePdf] = useState<File | null>(null);
     const [invoiceXml, setInvoiceXml] = useState<File | null>(null);
     const [processing, setProcessing] = useState(false);
-    const [branchOpen, setBranchOpen] = useState(false);
 
     const remainingBalance = Number(ir.group_remaining ?? ir.remaining_balance);
 
@@ -950,30 +949,12 @@ function PaymentRequestModal({
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label>Sucursal</Label>
-                                    <Popover open={branchOpen} onOpenChange={setBranchOpen}>
-                                        <PopoverTrigger asChild>
-                                            <Button variant="outline" role="combobox" aria-expanded={branchOpen} className="w-full justify-between font-normal">
-                                                {branches.find((b) => String(b.id) === values.branch_id)?.name ?? 'Seleccionar'}
-                                                <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar sucursal..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Sin resultados.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {branches.map((b) => (
-                                                            <CommandItem key={b.id} value={b.name} onSelect={() => { handleChange('branch_id', String(b.id)); setBranchOpen(false); }}>
-                                                                <CheckIcon className={cn('mr-2 h-4 w-4', values.branch_id === String(b.id) ? 'opacity-100' : 'opacity-0')} />
-                                                                {b.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
+                                    <Input
+                                        value={branches.find((b) => String(b.id) === values.branch_id)?.name ?? ''}
+                                        readOnly
+                                        disabled
+                                        className="bg-gray-50 dark:bg-gray-800"
+                                    />
                                     <InputError message={errors.branch_id} />
                                 </div>
                                 <div className="space-y-2">
