@@ -37,17 +37,26 @@ class InvestmentExpenseCategoryResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
-                        Forms\Components\TextInput::make('super_category')
+                        Forms\Components\Select::make('super_category')
                             ->label('Super Categoría')
-                            ->maxLength(255)
-                            ->nullable()
-                            ->datalist(
-                                InvestmentExpenseCategory::query()
-                                    ->whereNotNull('super_category')
-                                    ->distinct()
-                                    ->pluck('super_category')
-                                    ->toArray()
-                            ),
+                            ->searchable()
+                            ->getSearchResultsUsing(fn (string $search) => InvestmentExpenseCategory::query()
+                                ->whereNotNull('super_category')
+                                ->where('super_category', 'like', "%{$search}%")
+                                ->distinct()
+                                ->pluck('super_category', 'super_category')
+                                ->toArray())
+                            ->getOptionLabelUsing(fn ($value): string => $value ?? '')
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('value')
+                                    ->label('Nueva Super Categoría')
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->createOptionUsing(function (array $data): string {
+                                return mb_strtoupper(trim($data['value']));
+                            })
+                            ->nullable(),
                         Forms\Components\Select::make('department_id')
                             ->label('Departamento')
                             ->relationship('department', 'name')
