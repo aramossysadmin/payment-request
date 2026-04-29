@@ -39,14 +39,12 @@ class InvestmentExpenseCategoryResource extends Resource
                             ->unique(ignoreRecord: true),
                         Forms\Components\Select::make('super_category')
                             ->label('Super Categoría')
-                            ->searchable()
-                            ->getSearchResultsUsing(fn (string $search) => InvestmentExpenseCategory::query()
+                            ->options(fn () => InvestmentExpenseCategory::query()
                                 ->whereNotNull('super_category')
-                                ->where('super_category', 'like', "%{$search}%")
                                 ->distinct()
                                 ->pluck('super_category', 'super_category')
                                 ->toArray())
-                            ->getOptionLabelUsing(fn ($value): string => $value ?? '')
+                            ->searchable()
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('value')
                                     ->label('Nueva Super Categoría')
