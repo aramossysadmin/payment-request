@@ -37,6 +37,17 @@ class InvestmentExpenseCategoryResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
+                        Forms\Components\TextInput::make('super_category')
+                            ->label('Super Categoría')
+                            ->maxLength(255)
+                            ->nullable()
+                            ->datalist(
+                                InvestmentExpenseCategory::query()
+                                    ->whereNotNull('super_category')
+                                    ->distinct()
+                                    ->pluck('super_category')
+                                    ->toArray()
+                            ),
                         Forms\Components\Select::make('department_id')
                             ->label('Departamento')
                             ->relationship('department', 'name')
@@ -60,6 +71,11 @@ class InvestmentExpenseCategoryResource extends Resource
                     ->label('Nombre')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('super_category')
+                    ->label('Super Categoría')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—'),
                 Tables\Columns\TextColumn::make('department.name')
                     ->label('Departamento')
                     ->searchable()

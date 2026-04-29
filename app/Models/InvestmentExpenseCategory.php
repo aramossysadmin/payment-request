@@ -17,6 +17,7 @@ class InvestmentExpenseCategory extends Model
 
     protected $fillable = [
         'name',
+        'super_category',
         'department_id',
         'is_active',
     ];
@@ -24,6 +25,11 @@ class InvestmentExpenseCategory extends Model
     protected function setNameAttribute(string $value): void
     {
         $this->attributes['name'] = mb_strtoupper(trim($value));
+    }
+
+    protected function setSuperCategoryAttribute(?string $value): void
+    {
+        $this->attributes['super_category'] = $value ? mb_strtoupper(trim($value)) : null;
     }
 
     protected function casts(): array
