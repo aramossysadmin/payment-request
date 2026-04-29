@@ -73,7 +73,7 @@ it('requires payment_provision_date', function () {
         ->assertSessionHasErrors('payment_provision_date');
 });
 
-it('rejects past dates for payment_provision_date', function () {
+it('accepts past dates for payment_provision_date', function () {
     $data = [
         'investment_request_id' => $this->investmentRequest->id,
         'provider' => 'Proveedor Test',
@@ -90,7 +90,7 @@ it('rejects past dates for payment_provision_date', function () {
 
     $this->actingAs($this->user)
         ->post(route('investment-payment-requests.store'), $data)
-        ->assertSessionHasErrors('payment_provision_date');
+        ->assertSessionHasNoErrors();
 });
 
 it('calculates correct week number for different dates', function () {

@@ -985,14 +985,13 @@ function PaymentRequestModal({
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="modal_payment_provision_date">Fecha provisión pago</Label>
+                                    <Label htmlFor="modal_payment_provision_date">Fecha Pago</Label>
                                     <div className="flex items-center gap-3">
                                         <Input
                                             id="modal_payment_provision_date"
                                             type="date"
                                             value={values.payment_provision_date}
                                             onChange={(e) => handleChange('payment_provision_date', e.target.value)}
-                                            min={new Date().toISOString().split('T')[0]}
                                             className="flex-1"
                                         />
                                         {values.payment_provision_date && getWeekNumber(values.payment_provision_date) && (
