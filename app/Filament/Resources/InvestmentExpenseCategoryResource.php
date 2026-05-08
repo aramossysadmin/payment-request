@@ -55,12 +55,14 @@ class InvestmentExpenseCategoryResource extends Resource
                                 return mb_strtoupper(trim($data['value']));
                             })
                             ->nullable(),
-                        Forms\Components\Select::make('department_id')
-                            ->label('Departamento')
-                            ->relationship('department', 'name')
+                        Forms\Components\Select::make('departments')
+                            ->label('Departamentos')
+                            ->relationship('departments', 'name')
+                            ->multiple()
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->minItems(1),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Activo')
                             ->default(true)
@@ -83,8 +85,10 @@ class InvestmentExpenseCategoryResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->placeholder('—'),
-                Tables\Columns\TextColumn::make('department.name')
-                    ->label('Departamento')
+                Tables\Columns\TextColumn::make('departments.name')
+                    ->label('Departamentos')
+                    ->badge()
+                    ->separator(',')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\ToggleColumn::make('is_active')
@@ -101,6 +105,12 @@ class InvestmentExpenseCategoryResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('departments')
+                    ->label('Departamentos')
+                    ->relationship('departments', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Estado')
                     ->trueLabel('Activos')

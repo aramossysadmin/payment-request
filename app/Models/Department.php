@@ -6,6 +6,7 @@ use Database\Factories\DepartmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -53,8 +54,8 @@ class Department extends Model
         return $this->belongsTo(User::class, 'authorizer_level_2_id');
     }
 
-    public function investmentExpenseCategories(): HasMany
+    public function investmentExpenseCategories(): BelongsToMany
     {
-        return $this->hasMany(InvestmentExpenseCategory::class);
+        return $this->belongsToMany(InvestmentExpenseCategory::class);
     }
 }

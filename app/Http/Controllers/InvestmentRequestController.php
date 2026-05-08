@@ -90,7 +90,7 @@ class InvestmentRequestController extends Controller
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'investmentExpenseConcepts' => InvestmentExpenseConcept::active()
-                ->whereHas('category', fn ($q) => $q->where('department_id', auth()->user()->department_id))
+                ->whereHas('category.departments', fn ($q) => $q->where('departments.id', auth()->user()->department_id))
                 ->with('category:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'investment_expense_category_id']),
@@ -181,7 +181,7 @@ class InvestmentRequestController extends Controller
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'investmentExpenseConcepts' => InvestmentExpenseConcept::active()
-                ->whereHas('category', fn ($q) => $q->where('department_id', auth()->user()->department_id))
+                ->whereHas('category.departments', fn ($q) => $q->where('departments.id', auth()->user()->department_id))
                 ->with('category:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'investment_expense_category_id']),

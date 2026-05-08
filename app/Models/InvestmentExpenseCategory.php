@@ -6,7 +6,7 @@ use Database\Factories\InvestmentExpenseCategoryFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -18,7 +18,6 @@ class InvestmentExpenseCategory extends Model
     protected $fillable = [
         'name',
         'super_category',
-        'department_id',
         'is_active',
     ];
 
@@ -39,9 +38,9 @@ class InvestmentExpenseCategory extends Model
         ];
     }
 
-    public function department(): BelongsTo
+    public function departments(): BelongsToMany
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsToMany(Department::class);
     }
 
     public function investmentExpenseConcepts(): HasMany

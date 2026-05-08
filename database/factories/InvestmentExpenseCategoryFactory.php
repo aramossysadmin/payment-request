@@ -15,8 +15,16 @@ class InvestmentExpenseCategoryFactory extends Factory
     {
         return [
             'name' => fake()->unique()->word(),
-            'department_id' => Department::factory(),
             'is_active' => true,
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (InvestmentExpenseCategory $category): void {
+            if ($category->departments()->count() === 0) {
+                $category->departments()->attach(Department::factory()->create()->id);
+            }
+        });
     }
 }
