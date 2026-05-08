@@ -11,6 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Validation\Rules\Unique;
 
 class InvestmentExpenseCategoryResource extends Resource
 {
@@ -36,7 +37,15 @@ class InvestmentExpenseCategoryResource extends Resource
                             ->label('Nombre')
                             ->required()
                             ->maxLength(255)
-                            ->unique(ignoreRecord: true),
+                            ->unique(
+                                ignoreRecord: true,
+                                modifyRuleUsing: fn (Unique $rule, callable $get) => $rule->where(
+                                    'super_category',
+                                    $get('super_category') !== null && $get('super_category') !== ''
+                                        ? mb_strtoupper(trim($get('super_category')))
+                                        : null,
+                                ),
+                            ),
                         Forms\Components\Select::make('super_category')
                             ->label('Super Categoría')
                             ->options(fn () => InvestmentExpenseCategory::query()
