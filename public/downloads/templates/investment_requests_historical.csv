@@ -1,0 +1,2 @@
+folio_number,provider,rfc,contact_name,contact_email,contact_phone,invoice_folio,currency,branch,expense_concept,payment_type,project,investment_expense_concept,description,subtotal,iva_rate,iva,retention,total,created_by_email,created_at
+Folio,Razón Social,RFC,Nombre del Contacto,Email del Contacto,Teléfono del Contacto,Folio Factura,Moneda,Sucursal,Concepto de Gasto,Tipo de Pago,Proyecto,Gasto de Inversión,Descripción,Subtotal,Tasa de IVA,IVA,Aplica retención,Total,Email del Solicitante,Fecha de Creación

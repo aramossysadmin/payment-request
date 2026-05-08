@@ -1,0 +1,9 @@
+# Ignorar todo por defecto (exports, archivos generados con datos reales)
+*
+
+# Trackear este propio gitignore
+!.gitignore
+
+# Trackear sólo los CSV vacíos dentro de templates/ (plantillas para descarga)
+!templates/
+!templates/*.csv
