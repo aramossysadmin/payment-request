@@ -165,6 +165,8 @@ function groupByConcept(items: InvestmentRequest[]): ConceptGroup[] {
 }
 
 export default function Consolidated() {
+    const showProvider = false;
+
     const {
         project, totals, departmentBreakdown, investmentRequests, filters,
         userDepartmentId, currencies, branches, errors,
@@ -372,7 +374,7 @@ export default function Consolidated() {
                                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                                         <Input
                                             className="pl-8 w-64"
-                                            placeholder="Proveedor, folio..."
+                                            placeholder="Concepto de Inversión, folio..."
                                             value={search}
                                             onChange={(e) => setSearch(e.target.value)}
                                             onKeyDown={(e) => {
@@ -436,8 +438,8 @@ export default function Consolidated() {
                                         <thead>
                                             <tr className="border-b text-left text-gray-500 dark:text-gray-400">
                                                 <th className="pb-3 pr-4 font-medium w-8"></th>
-                                                <th className="pb-3 pr-4 font-medium">Gasto de Inversión</th>
-                                                <th className="pb-3 pr-4 font-medium">Proveedor</th>
+                                                <th className="pb-3 pr-4 font-medium">Concepto de Inversión</th>
+                                                {showProvider && <th className="pb-3 pr-4 font-medium">Proveedor</th>}
                                                 <th className="pb-3 pr-4 font-medium">Departamento</th>
                                                 <th className="pb-3 pr-4 font-medium text-right">Presupuesto</th>
                                                 <th className="pb-3 pr-4 font-medium text-right">Saldo</th>
@@ -480,6 +482,7 @@ export default function Consolidated() {
                                                                     </Badge>
                                                                 )}
                                                             </td>
+                                                            {showProvider && (
                                                             <td className="py-3 pr-4">
                                                                 {isSingle ? (
                                                                     <div>
@@ -490,6 +493,7 @@ export default function Consolidated() {
                                                                     <span className="text-gray-500 italic">{group.providerLabel}</span>
                                                                 )}
                                                             </td>
+                                                            )}
                                                             <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">
                                                                 {group.departmentName}
                                                             </td>
@@ -548,10 +552,12 @@ export default function Consolidated() {
                                                                         </Badge>
                                                                     </div>
                                                                 </td>
+                                                                {showProvider && (
                                                                 <td className="py-2.5 pr-4">
                                                                     <div className="text-sm">{ir.provider}</div>
                                                                     {ir.rfc && <div className="text-xs text-gray-500">{ir.rfc}</div>}
                                                                 </td>
+                                                                )}
                                                                 <td className="py-2.5 pr-4 text-gray-500 text-xs">
                                                                     {ir.department?.name}
                                                                 </td>
@@ -897,7 +903,7 @@ function PaymentRequestModal({
                             <CardContent className="space-y-4">
                                 {ir.investment_expense_concept?.name && (
                                     <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 dark:border-blue-800 dark:bg-blue-900/20">
-                                        <p className="text-xs font-medium text-blue-600 dark:text-blue-400">Gasto de Inversión</p>
+                                        <p className="text-xs font-medium text-blue-600 dark:text-blue-400">Concepto de Inversión</p>
                                         <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{ir.investment_expense_concept.name}</p>
                                     </div>
                                 )}
