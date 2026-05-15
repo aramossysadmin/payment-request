@@ -107,9 +107,9 @@ class InvestmentRequestResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
-                        Forms\Components\Select::make('expense_concept_id')
+                        Forms\Components\Select::make('investment_expense_concept_id')
                             ->label('Concepto de Gasto')
-                            ->relationship('expenseConcept', 'name')
+                            ->relationship('investmentExpenseConcept', 'name')
                             ->searchable()
                             ->preload()
                             ->required()
@@ -257,7 +257,7 @@ class InvestmentRequestResource extends Resource
                     ->label('Sucursal')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('expenseConcept.name')
+                Tables\Columns\TextColumn::make('investmentExpenseConcept.name')
                     ->label('Concepto de Gasto')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('paymentType.name')
@@ -309,8 +309,8 @@ class InvestmentRequestResource extends Resource
                     ->relationship('branch', 'name')
                     ->label('Sucursal')
                     ->preload(),
-                Tables\Filters\SelectFilter::make('expenseConcept')
-                    ->relationship('expenseConcept', 'name')
+                Tables\Filters\SelectFilter::make('investmentExpenseConcept')
+                    ->relationship('investmentExpenseConcept', 'name')
                     ->label('Concepto de Gasto')
                     ->preload(),
                 Tables\Filters\SelectFilter::make('user')
