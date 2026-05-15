@@ -268,7 +268,7 @@ class InvestmentRequestResource extends Resource
                     ->numeric(decimalPlaces: 2, thousandsSeparator: ',', decimalSeparator: '.')
                     ->sortable()
                     ->toggleable(),
-                Tables\Columns\TextColumn::make('currency.name')
+                Tables\Columns\TextColumn::make('currency.prefix')
                     ->label('Moneda')
                     ->sortable()
                     ->toggleable(),
