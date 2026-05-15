@@ -364,7 +364,7 @@ export default function Consolidated() {
                 <Card>
                     <CardHeader>
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <CardTitle>Detalle de Conceptos de Inversión</CardTitle>
+                            <CardTitle>Detalle de Solicitudes De Inversión</CardTitle>
                             <div className="flex flex-wrap items-end gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Buscar</label>

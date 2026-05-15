@@ -57,7 +57,7 @@ export default function Edit() {
     const pr = resource.data;
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Conceptos de Inversión', href: '/investment-sheets' },
+        { title: 'Solicitudes De Inversión', href: '/investment-sheets' },
         { title: `#${String(pr.folio_number).padStart(5, '0')}`, href: `/investment-sheets/${pr.uuid}` },
         { title: 'Editar', href: `/investment-sheets/${pr.uuid}/edit` },
     ];
@@ -148,7 +148,7 @@ export default function Edit() {
                     <div className="grid gap-6 lg:grid-cols-2">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Datos Generales del Concepto de Inversión</CardTitle>
+                                <CardTitle>Datos Generales de la Solicitud De Inversión</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">

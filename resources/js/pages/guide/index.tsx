@@ -278,7 +278,7 @@ function InvestmentRequestsGuide() {
                     <CardTitle>
                         <SectionTitle>
                             <Plus className="size-5 text-primary" />
-                            Crear un Concepto de Inversión
+                            Crear una Solicitud De Inversión
                         </SectionTitle>
                     </CardTitle>
                 </CardHeader>
@@ -513,7 +513,7 @@ function GeneralGuide() {
                             <strong>Solicitudes:</strong> Gestión de Solicitudes de Pago con opciones para crear, consultar y aprobar solicitudes.
                         </li>
                         <li>
-                            <strong>Presupuestos de Inversión:</strong> Gestión de Conceptos de Inversión, Hojas Consolidadas, Control Presupuestal y Solicitud de Pagos desde inversiones.
+                            <strong>Presupuestos de Inversión:</strong> Gestión de Solicitudes De Inversión, Hojas Consolidadas, Control Presupuestal y Solicitud de Pagos desde inversiones.
                         </li>
                         <li>
                             <strong>Tesorería:</strong> Programación semanal de pagos, autorización de lotes de pago e historial de ejecuciones.

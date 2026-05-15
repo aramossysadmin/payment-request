@@ -33,7 +33,7 @@ const requestItems: NavItem[] = [
 
 const investmentItems: NavItem[] = [
     {
-        title: 'Conceptos de Inversión',
+        title: 'Solicitudes De Inversión',
         href: '/investment-sheets',
         icon: Banknote,
     },

@@ -34,8 +34,8 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Branch, Currency, Project } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Conceptos de Inversión', href: '/investment-sheets' },
-    { title: 'Nuevo Concepto', href: '/investment-sheets/create' },
+    { title: 'Solicitudes De Inversión', href: '/investment-sheets' },
+    { title: 'Nueva Solicitud De Inversión', href: '/investment-sheets/create' },
 ];
 
 const ivaRateOptions = [
@@ -131,11 +131,11 @@ export default function Create() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Nuevo Concepto de Inversión" />
+            <Head title="Nueva Solicitud De Inversión" />
 
             <div className="p-4 md:p-6">
                 <h1 className="mb-6 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-                    Nuevo Concepto de Inversión
+                    Nueva Solicitud De Inversión
                 </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -144,7 +144,7 @@ export default function Create() {
                         {/* Section 1: Datos Generales del Concepto de Inversión */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Datos Generales del Concepto de Inversión</CardTitle>
+                                <CardTitle>Datos Generales de la Solicitud De Inversión</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
@@ -177,7 +177,7 @@ export default function Create() {
                                     <InputError message={errors.branch_id} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Gasto de Inversión</Label>
+                                    <Label>Concepto de Inversión</Label>
                                     <Popover open={expenseConceptOpen} onOpenChange={setExpenseConceptOpen}>
                                         <PopoverTrigger asChild>
                                             <Button
