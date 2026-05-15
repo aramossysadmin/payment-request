@@ -56,6 +56,7 @@ type PageProps = {
 
 export default function Create() {
     const showProviderInfo = false;
+    const showRetention = false;
 
     const { currencies, branches, investmentExpenseConcepts, projects, errors } =
         usePage<PageProps>().props;
@@ -432,6 +433,8 @@ export default function Create() {
                                         </div>
                                         <InputError message={errors.iva} />
                                     </div>
+                                    {/* Campo Aplica retención — oculto, se captura en edición si aplica */}
+                                    {showRetention && (
                                     <div className="flex items-center gap-2 self-end pb-2">
                                         <Checkbox
                                             id="retention"
@@ -445,6 +448,7 @@ export default function Create() {
                                         </Label>
                                         <InputError message={errors.retention} />
                                     </div>
+                                    )}
                                     <div className="space-y-2">
                                         <Label htmlFor="total">Total</Label>
                                         <div className="relative">
