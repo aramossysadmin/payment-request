@@ -233,44 +233,38 @@ class InvestmentRequestResource extends Resource
                     ->label('Folio')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('uuid')
-                    ->label('UUID')
-                    ->copyable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('provider')
-                    ->label('Razón Social')
-                    ->searchable()
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Fecha de Creación')
+                    ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('rfc')
-                    ->label('RFC')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('invoice_folio')
-                    ->label('Folio Factura')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('currency.name')
-                    ->label('Moneda')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('branch.name')
-                    ->label('Sucursal')
-                    ->sortable()
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('week_number')
+                    ->label('Semana de registro')
+                    ->getStateUsing(fn (InvestmentRequest $record): string => 'Semana ' . $record->created_at->weekOfYear)
+                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw("strftime('%W', created_at) $direction")),
                 Tables\Columns\TextColumn::make('investmentExpenseConcept.name')
-                    ->label('Concepto de Gasto')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('paymentType.name')
-                    ->label('Tipo de Pago')
-                    ->badge()
+                    ->label('Concepto')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('subtotal')
                     ->label('Subtotal')
                     ->numeric(decimalPlaces: 2, thousandsSeparator: ',', decimalSeparator: '.')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('iva_rate')
+                    ->label('Tasa de IVA')
+                    ->formatStateUsing(fn (IvaRate $state): string => $state->label())
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('iva')
+                    ->label('IVA')
+                    ->numeric(decimalPlaces: 2, thousandsSeparator: ',', decimalSeparator: '.')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
                     ->numeric(decimalPlaces: 2, thousandsSeparator: ',', decimalSeparator: '.')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('currency.name')
+                    ->label('Moneda')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Solicitante')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
@@ -278,19 +272,33 @@ class InvestmentRequestResource extends Resource
                     ->color(fn (InvestmentRequestState $state): string => $state->color())
                     ->formatStateUsing(fn (InvestmentRequestState $state): string => $state->label())
                     ->sortable(),
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('Solicitante')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Creado')
-                    ->dateTime()
+                Tables\Columns\TextColumn::make('branch.name')
+                    ->label('Sucursal')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('provider')
+                    ->label('Razón Social')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('uuid')
+                    ->label('UUID')
+                    ->copyable(),
+                Tables\Columns\TextColumn::make('rfc')
+                    ->label('RFC')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('invoice_folio')
+                    ->label('Folio Factura')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('paymentType.name')
+                    ->label('Tipo de Pago')
+                    ->badge()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('deleted_at')
                     ->label('Eliminado')
                     ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
