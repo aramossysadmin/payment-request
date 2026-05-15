@@ -29,3 +29,4 @@ yarn-error.log
 /tests/
 phpunit.xml
 .env.testing
+.claude/PENDIENTES.md
