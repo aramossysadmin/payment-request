@@ -214,18 +214,24 @@ export function PaymentRequestDetail({
                         </CardHeader>
                         <CardContent>
                             <dl className="space-y-3 text-sm">
+                                {!isInvestment && (
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Razón Social</dt>
                                     <dd className="font-medium text-foreground">{pr.provider}</dd>
                                 </div>
+                                )}
+                                {!isInvestment && (
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">RFC</dt>
                                     <dd className="font-mono font-medium text-foreground">{pr.rfc ?? '—'}</dd>
                                 </div>
+                                )}
+                                {!isInvestment && (
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Folio Factura</dt>
                                     <dd className="font-mono font-medium text-foreground">{pr.invoice_folio}</dd>
                                 </div>
+                                )}
                                 {isInvestment && (pr as any).project?.name && (
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">Proyecto</dt>
@@ -237,7 +243,7 @@ export function PaymentRequestDetail({
                                     <dd className="font-medium text-foreground">{pr.branch?.name ?? '—'}</dd>
                                 </div>
                                 <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">Concepto de Gasto</dt>
+                                    <dt className="text-muted-foreground">{isInvestment ? 'Concepto de Inversión' : 'Concepto de Gasto'}</dt>
                                     <dd className="font-medium text-foreground">
                                         {isInvestment
                                             ? ((pr as any).investment_expense_concept?.name ?? pr.expense_concept?.name ?? '—')
