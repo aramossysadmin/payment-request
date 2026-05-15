@@ -20,6 +20,10 @@ type PageProps = {
 };
 
 export default function Show() {
+    const showProvider = false;
+    const showRfc = false;
+    const showInvoiceFolio = false;
+
     const { investmentRequest: resource, canApprove, approvalStage } =
         usePage<PageProps>().props;
     const ir = resource.data;
@@ -143,13 +147,13 @@ export default function Show() {
                         </CardHeader>
                         <CardContent>
                             <dl className="space-y-3 text-sm">
-                                {ir.provider && (
+                                {showProvider && (
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Razón Social</dt>
                                     <dd className="font-medium text-foreground">{ir.provider}</dd>
                                 </div>
                                 )}
-                                {ir.rfc && (
+                                {showRfc && (
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">RFC</dt>
                                     <dd className="font-mono font-medium text-foreground">{ir.rfc}</dd>
@@ -173,7 +177,7 @@ export default function Show() {
                                         <dd className="font-medium text-foreground">{ir.contact_phone}</dd>
                                     </div>
                                 )}
-                                {ir.invoice_folio && (
+                                {showInvoiceFolio && (
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Folio Factura</dt>
                                     <dd className="font-mono font-medium text-foreground">{ir.invoice_folio}</dd>
