@@ -659,7 +659,9 @@ function PaymentsDrawer({
                     <SheetTitle className="flex items-center gap-2">
                         Concepto #{String(ir.folio_number).padStart(5, '0')}
                     </SheetTitle>
-                    <SheetDescription>{ir.provider}{ir.rfc ? ` · ${ir.rfc}` : ''}</SheetDescription>
+                    {ir.investment_expense_concept?.name && (
+                        <SheetDescription>{ir.investment_expense_concept.name}</SheetDescription>
+                    )}
                 </SheetHeader>
 
                 <div className="space-y-5 px-4 pb-6">
