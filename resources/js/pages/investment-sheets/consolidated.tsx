@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Eye, FileText, Search, X, XCircle } from 'lucide-react';
-import React, { useCallback, useEffect, useState, type FormEvent } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { Pagination } from '@/components/pagination';
@@ -173,6 +173,7 @@ export default function Consolidated() {
     } = usePage<PageProps>().props;
 
     const [search, setSearch] = useState(filters.search ?? '');
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedIr, setSelectedIr] = useState<InvestmentRequest | null>(null);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -376,9 +377,17 @@ export default function Consolidated() {
                                             className="pl-8 w-64"
                                             placeholder="Concepto de Inversión, folio..."
                                             value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setSearch(value);
+                                                if (debounceRef.current) clearTimeout(debounceRef.current);
+                                                debounceRef.current = setTimeout(() => applyFilters({ search: value }), 300);
+                                            }}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter') applyFilters({ search });
+                                                if (e.key === 'Enter') {
+                                                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                                                    applyFilters({ search });
+                                                }
                                             }}
                                         />
                                     </div>

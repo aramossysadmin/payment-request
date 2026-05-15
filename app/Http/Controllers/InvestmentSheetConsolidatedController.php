@@ -34,7 +34,8 @@ class InvestmentSheetConsolidatedController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('provider', 'like', "%{$search}%")
                     ->orWhere('invoice_folio', 'like', "%{$search}%")
-                    ->orWhere('folio_number', 'like', "%{$search}%");
+                    ->orWhere('folio_number', 'like', "%{$search}%")
+                    ->orWhereHas('investmentExpenseConcept', fn ($q2) => $q2->where('name', 'like', "%{$search}%"));
             });
         }
 
