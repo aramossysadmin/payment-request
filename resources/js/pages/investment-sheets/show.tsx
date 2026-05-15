@@ -143,14 +143,18 @@ export default function Show() {
                         </CardHeader>
                         <CardContent>
                             <dl className="space-y-3 text-sm">
+                                {ir.provider && (
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Razón Social</dt>
                                     <dd className="font-medium text-foreground">{ir.provider}</dd>
                                 </div>
+                                )}
+                                {ir.rfc && (
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">RFC</dt>
-                                    <dd className="font-mono font-medium text-foreground">{ir.rfc ?? '—'}</dd>
+                                    <dd className="font-mono font-medium text-foreground">{ir.rfc}</dd>
                                 </div>
+                                )}
                                 {ir.contact_name && (
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">Contacto</dt>
@@ -169,10 +173,12 @@ export default function Show() {
                                         <dd className="font-medium text-foreground">{ir.contact_phone}</dd>
                                     </div>
                                 )}
+                                {ir.invoice_folio && (
                                 <div className="flex justify-between">
                                     <dt className="text-muted-foreground">Folio Factura</dt>
-                                    <dd className="font-mono font-medium text-foreground">{ir.invoice_folio ?? '—'}</dd>
+                                    <dd className="font-mono font-medium text-foreground">{ir.invoice_folio}</dd>
                                 </div>
+                                )}
                                 {ir.project && (
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">Proyecto</dt>
@@ -184,7 +190,7 @@ export default function Show() {
                                     <dd className="font-medium text-foreground">{ir.branch?.name ?? '—'}</dd>
                                 </div>
                                 <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">Concepto de Gasto</dt>
+                                    <dt className="text-muted-foreground">Concepto de Inversión</dt>
                                     <dd className="font-medium text-foreground">{ir.investment_expense_concept?.name ?? ir.expense_concept?.name ?? '—'}</dd>
                                 </div>
                                 {/* Tipo de Pago - oculto temporalmente
