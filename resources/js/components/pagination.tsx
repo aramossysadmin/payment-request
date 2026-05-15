@@ -7,6 +7,9 @@ export function Pagination({ links }: { links: PaginationLink[] }) {
         return null;
     }
 
+    const isPrev = (index: number) => index === 0;
+    const isNext = (index: number) => index === links.length - 1;
+
     return (
         <nav className="flex items-center justify-center gap-1">
             {links.map((link, index) => (
@@ -16,14 +19,15 @@ export function Pagination({ links }: { links: PaginationLink[] }) {
                     preserveScroll
                     preserveState
                     className={cn(
-                        'inline-flex h-8 min-w-8 items-center justify-center rounded-md px-3 text-sm transition-colors',
+                        'inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm transition-colors',
                         link.active
                             ? 'bg-primary text-primary-foreground'
                             : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800',
                         !link.url && 'pointer-events-none opacity-50',
                     )}
-                    dangerouslySetInnerHTML={{ __html: link.label }}
-                />
+                >
+                    {isPrev(index) ? '«' : isNext(index) ? '»' : link.label}
+                </Link>
             ))}
         </nav>
     );
