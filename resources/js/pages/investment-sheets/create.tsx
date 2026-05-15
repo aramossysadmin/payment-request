@@ -141,8 +141,8 @@ export default function Create() {
                 </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Row 1: Datos Generales + Información del Proveedor */}
-                    <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Row 1: Datos Generales */}
+                    <div className="grid gap-6">
                         {/* Section 1: Datos Generales del Concepto de Inversión */}
                         <Card>
                             <CardHeader>
