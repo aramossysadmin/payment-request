@@ -55,6 +55,8 @@ type PageProps = {
 };
 
 export default function Create() {
+    const showProviderInfo = false;
+
     const { currencies, branches, investmentExpenseConcepts, projects, errors } =
         usePage<PageProps>().props;
 
@@ -249,7 +251,8 @@ export default function Create() {
                             </CardContent>
                         </Card>
 
-                        {/* Section 2: Información del Proveedor */}
+                        {/* Section 2: Información del Proveedor — oculta, se captura en edición */}
+                        {showProviderInfo && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Información del Proveedor</CardTitle>
@@ -329,6 +332,7 @@ export default function Create() {
                                 </div>
                             </CardContent>
                         </Card>
+                        )}
                     </div>
 
                     {/* Row 2: Datos Financieros + Documentos Adjuntos */}
