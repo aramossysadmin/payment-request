@@ -17,7 +17,7 @@ class InvestmentExpenseCategoryResource extends Resource
 {
     protected static ?string $model = InvestmentExpenseCategory::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-tag';
+    protected static ?string $navigationIcon = 'heroicon-o-folder';
 
     protected static ?string $navigationGroup = 'Catálogos';
 
@@ -34,7 +34,7 @@ class InvestmentExpenseCategoryResource extends Resource
                 Forms\Components\Section::make()
                     ->schema([
                         Forms\Components\TextInput::make('name')
-                            ->label('Nombre')
+                            ->label('Categorías')
                             ->required()
                             ->maxLength(255)
                             ->unique(
@@ -86,7 +86,7 @@ class InvestmentExpenseCategoryResource extends Resource
             ->defaultSort('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nombre')
+                    ->label('Categorías')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('super_category')

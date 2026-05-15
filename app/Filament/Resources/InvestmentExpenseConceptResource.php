@@ -16,15 +16,15 @@ class InvestmentExpenseConceptResource extends Resource
 {
     protected static ?string $model = InvestmentExpenseConcept::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-currency-dollar';
+    protected static ?string $navigationIcon = 'heroicon-o-list-bullet';
 
     protected static ?string $navigationGroup = 'Catálogos';
 
     protected static ?int $navigationSort = 6;
 
-    protected static ?string $modelLabel = 'Gasto de Inversión';
+    protected static ?string $modelLabel = 'Concepto de Inversión';
 
-    protected static ?string $pluralModelLabel = 'Gastos de Inversión';
+    protected static ?string $pluralModelLabel = 'Conceptos de Inversión';
 
     public static function form(Form $form): Form
     {
@@ -33,7 +33,7 @@ class InvestmentExpenseConceptResource extends Resource
                 Forms\Components\Section::make()
                     ->schema([
                         Forms\Components\TextInput::make('name')
-                            ->label('Nombre')
+                            ->label('Concepto')
                             ->required()
                             ->maxLength(255),
                         Forms\Components\Select::make('investment_expense_category_id')
@@ -56,7 +56,7 @@ class InvestmentExpenseConceptResource extends Resource
             ->defaultSort('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nombre')
+                    ->label('Concepto')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('category.name')
