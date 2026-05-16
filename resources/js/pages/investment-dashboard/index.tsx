@@ -166,7 +166,7 @@ export default function InvestmentDashboard() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <PieChart className="h-4 w-4 text-gray-400" />
-                                Presupuesto Inicial vs Aditivas
+                                Presupuesto Inicial + Aditivas
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -260,33 +260,33 @@ export default function InvestmentDashboard() {
                 {/* 2. Resumen de Ejecución */}
                 <Card>
                     <CardContent className="pt-6">
-                        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-900/20">
-                                        <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="grid flex-1 grid-cols-1 gap-6 sm:grid-cols-3">
+                                <div className="flex items-center gap-4">
+                                    <div className="rounded-xl bg-blue-50 p-3 dark:bg-blue-900/20">
+                                        <Wallet className="h-7 w-7 text-blue-600 dark:text-blue-400" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Presupuesto Total</p>
-                                        <p className="text-lg font-bold">{formatCurrency(kpis.budget)}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Presupuesto Total</p>
+                                        <p className="text-2xl font-bold tracking-tight">{formatCurrency(kpis.budget)}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-lg bg-purple-50 p-2 dark:bg-purple-900/20">
-                                        <Banknote className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                <div className="flex items-center gap-4">
+                                    <div className="rounded-xl bg-purple-50 p-3 dark:bg-purple-900/20">
+                                        <Banknote className="h-7 w-7 text-purple-600 dark:text-purple-400" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Total Ejecutado</p>
-                                        <p className="text-lg font-bold">{formatCurrency(kpis.executed)}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Total Ejecutado</p>
+                                        <p className="text-2xl font-bold tracking-tight">{formatCurrency(kpis.executed)}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
-                                        <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                <div className="flex items-center gap-4">
+                                    <div className="rounded-xl bg-green-50 p-3 dark:bg-green-900/20">
+                                        <DollarSign className="h-7 w-7 text-green-600 dark:text-green-400" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Saldo Disponible</p>
-                                        <p className="text-lg font-bold">{formatCurrency(kpis.remaining)}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Saldo Disponible</p>
+                                        <p className="text-2xl font-bold tracking-tight">{formatCurrency(kpis.remaining)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -294,7 +294,7 @@ export default function InvestmentDashboard() {
                                 <CircularProgress percent={kpis.percent} />
                             </div>
                         </div>
-                        <div className="mt-4">
+                        <div className="mt-5">
                             <ProgressBar percent={kpis.percent} className="h-3" />
                             <p className="mt-1.5 text-right text-xs text-gray-500 dark:text-gray-400">
                                 {kpis.percent}% ejecutado
@@ -313,17 +313,18 @@ export default function InvestmentDashboard() {
                             <p className="py-8 text-center text-sm text-gray-400">No hay datos para mostrar</p>
                         ) : (
                             <div className="overflow-x-auto">
+                                <div className="max-h-[480px] overflow-y-auto">
                                 <table className="w-full text-sm">
-                                    <thead>
+                                    <thead className="sticky top-0 z-10 bg-white dark:bg-gray-900">
                                         <tr className="border-b text-left text-gray-500 dark:text-gray-400">
-                                            <th className="pb-3 pr-4 font-medium">Concepto</th>
-                                            <th className="pb-3 pr-4 font-medium">Departamento</th>
-                                            <th className="pb-3 pr-4 font-medium text-right">Presupuesto Base</th>
-                                            <th className="pb-3 pr-4 font-medium text-right">Aditivas</th>
-                                            <th className="pb-3 pr-4 font-medium text-right">Presupuesto Total</th>
-                                            <th className="pb-3 pr-4 font-medium text-right">Pagado</th>
-                                            <th className="pb-3 pr-4 font-medium text-right">Saldo</th>
-                                            <th className="pb-3 font-medium text-right">% Ejecución</th>
+                                            <th className="pb-3 pr-4 font-medium pt-1">Concepto</th>
+                                            <th className="pb-3 pr-4 font-medium pt-1">Departamento</th>
+                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Presupuesto Base</th>
+                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Aditivas</th>
+                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Presupuesto Total</th>
+                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Pagado</th>
+                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Saldo</th>
+                                            <th className="pb-3 font-medium text-right pt-1">% Ejecución</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -357,6 +358,7 @@ export default function InvestmentDashboard() {
                                     </tbody>
                                 </table>
                             </div>
+                                </div>
                         )}
                     </CardContent>
                 </Card>
