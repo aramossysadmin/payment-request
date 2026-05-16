@@ -317,14 +317,14 @@ export default function InvestmentDashboard() {
                                 <table className="w-full text-sm">
                                     <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 shadow-sm">
                                         <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
-                                            <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700">Concepto</th>
-                                            <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700">Departamento</th>
-                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Presupuesto Base</th>
-                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Aditivas</th>
-                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Presupuesto Total</th>
-                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Pagado</th>
-                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Saldo</th>
-                                            <th className="px-4 py-3 font-semibold text-right">% Ejecución</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Departamento</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Presupuesto Base</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Aditivas</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Presupuesto Total</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Pagado</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Saldo</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">% Ejecución</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
