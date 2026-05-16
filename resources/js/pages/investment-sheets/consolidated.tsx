@@ -447,7 +447,7 @@ export default function Consolidated() {
                                     <table className="w-full text-sm">
                                         <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 shadow-sm">
                                             <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
-                                                <th className="px-3 py-3 font-semibold whitespace-nowrap w-8 border-r border-gray-200 dark:border-gray-700"></th>
+                                                <th className="px-3 py-3 font-semibold whitespace-nowrap w-8"></th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto de Inversión</th>
                                                 {showProvider && <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>}
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Departamento</th>
@@ -474,7 +474,7 @@ export default function Consolidated() {
                                                             )}
                                                             onClick={() => { if (!isSingle) toggleGroup(group.key); }}
                                                         >
-                                                            <td className="px-3 py-3 text-gray-400 border-r border-gray-100 dark:border-gray-800">
+                                                            <td className="px-3 py-3 text-gray-400">
                                                                 {!isSingle && (
                                                                     isExpanded
                                                                         ? <ChevronDown className="h-4 w-4" />
@@ -541,7 +541,7 @@ export default function Consolidated() {
                                                                 className="bg-gray-50/50 dark:bg-gray-800/20 hover:bg-gray-100 dark:hover:bg-gray-800/40 cursor-pointer"
                                                                 onClick={() => router.visit(`/investment-sheets/${ir.uuid}`)}
                                                             >
-                                                                <td className="px-3 py-2.5 border-r border-gray-100 dark:border-gray-800"></td>
+                                                                <td className="px-3 py-2.5"></td>
                                                                 <td className="px-4 py-2.5 pl-6 border-r border-gray-100 dark:border-gray-800">
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="font-mono text-xs text-gray-500">#{String(ir.folio_number).padStart(5, '0')}</span>
