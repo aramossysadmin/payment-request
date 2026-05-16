@@ -442,20 +442,21 @@ export default function Consolidated() {
                             </div>
                         ) : (
                             <>
-                                <div className="overflow-x-auto">
+                                <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
+                                    <div className="max-h-[560px] overflow-y-auto">
                                     <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b text-left text-gray-500 dark:text-gray-400">
-                                                <th className="pb-3 pr-4 font-medium w-8"></th>
-                                                <th className="pb-3 pr-4 font-medium">Concepto de Inversión</th>
-                                                {showProvider && <th className="pb-3 pr-4 font-medium">Proveedor</th>}
-                                                <th className="pb-3 pr-4 font-medium">Departamento</th>
-                                                <th className="pb-3 pr-4 font-medium text-right">Presupuesto</th>
-                                                <th className="pb-3 pr-4 font-medium text-right">Saldo</th>
-                                                <th className="pb-3 font-medium"></th>
+                                        <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 shadow-sm">
+                                            <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
+                                                <th className="px-3 py-3 font-semibold whitespace-nowrap w-8 border-r border-gray-200 dark:border-gray-700"></th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto de Inversión</th>
+                                                {showProvider && <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>}
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Departamento</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Presupuesto</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Saldo</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap"></th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                             {groups.map((group) => {
                                                 const isExpanded = expandedGroups.has(group.key);
                                                 const isSingle = group.items.length === 1;
@@ -468,19 +469,19 @@ export default function Consolidated() {
                                                         {/* Group Header Row */}
                                                         <tr
                                                             className={cn(
-                                                                'border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
+                                                                'hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
                                                                 !isSingle && 'cursor-pointer',
                                                             )}
                                                             onClick={() => { if (!isSingle) toggleGroup(group.key); }}
                                                         >
-                                                            <td className="py-3 pr-2 text-gray-400">
+                                                            <td className="px-3 py-3 text-gray-400 border-r border-gray-100 dark:border-gray-800">
                                                                 {!isSingle && (
                                                                     isExpanded
                                                                         ? <ChevronDown className="h-4 w-4" />
                                                                         : <ChevronRight className="h-4 w-4" />
                                                                 )}
                                                             </td>
-                                                            <td className="py-3 pr-4">
+                                                            <td className="px-4 py-3 border-r border-gray-100 dark:border-gray-800">
                                                                 <div className="font-medium text-foreground">{group.conceptName}</div>
                                                                 {!isSingle && (
                                                                     <div className="text-xs text-gray-500">{group.items.length} conceptos</div>
@@ -492,7 +493,7 @@ export default function Consolidated() {
                                                                 )}
                                                             </td>
                                                             {showProvider && (
-                                                            <td className="py-3 pr-4">
+                                                            <td className="px-4 py-3 border-r border-gray-100 dark:border-gray-800">
                                                                 {isSingle ? (
                                                                     <div>
                                                                         <div className="font-medium">{firstItem.provider}</div>
@@ -503,20 +504,20 @@ export default function Consolidated() {
                                                                 )}
                                                             </td>
                                                             )}
-                                                            <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">
+                                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">
                                                                 {group.departmentName}
                                                             </td>
-                                                            <td className="py-3 pr-4 text-right font-mono font-semibold">
+                                                            <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
                                                                 {formatCurrency(group.groupBudget)}
                                                             </td>
-                                                            <td className="py-3 pr-4 text-right font-mono">
+                                                            <td className="px-4 py-3 text-right font-mono border-r border-gray-100 dark:border-gray-800">
                                                                 <span className={cn(
                                                                     Number(group.groupRemaining) <= 0 && 'text-red-500',
                                                                 )}>
                                                                     {formatCurrency(group.groupRemaining)}
                                                                 </span>
                                                             </td>
-                                                            <td className="py-3">
+                                                            <td className="px-4 py-3">
                                                                 {group.allCompleted && (
                                                                     <Button
                                                                         size="sm"
@@ -537,11 +538,11 @@ export default function Consolidated() {
                                                         {isExpanded && group.items.map((ir) => (
                                                             <tr
                                                                 key={ir.uuid}
-                                                                className="border-b bg-gray-50/50 dark:bg-gray-800/20 hover:bg-gray-100 dark:hover:bg-gray-800/40 cursor-pointer"
+                                                                className="bg-gray-50/50 dark:bg-gray-800/20 hover:bg-gray-100 dark:hover:bg-gray-800/40 cursor-pointer"
                                                                 onClick={() => router.visit(`/investment-sheets/${ir.uuid}`)}
                                                             >
-                                                                <td className="py-2.5 pr-2"></td>
-                                                                <td className="py-2.5 pr-4 pl-2">
+                                                                <td className="px-3 py-2.5 border-r border-gray-100 dark:border-gray-800"></td>
+                                                                <td className="px-4 py-2.5 pl-6 border-r border-gray-100 dark:border-gray-800">
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="font-mono text-xs text-gray-500">#{String(ir.folio_number).padStart(5, '0')}</span>
                                                                         {ir.is_addendum ? (
@@ -562,19 +563,19 @@ export default function Consolidated() {
                                                                     </div>
                                                                 </td>
                                                                 {showProvider && (
-                                                                <td className="py-2.5 pr-4">
+                                                                <td className="px-4 py-2.5 border-r border-gray-100 dark:border-gray-800">
                                                                     <div className="text-sm">{ir.provider}</div>
                                                                     {ir.rfc && <div className="text-xs text-gray-500">{ir.rfc}</div>}
                                                                 </td>
                                                                 )}
-                                                                <td className="py-2.5 pr-4 text-gray-500 text-xs">
+                                                                <td className="px-4 py-2.5 text-gray-500 text-xs border-r border-gray-100 dark:border-gray-800">
                                                                     {ir.department?.name}
                                                                 </td>
-                                                                <td className="py-2.5 pr-4 text-right font-mono text-sm">
+                                                                <td className="px-4 py-2.5 text-right font-mono text-sm border-r border-gray-100 dark:border-gray-800">
                                                                     {formatCurrency(ir.total)}
                                                                 </td>
-                                                                <td className="py-2.5 pr-4"></td>
-                                                                <td className="py-2.5"></td>
+                                                                <td className="px-4 py-2.5 border-r border-gray-100 dark:border-gray-800"></td>
+                                                                <td className="px-4 py-2.5"></td>
                                                             </tr>
                                                         ))}
                                                     </React.Fragment>
@@ -582,6 +583,7 @@ export default function Consolidated() {
                                             })}
                                         </tbody>
                                     </table>
+                                    </div>
                                 </div>
                                 <div className="mt-4">
                                     <Pagination links={investmentRequests.meta.links} />

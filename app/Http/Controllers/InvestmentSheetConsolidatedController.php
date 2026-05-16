@@ -47,7 +47,7 @@ class InvestmentSheetConsolidatedController extends Controller
             $query->where('department_id', (int) $departmentId);
         }
 
-        $investmentRequests = $query->latest()->paginate(10)->withQueryString();
+        $investmentRequests = $query->latest()->paginate(50)->withQueryString();
 
         // Compute grouped budget totals (base + addendums with same concept + project)
         $investmentRequests->getCollection()->each(function (InvestmentRequest $ir) use ($project) {
