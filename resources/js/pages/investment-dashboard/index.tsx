@@ -312,42 +312,42 @@ export default function InvestmentDashboard() {
                         {conceptTable.length === 0 ? (
                             <p className="py-8 text-center text-sm text-gray-400">No hay datos para mostrar</p>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
                                 <div className="max-h-[480px] overflow-y-auto">
                                 <table className="w-full text-sm">
-                                    <thead className="sticky top-0 z-10 bg-white dark:bg-gray-900">
-                                        <tr className="border-b text-left text-gray-500 dark:text-gray-400">
-                                            <th className="pb-3 pr-4 font-medium pt-1">Concepto</th>
-                                            <th className="pb-3 pr-4 font-medium pt-1">Departamento</th>
-                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Presupuesto Base</th>
-                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Aditivas</th>
-                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Presupuesto Total</th>
-                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Pagado</th>
-                                            <th className="pb-3 pr-4 font-medium text-right pt-1">Saldo</th>
-                                            <th className="pb-3 font-medium text-right pt-1">% Ejecución</th>
+                                    <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 shadow-sm">
+                                        <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
+                                            <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700">Concepto</th>
+                                            <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700">Departamento</th>
+                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Presupuesto Base</th>
+                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Aditivas</th>
+                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Presupuesto Total</th>
+                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Pagado</th>
+                                            <th className="px-4 py-3 font-semibold text-right border-r border-gray-200 dark:border-gray-700">Saldo</th>
+                                            <th className="px-4 py-3 font-semibold text-right">% Ejecución</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                         {conceptTable.map((row, i) => (
-                                            <tr key={i} className="border-b last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                                <td className="py-3 pr-4 font-medium">{row.concept}</td>
-                                                <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">{row.department}</td>
-                                                <td className="py-3 pr-4 text-right font-mono">{formatCurrency(row.baseBudget)}</td>
-                                                <td className="py-3 pr-4 text-right">
+                                            <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{row.concept}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{row.department}</td>
+                                                <td className="px-4 py-3 text-right font-mono border-r border-gray-100 dark:border-gray-800">{formatCurrency(row.baseBudget)}</td>
+                                                <td className="px-4 py-3 text-right border-r border-gray-100 dark:border-gray-800">
                                                     {Number(row.addendumTotal) > 0 ? (
                                                         <span className="font-mono">{formatCurrency(row.addendumTotal)} <span className="text-xs text-amber-600 dark:text-amber-400">({row.addendumCount})</span></span>
                                                     ) : (
                                                         <span className="text-gray-400">—</span>
                                                     )}
                                                 </td>
-                                                <td className="py-3 pr-4 text-right font-mono font-semibold">{formatCurrency(row.totalBudget)}</td>
-                                                <td className="py-3 pr-4 text-right font-mono text-blue-600 dark:text-blue-400">{formatCurrency(row.paid)}</td>
-                                                <td className="py-3 pr-4 text-right font-mono">
+                                                <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">{formatCurrency(row.totalBudget)}</td>
+                                                <td className="px-4 py-3 text-right font-mono text-blue-600 dark:text-blue-400 border-r border-gray-100 dark:border-gray-800">{formatCurrency(row.paid)}</td>
+                                                <td className="px-4 py-3 text-right font-mono border-r border-gray-100 dark:border-gray-800">
                                                     <span className={Number(row.remaining) <= 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'}>
                                                         {formatCurrency(row.remaining)}
                                                     </span>
                                                 </td>
-                                                <td className="py-3 text-right">
+                                                <td className="px-4 py-3 text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <ProgressBar percent={row.percent} className="w-16" />
                                                         <span className="w-10 text-right text-xs font-semibold">{row.percent}%</span>
