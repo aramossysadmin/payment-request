@@ -37,8 +37,11 @@ class InvestmentPaymentRequest extends Model
         'payment_week_number',
         'retention',
         'total',
+        'approved_amount',
         'ceo_rejection_reason',
         'ceo_reviewed_at',
+        'pm_rejection_reason',
+        'pm_reviewed_at',
     ];
 
     protected function setProviderAttribute(string $value): void
@@ -100,7 +103,9 @@ class InvestmentPaymentRequest extends Model
             'iva' => 'decimal:2',
             'retention' => 'boolean',
             'total' => 'decimal:2',
+            'approved_amount' => 'decimal:2',
             'ceo_reviewed_at' => 'datetime',
+            'pm_reviewed_at' => 'datetime',
         ];
     }
 

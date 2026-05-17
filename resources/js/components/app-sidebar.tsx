@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import { Banknote, BarChart3, BookOpen, CalendarCheck, ClipboardList, FileText, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { Banknote, BarChart3, BookOpen, CalendarCheck, CheckSquare, ClipboardList, FileText, LayoutGrid } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -12,7 +12,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
+import type { Auth, NavItem } from '@/types';
 import AppLogo from './app-logo';
 
 const platformItems: NavItem[] = [
@@ -49,6 +49,12 @@ const investmentItems: NavItem[] = [
     },
 ];
 
+const reviewItem: NavItem = {
+    title: 'Revisión de Pagos',
+    href: '/investment-payment-review',
+    icon: CheckSquare,
+};
+
 const treasuryItems: NavItem[] = [
     {
         title: 'Programación de Pagos',
@@ -66,6 +72,14 @@ const docsItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage<{ auth: Auth }>().props;
+    const roles = (auth.user?.roles ?? []) as string[];
+    const canReview = roles.includes('project_manager') || roles.includes('super_admin');
+
+    const finalInvestmentItems = canReview
+        ? [...investmentItems, reviewItem]
+        : investmentItems;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -83,7 +97,7 @@ export function AppSidebar() {
             <SidebarContent>
                 <NavMain items={platformItems} label="Plataforma" />
                 <NavMain items={requestItems} label="Solicitudes" />
-                <NavMain items={investmentItems} label="Presupuestos de Inversión" />
+                <NavMain items={finalInvestmentItems} label="Presupuestos de Inversión" />
                 <NavMain items={treasuryItems} label="Tesorería" />
                 <NavMain items={docsItems} label="Documentación" />
             </SidebarContent>
