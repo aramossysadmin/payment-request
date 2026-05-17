@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
+use App\Models\User;
+use App\Notifications\InvestmentBatchFinalApprovalNotification;
 use App\Notifications\InvestmentPaymentStatusNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -98,7 +103,9 @@ class InvestmentPaymentReviewController extends Controller
             }
         }
 
-        DB::transaction(function () use ($payments, $decisionsByUuid, $rejectionReason) {
+        $affectedBatchIds = $payments->pluck('batch_id')->filter()->unique()->values();
+
+        DB::transaction(function () use ($payments, $decisionsByUuid, $rejectionReason, $affectedBatchIds) {
             foreach ($payments as $payment) {
                 $decision = $decisionsByUuid[$payment->uuid];
                 if ($decision['approved']) {
@@ -114,6 +121,40 @@ class InvestmentPaymentReviewController extends Controller
                         'pm_rejection_reason' => $rejectionReason,
                         'pm_reviewed_at' => now(),
                     ]);
+                }
+            }
+
+            // For each affected batch, check if PM finished it and transition to final_pending
+            foreach ($affectedBatchIds as $batchId) {
+                $batch = InvestmentPaymentBatch::find($batchId);
+                if (! $batch) {
+                    continue;
+                }
+
+                // Check if any payment of this batch is still pending PM review
+                $pendingPmCount = InvestmentPaymentRequest::query()
+                    ->where('batch_id', $batchId)
+                    ->whereIn('status', ['ceo_approved', 'projectmanager_review'])
+                    ->count();
+
+                if ($pendingPmCount > 0) {
+                    continue;
+                }
+
+                // Check if there are any PM-approved payments to send to CEO final
+                $pmApprovedCount = InvestmentPaymentRequest::query()
+                    ->where('batch_id', $batchId)
+                    ->where('status', 'projectmanager_approved')
+                    ->count();
+
+                if ($pmApprovedCount > 0) {
+                    $batch->update([
+                        'status' => 'final_pending',
+                        'final_ceo_approval_token' => (string) Str::uuid(),
+                        'final_ceo_approval_token_expires_at' => Carbon::now()->addHours(48),
+                    ]);
+                } else {
+                    $batch->update(['status' => 'projectmanager_rejected']);
                 }
             }
         });
@@ -147,6 +188,22 @@ class InvestmentPaymentReviewController extends Controller
                         $rejectionReason,
                     ));
                 }
+            }
+        }
+
+        // Send final approval emails to CEO for each batch that transitioned to final_pending
+        $batchesToNotify = InvestmentPaymentBatch::query()
+            ->whereIn('id', $affectedBatchIds)
+            ->where('status', 'final_pending')
+            ->whereNotNull('final_ceo_approval_token')
+            ->get();
+
+        $ceoEmail = config('investment-requests.authorizer_email');
+        $ceo = User::where('email', $ceoEmail)->first();
+
+        if ($ceo) {
+            foreach ($batchesToNotify as $batch) {
+                $ceo->notify(new InvestmentBatchFinalApprovalNotification($batch));
             }
         }
 

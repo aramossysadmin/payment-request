@@ -22,6 +22,9 @@ class InvestmentPaymentBatch extends Model
         'ceo_approval_token',
         'ceo_approval_token_expires_at',
         'ceo_reviewed_at',
+        'final_ceo_approval_token',
+        'final_ceo_approval_token_expires_at',
+        'final_ceo_reviewed_at',
     ];
 
     protected static function booted(): void
@@ -48,6 +51,8 @@ class InvestmentPaymentBatch extends Model
             'deadline_at' => 'datetime',
             'ceo_approval_token_expires_at' => 'datetime',
             'ceo_reviewed_at' => 'datetime',
+            'final_ceo_approval_token_expires_at' => 'datetime',
+            'final_ceo_reviewed_at' => 'datetime',
             'week_number' => 'integer',
             'year' => 'integer',
         ];
@@ -58,6 +63,13 @@ class InvestmentPaymentBatch extends Model
         return $this->ceo_approval_token !== null
             && $this->ceo_approval_token_expires_at !== null
             && $this->ceo_approval_token_expires_at->isFuture();
+    }
+
+    public function hasValidFinalCeoToken(): bool
+    {
+        return $this->final_ceo_approval_token !== null
+            && $this->final_ceo_approval_token_expires_at !== null
+            && $this->final_ceo_approval_token_expires_at->isFuture();
     }
 
     public function department(): BelongsTo

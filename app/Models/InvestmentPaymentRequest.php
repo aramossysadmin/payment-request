@@ -42,6 +42,8 @@ class InvestmentPaymentRequest extends Model
         'ceo_reviewed_at',
         'pm_rejection_reason',
         'pm_reviewed_at',
+        'final_rejection_reason',
+        'final_reviewed_at',
     ];
 
     protected function setProviderAttribute(string $value): void
@@ -106,6 +108,7 @@ class InvestmentPaymentRequest extends Model
             'approved_amount' => 'decimal:2',
             'ceo_reviewed_at' => 'datetime',
             'pm_reviewed_at' => 'datetime',
+            'final_reviewed_at' => 'datetime',
         ];
     }
 

@@ -5,24 +5,29 @@ import { Card, CardContent } from '@/components/ui/card';
 type Props = {
     approved: number;
     rejected: number;
+    isFinal?: boolean;
 };
 
-export default function BatchApprovalSuccess({ approved, rejected }: Props) {
+export default function BatchApprovalSuccess({ approved, rejected, isFinal = false }: Props) {
     const total = approved + rejected;
+    const title = isFinal ? 'Aprobación final guardada' : 'Revisión guardada';
+    const subtitle = isFinal
+        ? 'Los pagos aprobados están listos para que el solicitante suba los documentos.'
+        : 'Se notificó al solicitante con el resultado.';
 
     return (
         <>
-            <Head title="Revisión guardada" />
+            <Head title={title} />
             <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
                 <Card className="max-w-md w-full">
                     <CardContent className="pt-6 text-center space-y-4">
                         <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
-                        <h2 className="text-2xl font-bold text-foreground">Revisión guardada</h2>
+                        <h2 className="text-2xl font-bold text-foreground">{title}</h2>
                         <div className="space-y-1 text-sm text-muted-foreground">
                             {approved > 0 && (
                                 <p>
                                     Se aprobaron <span className="font-semibold text-green-700 dark:text-green-400">{approved}</span>{' '}
-                                    {approved === 1 ? 'pago' : 'pagos'}.
+                                    {approved === 1 ? 'pago' : 'pagos'}{isFinal ? ' definitivamente' : ''}.
                                 </p>
                             )}
                             {rejected > 0 && (
@@ -31,7 +36,7 @@ export default function BatchApprovalSuccess({ approved, rejected }: Props) {
                                     {rejected === 1 ? 'pago' : 'pagos'}.
                                 </p>
                             )}
-                            {total > 0 && <p className="pt-2">Se notificó al solicitante con el resultado.</p>}
+                            {total > 0 && <p className="pt-2">{subtitle}</p>}
                         </div>
                     </CardContent>
                 </Card>

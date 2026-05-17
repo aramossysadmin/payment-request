@@ -141,6 +141,130 @@ class InvestmentBatchApprovalController extends Controller
         return Inertia::render('investment-batch-approval/success', [
             'approved' => (int) $request->query('approved', 0),
             'rejected' => (int) $request->query('rejected', 0),
+            'isFinal' => (bool) $request->query('final', false),
+        ]);
+    }
+
+    public function showFinal(string $token): Response
+    {
+        $batch = InvestmentPaymentBatch::query()
+            ->where('final_ceo_approval_token', $token)
+            ->with([
+                'department',
+                'project',
+                'user',
+                'paymentRequests' => fn ($q) => $q->where('status', 'projectmanager_approved'),
+                'paymentRequests.investmentRequest.investmentExpenseConcept',
+                'paymentRequests.currency',
+            ])
+            ->first();
+
+        if (! $batch || ! $batch->hasValidFinalCeoToken() || $batch->status !== 'final_pending') {
+            return Inertia::render('investment-batch-approval/invalid', [
+                'reason' => $this->resolveInvalidFinalReason($batch),
+            ]);
+        }
+
+        return Inertia::render('investment-batch-approval/show-final', [
+            'batch' => [
+                'uuid' => $batch->uuid,
+                'token' => $token,
+                'department' => $batch->department->name ?? '-',
+                'project' => $batch->project->name ?? '-',
+                'requester' => $batch->user->name ?? '-',
+                'week_number' => $batch->week_number,
+                'year' => $batch->year,
+                'expires_at' => $batch->final_ceo_approval_token_expires_at?->toISOString(),
+                'payments' => $batch->paymentRequests->map(fn (InvestmentPaymentRequest $p) => [
+                    'uuid' => $p->uuid,
+                    'folio_number' => $p->folio_number,
+                    'concept' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
+                    'provider' => $p->provider,
+                    'rfc' => $p->rfc,
+                    'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                    'total' => (string) $p->total,
+                    'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : (string) $p->total,
+                    'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
+                ]),
+                'total_to_pay' => number_format(
+                    (float) $batch->paymentRequests->sum(fn ($p) => (float) ($p->approved_amount ?? $p->total)),
+                    2, '.', ''
+                ),
+            ],
+        ]);
+    }
+
+    public function reviewFinal(Request $request, string $token): RedirectResponse
+    {
+        $batch = InvestmentPaymentBatch::query()
+            ->where('final_ceo_approval_token', $token)
+            ->first();
+
+        abort_if(! $batch || ! $batch->hasValidFinalCeoToken() || $batch->status !== 'final_pending', 410, 'El enlace de aprobación final no es válido.');
+
+        $validated = $request->validate([
+            'approved_uuids' => ['array'],
+            'approved_uuids.*' => ['string', 'uuid'],
+            'rejection_reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $approvedUuids = collect($validated['approved_uuids'] ?? []);
+        $rejectionReason = $validated['rejection_reason'] ?? null;
+
+        $payments = InvestmentPaymentRequest::query()
+            ->where('batch_id', $batch->id)
+            ->where('status', 'projectmanager_approved')
+            ->with('user')
+            ->get();
+
+        DB::transaction(function () use ($batch, $payments, $approvedUuids, $rejectionReason) {
+            foreach ($payments as $payment) {
+                if ($approvedUuids->contains($payment->uuid)) {
+                    $payment->update([
+                        'status' => 'final_approved',
+                        'final_reviewed_at' => now(),
+                    ]);
+                } else {
+                    $payment->update([
+                        'status' => 'final_rejected',
+                        'final_rejection_reason' => $rejectionReason,
+                        'final_reviewed_at' => now(),
+                    ]);
+                }
+            }
+
+            $hasApproved = $payments->contains(fn ($p) => $approvedUuids->contains($p->uuid));
+
+            $batch->update([
+                'status' => $hasApproved ? 'final_approved' : 'final_rejected',
+                'final_ceo_reviewed_at' => now(),
+                'final_ceo_approval_token' => null,
+                'final_ceo_approval_token_expires_at' => null,
+            ]);
+        });
+
+        $approvedCount = 0;
+        $rejectedCount = 0;
+
+        foreach ($payments as $payment) {
+            $stage = $approvedUuids->contains($payment->uuid) ? 'final_approved' : 'final_rejected';
+            $reason = $stage === 'final_rejected' ? $rejectionReason : null;
+
+            if ($stage === 'final_approved') {
+                $approvedCount++;
+            } else {
+                $rejectedCount++;
+            }
+
+            if ($payment->user) {
+                $payment->user->notify(new InvestmentPaymentStatusNotification($payment, $stage, $reason));
+            }
+        }
+
+        return redirect()->route('investment-batch-approval.success', [
+            'approved' => $approvedCount,
+            'rejected' => $rejectedCount,
+            'final' => 1,
         ]);
     }
 
@@ -159,5 +283,22 @@ class InvestmentBatchApprovalController extends Controller
         }
 
         return 'El enlace de aprobación no es válido.';
+    }
+
+    private function resolveInvalidFinalReason(?InvestmentPaymentBatch $batch): string
+    {
+        if (! $batch) {
+            return 'El enlace de aprobación final no es válido o no existe.';
+        }
+
+        if ($batch->status !== 'final_pending') {
+            return 'Este lote ya fue procesado anteriormente en la aprobación final.';
+        }
+
+        if (! $batch->hasValidFinalCeoToken()) {
+            return 'El enlace de aprobación final ha expirado.';
+        }
+
+        return 'El enlace de aprobación final no es válido.';
     }
 }
