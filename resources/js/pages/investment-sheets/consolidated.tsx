@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Eye, FileText, Search, X, XCircle } from 'lucide-react';
+import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Eye, FileText, Search, Send, Trash2, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
@@ -81,6 +81,27 @@ type PaymentsSummary = {
     count: number;
 };
 
+type DraftPayment = {
+    id: number;
+    uuid: string;
+    folio_number: number;
+    provider: string;
+    concept_name: string;
+    concept_folio: number | null;
+    currency_prefix: string;
+    subtotal: string;
+    iva: string;
+    total: string;
+};
+
+type DraftBatch = {
+    uuid: string;
+    week_number: number;
+    year: number;
+    payments: DraftPayment[];
+    total: string;
+};
+
 type PageProps = {
     project: {
         id: number;
@@ -101,6 +122,7 @@ type PageProps = {
     currencies: Currency[];
     branches: Branch[];
     errors: Record<string, string>;
+    draftBatch: DraftBatch | null;
 };
 
 const statusColors: Record<string, string> = {
@@ -169,7 +191,7 @@ export default function Consolidated() {
 
     const {
         project, totals, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, currencies, branches, errors,
+        userDepartmentId, currencies, branches, errors, draftBatch,
     } = usePage<PageProps>().props;
 
     const [search, setSearch] = useState(filters.search ?? '');
@@ -193,6 +215,35 @@ export default function Consolidated() {
     const [payments, setPayments] = useState<InvestmentPayment[]>([]);
     const [paymentsSummary, setPaymentsSummary] = useState<PaymentsSummary | null>(null);
     const [loadingPayments, setLoadingPayments] = useState(false);
+
+    const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(() =>
+        new Set((draftBatch?.payments ?? []).map((p) => p.uuid)),
+    );
+    const [deleteConfirmUuid, setDeleteConfirmUuid] = useState<string | null>(null);
+
+    useEffect(() => {
+        setSelectedDraftIds(new Set((draftBatch?.payments ?? []).map((p) => p.uuid)));
+    }, [draftBatch]);
+
+    const toggleDraftSelection = (uuid: string) => {
+        setSelectedDraftIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(uuid)) next.delete(uuid);
+            else next.add(uuid);
+            return next;
+        });
+    };
+
+    const handleDeleteDraftPayment = (uuid: string) => {
+        router.delete(`/investment-payment-batches/payments/${uuid}`, {
+            preserveScroll: true,
+            onFinish: () => setDeleteConfirmUuid(null),
+        });
+    };
+
+    const selectedDraftTotal = (draftBatch?.payments ?? [])
+        .filter((p) => selectedDraftIds.has(p.uuid))
+        .reduce((sum, p) => sum + Number(p.total), 0);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Hojas de Inversión', href: '/investment-sheets/consolidated' },
@@ -592,7 +643,108 @@ export default function Consolidated() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Draft Payments Card */}
+                {draftBatch && draftBatch.payments.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Pagos en Borrador — Semana {draftBatch.week_number} ({draftBatch.year})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50 dark:bg-gray-800">
+                                        <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
+                                            <th className="px-3 py-3 font-semibold whitespace-nowrap w-10"></th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Folio</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Monto</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {draftBatch.payments.map((payment) => (
+                                            <tr key={payment.uuid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                <td className="px-3 py-3">
+                                                    <Checkbox
+                                                        checked={selectedDraftIds.has(payment.uuid)}
+                                                        onCheckedChange={() => toggleDraftSelection(payment.uuid)}
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
+                                                    #{String(payment.folio_number).padStart(5, '0')}
+                                                </td>
+                                                <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
+                                                <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
+                                                    {formatCurrency(payment.total)}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950"
+                                                            onClick={() => setDeleteConfirmUuid(payment.uuid)}
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-gray-50 dark:bg-gray-800/50">
+                                        <tr className="border-t-2 border-gray-200 dark:border-gray-700">
+                                            <td colSpan={4} className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">
+                                                Total seleccionado:
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono font-bold">
+                                                {formatCurrency(selectedDraftTotal)}
+                                            </td>
+                                            <td className="px-4 py-3"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <div className="mt-4 flex justify-end">
+                                <Button
+                                    disabled={selectedDraftIds.size === 0}
+                                    title="Funcionalidad disponible en Fase 2"
+                                >
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Enviar a Autorización
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
+
+            {/* Delete draft payment confirmation */}
+            <Dialog open={deleteConfirmUuid !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmUuid(null); }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Eliminar pago del borrador</DialogTitle>
+                        <DialogDescription>
+                            ¿Estás seguro de eliminar este pago? Esta acción no se puede deshacer y liberará el monto del presupuesto.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" onClick={() => setDeleteConfirmUuid(null)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => deleteConfirmUuid && handleDeleteDraftPayment(deleteConfirmUuid)}
+                        >
+                            Eliminar
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Payments Drawer */}
             <PaymentsDrawer

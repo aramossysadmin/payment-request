@@ -19,6 +19,7 @@ class InvestmentPaymentRequest extends Model
     protected $fillable = [
         'folio_number',
         'investment_request_id',
+        'batch_id',
         'provider',
         'rfc',
         'invoice_folio',
@@ -103,6 +104,11 @@ class InvestmentPaymentRequest extends Model
     public function investmentRequest(): BelongsTo
     {
         return $this->belongsTo(InvestmentRequest::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(InvestmentPaymentBatch::class, 'batch_id');
     }
 
     public function user(): BelongsTo

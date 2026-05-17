@@ -22,8 +22,6 @@ class StoreInvestmentPaymentRequest extends FormRequest
      */
     public function rules(): array
     {
-        $isInvoice = $this->boolean('is_invoice');
-
         return [
             'investment_request_id' => ['required', 'integer', Rule::exists('investment_requests', 'id')],
             'provider' => ['required', 'string', 'max:255'],
@@ -34,9 +32,9 @@ class StoreInvestmentPaymentRequest extends FormRequest
             'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')],
             'is_invoice' => ['required', 'boolean'],
             'description' => ['nullable', 'string', 'max:1000'],
-            'invoice_documents' => [$isInvoice ? 'required' : 'nullable', 'array', 'size:2'],
+            'invoice_documents' => ['nullable', 'array', 'max:2'],
             'invoice_documents.*' => ['file', 'max:10240', 'mimes:pdf,xml'],
-            'advance_documents' => [! $isInvoice ? 'nullable' : 'nullable', 'array', 'max:10'],
+            'advance_documents' => ['nullable', 'array', 'max:10'],
             'advance_documents.*' => ['file', 'max:10240', 'mimes:pdf,xml,jpg,jpeg,png,doc,docx,xls,xlsx'],
             'iva_rate' => ['required', Rule::enum(IvaRate::class)],
             'subtotal' => ['required', 'numeric', 'min:0'],
@@ -53,14 +51,14 @@ class StoreInvestmentPaymentRequest extends FormRequest
                 $files = $this->file('invoice_documents', []);
                 if (is_array($files) && count($files) > 0) {
                     if (count($files) !== 2) {
-                        $validator->errors()->add('invoice_documents', 'Debe subir exactamente 1 archivo PDF y 1 archivo XML.');
+                        $validator->errors()->add('invoice_documents', 'Si adjuntas documentos de factura, debe ser exactamente 1 PDF y 1 XML.');
 
                         return;
                     }
                     $extensions = array_map(fn ($file) => strtolower($file->getClientOriginalExtension()), $files);
                     sort($extensions);
                     if ($extensions !== ['pdf', 'xml']) {
-                        $validator->errors()->add('invoice_documents', 'Debe subir exactamente 1 archivo PDF y 1 archivo XML.');
+                        $validator->errors()->add('invoice_documents', 'Si adjuntas documentos de factura, debe ser exactamente 1 PDF y 1 XML.');
                     }
                 }
             }
@@ -76,7 +74,7 @@ class StoreInvestmentPaymentRequest extends FormRequest
                 $groupBudget = (float) InvestmentRequest::whereIn('id', $groupIds)->sum('total');
                 $groupPaid = (float) InvestmentPaymentRequest::query()
                     ->whereIn('investment_request_id', $groupIds)
-                    ->whereIn('status', ['pending_approval', 'approved'])
+                    ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected'])
                     ->sum('total');
 
                 $remaining = $groupBudget - $groupPaid;
@@ -117,8 +115,7 @@ class StoreInvestmentPaymentRequest extends FormRequest
             'currency_id.required' => 'La moneda es obligatoria.',
             'branch_id.required' => 'La sucursal es obligatoria.',
             'is_invoice.required' => 'Debe indicar si es factura o anticipo.',
-            'invoice_documents.required' => 'Los documentos de factura (PDF + XML) son obligatorios.',
-            'invoice_documents.size' => 'Debe subir exactamente 2 archivos (1 PDF y 1 XML).',
+            'invoice_documents.max' => 'Los documentos de factura no pueden ser más de 2 (1 PDF y 1 XML).',
             'iva_rate.required' => 'La tasa de IVA es obligatoria.',
             'subtotal.required' => 'El subtotal es obligatorio.',
             'subtotal.min' => 'El subtotal debe ser mayor o igual a 0.',

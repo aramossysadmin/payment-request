@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Resources\InvestmentRequestResource;
 use App\Models\Branch;
 use App\Models\Currency;
+use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Models\Project;
 use App\States\InvestmentRequest\Completed;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -96,6 +98,39 @@ class InvestmentSheetConsolidatedController extends Controller
 
         $project->load('branch');
 
+        $now = Carbon::now();
+        $currentWeek = $now->isoWeek;
+        $currentYear = $now->isoWeekYear;
+
+        $draftBatch = InvestmentPaymentBatch::query()
+            ->where('department_id', $user->department_id)
+            ->where('project_id', $project->id)
+            ->where('week_number', $currentWeek)
+            ->where('year', $currentYear)
+            ->where('status', 'draft')
+            ->first();
+
+        $draftPayments = $draftBatch
+            ? InvestmentPaymentRequest::query()
+                ->where('batch_id', $draftBatch->id)
+                ->where('status', 'draft')
+                ->with(['currency', 'investmentRequest.investmentExpenseConcept'])
+                ->latest()
+                ->get()
+                ->map(fn (InvestmentPaymentRequest $p) => [
+                    'id' => $p->id,
+                    'uuid' => $p->uuid,
+                    'folio_number' => $p->folio_number,
+                    'provider' => $p->provider,
+                    'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
+                    'concept_folio' => $p->investmentRequest?->folio_number,
+                    'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                    'subtotal' => (string) $p->subtotal,
+                    'iva' => (string) $p->iva,
+                    'total' => (string) $p->total,
+                ])
+            : collect();
+
         return Inertia::render('investment-sheets/consolidated', [
             'project' => [
                 'id' => $project->id,
@@ -124,6 +159,13 @@ class InvestmentSheetConsolidatedController extends Controller
             'userDepartmentId' => $user->department_id,
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
+            'draftBatch' => $draftBatch ? [
+                'uuid' => $draftBatch->uuid,
+                'week_number' => $draftBatch->week_number,
+                'year' => $draftBatch->year,
+                'payments' => $draftPayments,
+                'total' => number_format((float) $draftPayments->sum(fn ($p) => (float) $p['total']), 2, '.', ''),
+            ] : null,
         ]);
     }
 }

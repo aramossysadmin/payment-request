@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentViewController;
 use App\Http\Controllers\EmailApprovalController;
 use App\Http\Controllers\InvestmentDashboardController;
+use App\Http\Controllers\InvestmentPaymentBatchController;
 use App\Http\Controllers\InvestmentPaymentRequestController;
 use App\Http\Controllers\InvestmentRequestApprovalController;
 use App\Http\Controllers\InvestmentRequestController;
@@ -46,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('investment-sheets/consolidated/{project}', InvestmentSheetConsolidatedController::class)->name('investment-sheets.consolidated');
     Route::get('investment-payment-requests/{investmentRequestId}', [InvestmentPaymentRequestController::class, 'index'])->name('investment-payment-requests.index');
     Route::post('investment-payment-requests', [InvestmentPaymentRequestController::class, 'store'])->name('investment-payment-requests.store');
+    Route::delete('investment-payment-batches/payments/{payment:uuid}', [InvestmentPaymentBatchController::class, 'destroyPayment'])->name('investment-payment-batches.destroy-payment');
     Route::resource('investment-sheets', InvestmentRequestController::class)->parameters(['investment-sheets' => 'investment_request']);
     Route::post('investment-sheets/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->middleware('throttle:10,1')->name('investment-sheets.approve');
     Route::post('investment-sheets/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('investment-sheets.reject');
