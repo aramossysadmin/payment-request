@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle2, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +43,6 @@ export default function BatchApprovalShow({ batch }: Props) {
     );
     const [rejectionReason, setRejectionReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
 
     const approvedCount = approvedUuids.size;
     const rejectedCount = batch.payments.length - approvedCount;
@@ -74,36 +73,10 @@ export default function BatchApprovalShow({ batch }: Props) {
                 rejection_reason: rejectionReason || null,
             },
             {
-                onSuccess: () => setSubmitted(true),
                 onFinish: () => setSubmitting(false),
             },
         );
     };
-
-    if (submitted) {
-        return (
-            <>
-                <Head title="Revisión enviada" />
-                <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
-                    <Card className="max-w-md w-full">
-                        <CardContent className="pt-6 text-center space-y-4">
-                            <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
-                            <h2 className="text-2xl font-bold text-foreground">Revisión guardada</h2>
-                            <p className="text-sm text-muted-foreground">
-                                {approvedCount > 0 && (
-                                    <>Se aprobaron {approvedCount} pago{approvedCount !== 1 ? 's' : ''}.<br /></>
-                                )}
-                                {rejectedCount > 0 && (
-                                    <>Se rechazaron {rejectedCount} pago{rejectedCount !== 1 ? 's' : ''}.<br /></>
-                                )}
-                                Se notificó al solicitante con el resultado.
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-            </>
-        );
-    }
 
     return (
         <>

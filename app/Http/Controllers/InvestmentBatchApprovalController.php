@@ -112,16 +112,36 @@ class InvestmentBatchApprovalController extends Controller
         });
 
         // Notify requesters
+        $approvedCount = 0;
+        $rejectedCount = 0;
+
         foreach ($payments as $payment) {
             $stage = $approvedUuids->contains($payment->uuid) ? 'ceo_approved' : 'ceo_rejected';
             $reason = $stage === 'ceo_rejected' ? $rejectionReason : null;
+
+            if ($stage === 'ceo_approved') {
+                $approvedCount++;
+            } else {
+                $rejectedCount++;
+            }
 
             if ($payment->user) {
                 $payment->user->notify(new InvestmentPaymentStatusNotification($payment, $stage, $reason));
             }
         }
 
-        return back()->with('success', 'Revisión guardada exitosamente.');
+        return redirect()->route('investment-batch-approval.success', [
+            'approved' => $approvedCount,
+            'rejected' => $rejectedCount,
+        ]);
+    }
+
+    public function success(Request $request): Response
+    {
+        return Inertia::render('investment-batch-approval/success', [
+            'approved' => (int) $request->query('approved', 0),
+            'rejected' => (int) $request->query('rejected', 0),
+        ]);
     }
 
     private function resolveInvalidReason(?InvestmentPaymentBatch $batch): string

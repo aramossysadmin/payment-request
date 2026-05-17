@@ -32,6 +32,7 @@ Route::middleware('throttle:10,1')->group(function () {
     Route::post('/approval/{token}/approve', [EmailApprovalController::class, 'approve'])->name('approval.approve');
     Route::post('/approval/{token}/reject', [EmailApprovalController::class, 'reject'])->name('approval.reject');
 
+    Route::get('/investment-batch-approval/success', [InvestmentBatchApprovalController::class, 'success'])->name('investment-batch-approval.success');
     Route::get('/investment-batch-approval/{token}', [InvestmentBatchApprovalController::class, 'show'])->name('investment-batch-approval.show');
     Route::post('/investment-batch-approval/{token}/review', [InvestmentBatchApprovalController::class, 'review'])->name('investment-batch-approval.review');
 });
