@@ -241,6 +241,20 @@ export default function Consolidated() {
         });
     };
 
+    const [submittingBatch, setSubmittingBatch] = useState(false);
+    const handleSubmitBatch = () => {
+        if (!draftBatch || selectedDraftIds.size === 0) return;
+        setSubmittingBatch(true);
+        router.post(
+            `/investment-payment-batches/${draftBatch.uuid}/submit`,
+            { payment_uuids: Array.from(selectedDraftIds) },
+            {
+                preserveScroll: true,
+                onFinish: () => setSubmittingBatch(false),
+            },
+        );
+    };
+
     const selectedDraftTotal = (draftBatch?.payments ?? [])
         .filter((p) => selectedDraftIds.has(p.uuid))
         .reduce((sum, p) => sum + Number(p.total), 0);
@@ -711,11 +725,11 @@ export default function Consolidated() {
 
                             <div className="mt-4 flex justify-end">
                                 <Button
-                                    disabled={selectedDraftIds.size === 0}
-                                    title="Funcionalidad disponible en Fase 2"
+                                    disabled={selectedDraftIds.size === 0 || submittingBatch}
+                                    onClick={handleSubmitBatch}
                                 >
                                     <Send className="mr-2 h-4 w-4" />
-                                    Enviar a Autorización
+                                    {submittingBatch ? 'Enviando...' : 'Enviar a Autorización'}
                                 </Button>
                             </div>
                         </CardContent>

@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentViewController;
 use App\Http\Controllers\EmailApprovalController;
+use App\Http\Controllers\InvestmentBatchApprovalController;
 use App\Http\Controllers\InvestmentDashboardController;
 use App\Http\Controllers\InvestmentPaymentBatchController;
 use App\Http\Controllers\InvestmentPaymentRequestController;
@@ -30,6 +31,9 @@ Route::middleware('throttle:10,1')->group(function () {
     Route::get('/approval/{token}', [EmailApprovalController::class, 'show'])->name('approval.show');
     Route::post('/approval/{token}/approve', [EmailApprovalController::class, 'approve'])->name('approval.approve');
     Route::post('/approval/{token}/reject', [EmailApprovalController::class, 'reject'])->name('approval.reject');
+
+    Route::get('/investment-batch-approval/{token}', [InvestmentBatchApprovalController::class, 'show'])->name('investment-batch-approval.show');
+    Route::post('/investment-batch-approval/{token}/review', [InvestmentBatchApprovalController::class, 'review'])->name('investment-batch-approval.review');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -48,6 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('investment-payment-requests/{investmentRequestId}', [InvestmentPaymentRequestController::class, 'index'])->name('investment-payment-requests.index');
     Route::post('investment-payment-requests', [InvestmentPaymentRequestController::class, 'store'])->name('investment-payment-requests.store');
     Route::delete('investment-payment-batches/payments/{payment:uuid}', [InvestmentPaymentBatchController::class, 'destroyPayment'])->name('investment-payment-batches.destroy-payment');
+    Route::post('investment-payment-batches/{batch:uuid}/submit', [InvestmentPaymentBatchController::class, 'submit'])->name('investment-payment-batches.submit');
     Route::resource('investment-sheets', InvestmentRequestController::class)->parameters(['investment-sheets' => 'investment_request']);
     Route::post('investment-sheets/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->middleware('throttle:10,1')->name('investment-sheets.approve');
     Route::post('investment-sheets/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('investment-sheets.reject');
