@@ -858,41 +858,35 @@ export default function Consolidated() {
 
             {/* Upload documents dialog */}
             <Dialog open={uploadDialogUuid !== null} onOpenChange={(open) => { if (!open) closeUploadDialog(); }}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Subir documentos del pago</DialogTitle>
                         <DialogDescription>
                             Adjunta el PDF y el XML del pago. Ambos archivos son obligatorios y máximo 10 MB cada uno.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 pt-2">
+                    <div className="grid gap-4 pt-2 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="upload-pdf">
-                                Archivo PDF <span className="text-red-500">*</span>
+                            <Label>
+                                Factura PDF <span className="text-red-500">*</span>
                             </Label>
-                            <Input
-                                id="upload-pdf"
-                                type="file"
-                                accept=".pdf,application/pdf"
-                                onChange={(e) => setUploadPdf(e.target.files?.[0] ?? null)}
+                            <FileUpload
+                                files={uploadPdf ? [uploadPdf] : []}
+                                onChange={(f) => setUploadPdf(f[0] ?? null)}
+                                maxFiles={1}
+                                accept=".pdf"
                             />
-                            {uploadPdf && (
-                                <p className="text-xs text-muted-foreground">Seleccionado: {uploadPdf.name}</p>
-                            )}
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="upload-xml">
-                                Archivo XML <span className="text-red-500">*</span>
+                            <Label>
+                                Factura XML <span className="text-red-500">*</span>
                             </Label>
-                            <Input
-                                id="upload-xml"
-                                type="file"
-                                accept=".xml,application/xml,text/xml"
-                                onChange={(e) => setUploadXml(e.target.files?.[0] ?? null)}
+                            <FileUpload
+                                files={uploadXml ? [uploadXml] : []}
+                                onChange={(f) => setUploadXml(f[0] ?? null)}
+                                maxFiles={1}
+                                accept=".xml"
                             />
-                            {uploadXml && (
-                                <p className="text-xs text-muted-foreground">Seleccionado: {uploadXml.name}</p>
-                            )}
                         </div>
                     </div>
                     <div className="flex justify-end gap-2 pt-4">
