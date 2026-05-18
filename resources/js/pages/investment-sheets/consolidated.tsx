@@ -88,6 +88,7 @@ type DraftPayment = {
     provider: string;
     concept_name: string;
     concept_folio: number | null;
+    description: string | null;
     currency_prefix: string;
     subtotal: string;
     iva: string;
@@ -877,6 +878,7 @@ export default function Consolidated() {
                                             <th className="px-3 py-3 font-semibold whitespace-nowrap w-10"></th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Folio</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Descripción</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Monto</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Acciones</th>
@@ -895,6 +897,9 @@ export default function Consolidated() {
                                                     #{String(payment.folio_number).padStart(5, '0')}
                                                 </td>
                                                 <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.description ?? undefined}>
+                                                    {payment.description ? payment.description : <span className="text-gray-400">—</span>}
+                                                </td>
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
                                                 <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
                                                     {formatCurrency(payment.total)}
@@ -916,7 +921,7 @@ export default function Consolidated() {
                                     </tbody>
                                     <tfoot className="bg-gray-50 dark:bg-gray-800/50">
                                         <tr className="border-t-2 border-gray-200 dark:border-gray-700">
-                                            <td colSpan={4} className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">
+                                            <td colSpan={5} className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">
                                                 Total seleccionado:
                                             </td>
                                             <td className="px-4 py-3 text-right font-mono font-bold">
