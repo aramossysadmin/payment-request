@@ -153,6 +153,47 @@ class InvestmentSheetConsolidatedController extends Controller
                 'has_documents' => is_array($p->advance_documents) && count($p->advance_documents) >= 2,
             ]);
 
+        // Historial completo de pagos del usuario para el proyecto actual.
+        // Excluye drafts (esos ya aparecen en la tarjeta Pagos en Borrador).
+        // Si en el futuro se desea mostrar pagos del departamento completo,
+        // cambiar where('user_id', $user->id) por where('department_id', $user->department_id).
+        $userPaymentHistory = InvestmentPaymentRequest::query()
+            ->where('user_id', $user->id)
+            ->where('status', '!=', 'draft')
+            ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
+            ->with(['currency', 'investmentRequest.investmentExpenseConcept', 'branch'])
+            ->latest('created_at')
+            ->get()
+            ->map(fn (InvestmentPaymentRequest $p) => [
+                'id' => $p->id,
+                'uuid' => $p->uuid,
+                'folio_number' => $p->folio_number,
+                'provider' => $p->provider,
+                'rfc' => $p->rfc,
+                'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
+                'concept_folio' => $p->investmentRequest?->folio_number,
+                'branch' => $p->branch?->name ?? '—',
+                'payment_type' => $p->payment_type,
+                'description' => $p->description,
+                'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                'subtotal' => (string) $p->subtotal,
+                'iva' => (string) $p->iva,
+                'total' => (string) $p->total,
+                'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : null,
+                'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
+                'status' => $p->status,
+                'is_legacy' => $p->batch_id === null,
+                'ceo_rejection_reason' => $p->ceo_rejection_reason,
+                'pm_rejection_reason' => $p->pm_rejection_reason,
+                'final_rejection_reason' => $p->final_rejection_reason,
+                'created_at' => $p->created_at?->toISOString(),
+                'ceo_reviewed_at' => $p->ceo_reviewed_at?->toISOString(),
+                'pm_reviewed_at' => $p->pm_reviewed_at?->toISOString(),
+                'final_reviewed_at' => $p->final_reviewed_at?->toISOString(),
+                'has_documents' => is_array($p->advance_documents) && count($p->advance_documents) >= 2,
+                'documents' => is_array($p->advance_documents) ? $p->advance_documents : [],
+            ]);
+
         return Inertia::render('investment-sheets/consolidated', [
             'project' => [
                 'id' => $project->id,
@@ -193,6 +234,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'year' => $currentYear,
                 'payments' => $authorizedPayments,
             ],
+            'userPaymentHistory' => $userPaymentHistory,
         ]);
     }
 }

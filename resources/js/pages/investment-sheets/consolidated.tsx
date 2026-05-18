@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckCircle2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Eye, FileText, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { Banknote, Building2, CheckCircle2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileText, Inbox, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
@@ -122,6 +122,36 @@ type AuthorizedPaymentsGroup = {
     payments: AuthorizedPayment[];
 };
 
+type HistoryPayment = {
+    id: number;
+    uuid: string;
+    folio_number: number;
+    provider: string;
+    rfc: string | null;
+    concept_name: string;
+    concept_folio: number | null;
+    branch: string;
+    payment_type: string;
+    description: string | null;
+    currency_prefix: string;
+    subtotal: string;
+    iva: string;
+    total: string;
+    approved_amount: string | null;
+    was_adjusted: boolean;
+    status: string;
+    is_legacy: boolean;
+    ceo_rejection_reason: string | null;
+    pm_rejection_reason: string | null;
+    final_rejection_reason: string | null;
+    created_at: string | null;
+    ceo_reviewed_at: string | null;
+    pm_reviewed_at: string | null;
+    final_reviewed_at: string | null;
+    has_documents: boolean;
+    documents: string[];
+};
+
 type PageProps = {
     project: {
         id: number;
@@ -144,6 +174,7 @@ type PageProps = {
     errors: Record<string, string>;
     draftBatch: DraftBatch | null;
     authorizedPayments: AuthorizedPaymentsGroup;
+    userPaymentHistory: HistoryPayment[];
 };
 
 const statusColors: Record<string, string> = {
@@ -212,7 +243,7 @@ export default function Consolidated() {
 
     const {
         project, totals, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, currencies, branches, errors, draftBatch, authorizedPayments,
+        userDepartmentId, currencies, branches, errors, draftBatch, authorizedPayments, userPaymentHistory,
     } = usePage<PageProps>().props;
 
     const [search, setSearch] = useState(filters.search ?? '');
@@ -309,6 +340,116 @@ export default function Consolidated() {
         setUploadDialogUuid(null);
         setUploadPdf(null);
         setUploadXml(null);
+    };
+
+    // Historial de pagos — estado de filtros + paginación + drawer
+    const [historySearch, setHistorySearch] = useState('');
+    const [historyStatus, setHistoryStatus] = useState<string>('all');
+    const [historyDateFrom, setHistoryDateFrom] = useState('');
+    const [historyDateTo, setHistoryDateTo] = useState('');
+    const [historyQuickFilter, setHistoryQuickFilter] = useState<'all' | 'in_process' | 'completed' | 'rejected'>('all');
+    const [historyPage, setHistoryPage] = useState(1);
+    const [historyDetailUuid, setHistoryDetailUuid] = useState<string | null>(null);
+    const HISTORY_PER_PAGE = 20;
+
+    const historyStatusGroups: Record<'in_process' | 'completed' | 'rejected', string[]> = {
+        in_process: ['submitted', 'ceo_approved', 'projectmanager_review', 'projectmanager_approved', 'final_pending', 'documents_pending', 'pending_approval'],
+        completed: ['final_approved', 'completed', 'approved'],
+        rejected: ['ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'rejected'],
+    };
+
+    const historyCounts = {
+        all: userPaymentHistory.length,
+        in_process: userPaymentHistory.filter((p) => historyStatusGroups.in_process.includes(p.status)).length,
+        completed: userPaymentHistory.filter((p) => historyStatusGroups.completed.includes(p.status)).length,
+        rejected: userPaymentHistory.filter((p) => historyStatusGroups.rejected.includes(p.status)).length,
+    };
+
+    const filteredHistory = userPaymentHistory.filter((p) => {
+        // Quick filter chip
+        if (historyQuickFilter !== 'all' && ! historyStatusGroups[historyQuickFilter].includes(p.status)) {
+            return false;
+        }
+        // Status filter dropdown
+        if (historyStatus !== 'all' && p.status !== historyStatus) {
+            return false;
+        }
+        // Date range
+        if (historyDateFrom && p.created_at && p.created_at.slice(0, 10) < historyDateFrom) {
+            return false;
+        }
+        if (historyDateTo && p.created_at && p.created_at.slice(0, 10) > historyDateTo) {
+            return false;
+        }
+        // Free search (folio, provider, concept)
+        if (historySearch) {
+            const q = historySearch.toLowerCase();
+            const folioStr = String(p.folio_number).padStart(5, '0');
+            if (
+                !folioStr.includes(q)
+                && !p.provider.toLowerCase().includes(q)
+                && !p.concept_name.toLowerCase().includes(q)
+            ) {
+                return false;
+            }
+        }
+        return true;
+    });
+
+    const historyTotalPages = Math.max(1, Math.ceil(filteredHistory.length / HISTORY_PER_PAGE));
+    const historyCurrentPage = Math.min(historyPage, historyTotalPages);
+    const paginatedHistory = filteredHistory.slice(
+        (historyCurrentPage - 1) * HISTORY_PER_PAGE,
+        historyCurrentPage * HISTORY_PER_PAGE,
+    );
+
+    const clearHistoryFilters = () => {
+        setHistorySearch('');
+        setHistoryStatus('all');
+        setHistoryDateFrom('');
+        setHistoryDateTo('');
+        setHistoryQuickFilter('all');
+        setHistoryPage(1);
+    };
+
+    const hasActiveHistoryFilters = historySearch !== '' || historyStatus !== 'all' || historyDateFrom !== '' || historyDateTo !== '' || historyQuickFilter !== 'all';
+
+    const selectedHistoryPayment = historyDetailUuid
+        ? userPaymentHistory.find((p) => p.uuid === historyDetailUuid)
+        : null;
+
+    const historyStatusLabel = (status: string): string => {
+        const labels: Record<string, string> = {
+            draft: 'Borrador',
+            submitted: 'Enviado',
+            ceo_approved: 'CEO Aprobó',
+            ceo_rejected: 'CEO Rechazó',
+            projectmanager_review: 'En revisión PM',
+            projectmanager_approved: 'PM Aprobó',
+            projectmanager_rejected: 'PM Rechazó',
+            final_pending: 'Pendiente Final',
+            final_approved: 'Aprobado Final',
+            final_rejected: 'Rechazado Final',
+            documents_pending: 'Esperando docs',
+            completed: 'Completado',
+            approved: 'Aprobado',
+            rejected: 'Rechazado',
+            pending_approval: 'Pendiente',
+        };
+        return labels[status] ?? status;
+    };
+
+    const historyStatusColorClass = (status: string): string => {
+        if (historyStatusGroups.completed.includes(status)) {
+            return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        }
+        if (historyStatusGroups.rejected.includes(status)) {
+            return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        }
+        if (historyStatusGroups.in_process.includes(status)) {
+            return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        }
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
     };
 
     const selectedDraftTotal = (draftBatch?.payments ?? [])
@@ -854,7 +995,419 @@ export default function Consolidated() {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Payment History Card */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Historial de Pagos</CardTitle>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Todos los pagos que has solicitado para este proyecto, en cualquier etapa del flujo. Los borradores aparecen en la tarjeta "Pagos en Borrador".
+                        </p>
+                    </CardHeader>
+                    <CardContent>
+                        {/* Filtros */}
+                        <div className="flex flex-wrap items-end gap-3 mb-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Buscar</label>
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                    <Input
+                                        className="pl-8 w-64"
+                                        placeholder="Folio, proveedor o concepto..."
+                                        value={historySearch}
+                                        onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Status</label>
+                                <Select value={historyStatus} onValueChange={(v) => { setHistoryStatus(v); setHistoryPage(1); }}>
+                                    <SelectTrigger className="w-48">
+                                        <SelectValue placeholder="Todos" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todos</SelectItem>
+                                        <SelectItem value="submitted">Enviado</SelectItem>
+                                        <SelectItem value="ceo_approved">CEO Aprobó (1ra)</SelectItem>
+                                        <SelectItem value="ceo_rejected">CEO Rechazó (1ra)</SelectItem>
+                                        <SelectItem value="projectmanager_approved">PM Aprobó</SelectItem>
+                                        <SelectItem value="projectmanager_rejected">PM Rechazó</SelectItem>
+                                        <SelectItem value="final_approved">Aprobado Final</SelectItem>
+                                        <SelectItem value="final_rejected">Rechazado Final</SelectItem>
+                                        <SelectItem value="completed">Completado</SelectItem>
+                                        <SelectItem value="approved">Aprobado (Legacy)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Desde</label>
+                                <Input
+                                    type="date"
+                                    className="w-40"
+                                    value={historyDateFrom}
+                                    onChange={(e) => { setHistoryDateFrom(e.target.value); setHistoryPage(1); }}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Hasta</label>
+                                <Input
+                                    type="date"
+                                    className="w-40"
+                                    value={historyDateTo}
+                                    onChange={(e) => { setHistoryDateTo(e.target.value); setHistoryPage(1); }}
+                                />
+                            </div>
+                            {hasActiveHistoryFilters && (
+                                <Button variant="ghost" size="icon" onClick={clearHistoryFilters} className="shrink-0" title="Limpiar filtros">
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+
+                        {/* Quick filter chips */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {([
+                                { key: 'all', label: 'Todos', count: historyCounts.all },
+                                { key: 'in_process', label: 'En proceso', count: historyCounts.in_process },
+                                { key: 'completed', label: 'Completados', count: historyCounts.completed },
+                                { key: 'rejected', label: 'Rechazados', count: historyCounts.rejected },
+                            ] as const).map((chip) => (
+                                <button
+                                    key={chip.key}
+                                    type="button"
+                                    onClick={() => { setHistoryQuickFilter(chip.key); setHistoryPage(1); }}
+                                    className={cn(
+                                        'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                                        historyQuickFilter === chip.key
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700',
+                                    )}
+                                >
+                                    {chip.label} ({chip.count})
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Tabla */}
+                        {filteredHistory.length === 0 ? (
+                            <div className="rounded-md border border-dashed py-12 text-center">
+                                <Inbox className="mx-auto mb-2 h-10 w-10 text-gray-300 dark:text-gray-600" />
+                                <p className="text-sm text-muted-foreground">
+                                    {hasActiveHistoryFilters
+                                        ? 'No hay pagos que coincidan con los filtros aplicados.'
+                                        : userPaymentHistory.length === 0
+                                            ? 'Aún no has solicitado ningún pago para este proyecto.'
+                                            : 'Sin resultados.'}
+                                </p>
+                                {hasActiveHistoryFilters && (
+                                    <Button variant="link" onClick={clearHistoryFilters} className="mt-2 text-xs">
+                                        Limpiar filtros
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-50 dark:bg-gray-800">
+                                            <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Folio</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Fecha</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Solicitado</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Aprobado</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Status</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                            {paginatedHistory.map((payment) => (
+                                                <tr key={payment.uuid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                                    <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
+                                                        #{String(payment.folio_number).padStart(5, '0')}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">
+                                                        {payment.created_at
+                                                            ? new Date(payment.created_at).toLocaleDateString('es-MX', {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric',
+                                                            })
+                                                            : '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.concept_name}>
+                                                        {payment.concept_name}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[180px] truncate" title={payment.provider}>
+                                                        {payment.provider}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-mono text-sm border-r border-gray-100 dark:border-gray-800">
+                                                        {formatCurrency(payment.total)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-mono text-sm border-r border-gray-100 dark:border-gray-800">
+                                                        {payment.approved_amount !== null ? (
+                                                            <>
+                                                                {formatCurrency(payment.approved_amount)}
+                                                                {payment.was_adjusted && (
+                                                                    <div className="text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                                                                        ajustado
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-gray-400">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-r border-gray-100 dark:border-gray-800">
+                                                        <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium', historyStatusColorClass(payment.status))}>
+                                                            {historyStatusLabel(payment.status)}
+                                                        </span>
+                                                        {payment.is_legacy && (
+                                                            <div className="mt-0.5 text-[10px] text-gray-400">Flujo anterior</div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => setHistoryDetailUuid(payment.uuid)}
+                                                        >
+                                                            <Eye className="mr-1 h-3.5 w-3.5" />
+                                                            Ver
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Paginación */}
+                                <div className="mt-4 flex items-center justify-between">
+                                    <div className="text-xs text-muted-foreground">
+                                        Mostrando {(historyCurrentPage - 1) * HISTORY_PER_PAGE + 1}-{Math.min(historyCurrentPage * HISTORY_PER_PAGE, filteredHistory.length)} de {filteredHistory.length} pagos
+                                    </div>
+                                    {historyTotalPages > 1 && (
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={historyCurrentPage === 1}
+                                                onClick={() => setHistoryPage(historyCurrentPage - 1)}
+                                            >
+                                                «
+                                            </Button>
+                                            <span className="text-xs text-muted-foreground">
+                                                Página {historyCurrentPage} de {historyTotalPages}
+                                            </span>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={historyCurrentPage === historyTotalPages}
+                                                onClick={() => setHistoryPage(historyCurrentPage + 1)}
+                                            >
+                                                »
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
+
+            {/* History payment detail drawer */}
+            <Sheet open={historyDetailUuid !== null} onOpenChange={(v) => { if (!v) setHistoryDetailUuid(null); }}>
+                <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
+                    {selectedHistoryPayment && (
+                        <>
+                            <SheetHeader>
+                                <SheetTitle>
+                                    Pago #{String(selectedHistoryPayment.folio_number).padStart(5, '0')}
+                                </SheetTitle>
+                                <SheetDescription>
+                                    {selectedHistoryPayment.concept_name}
+                                </SheetDescription>
+                            </SheetHeader>
+
+                            <div className="space-y-5 px-4 pb-6">
+                                {/* Status banner */}
+                                <div className={cn('rounded-md px-3 py-2 text-center font-semibold text-sm', historyStatusColorClass(selectedHistoryPayment.status))}>
+                                    {historyStatusLabel(selectedHistoryPayment.status)}
+                                    {selectedHistoryPayment.is_legacy && (
+                                        <span className="ml-1 text-xs font-normal opacity-75">(Flujo anterior)</span>
+                                    )}
+                                </div>
+
+                                {/* Información del pago */}
+                                <div className="space-y-3 rounded-lg border p-4">
+                                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Información del Pago</h3>
+                                    <dl className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <dt className="text-muted-foreground">Proveedor</dt>
+                                            <dd className="font-medium text-right">{selectedHistoryPayment.provider}</dd>
+                                        </div>
+                                        {selectedHistoryPayment.rfc && (
+                                            <div className="flex justify-between">
+                                                <dt className="text-muted-foreground">RFC</dt>
+                                                <dd className="font-mono text-xs">{selectedHistoryPayment.rfc}</dd>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between">
+                                            <dt className="text-muted-foreground">Sucursal</dt>
+                                            <dd className="font-medium">{selectedHistoryPayment.branch}</dd>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <dt className="text-muted-foreground">Tipo</dt>
+                                            <dd className="font-medium capitalize">{selectedHistoryPayment.payment_type}</dd>
+                                        </div>
+                                        {selectedHistoryPayment.description && (
+                                            <div>
+                                                <dt className="text-muted-foreground mb-1">Descripción</dt>
+                                                <dd className="text-sm">{selectedHistoryPayment.description}</dd>
+                                            </div>
+                                        )}
+                                    </dl>
+                                </div>
+
+                                {/* Montos */}
+                                <div className="space-y-3 rounded-lg border p-4">
+                                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Montos</h3>
+                                    <dl className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <dt className="text-muted-foreground">Subtotal</dt>
+                                            <dd className="font-mono">{formatCurrency(selectedHistoryPayment.subtotal)}</dd>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <dt className="text-muted-foreground">IVA</dt>
+                                            <dd className="font-mono">{formatCurrency(selectedHistoryPayment.iva)}</dd>
+                                        </div>
+                                        <div className="flex justify-between border-t pt-2">
+                                            <dt className="font-semibold">Total solicitado</dt>
+                                            <dd className="font-mono font-semibold">{formatCurrency(selectedHistoryPayment.total)} {selectedHistoryPayment.currency_prefix}</dd>
+                                        </div>
+                                        {selectedHistoryPayment.approved_amount !== null && (
+                                            <div className="flex justify-between">
+                                                <dt className="font-semibold text-amber-700 dark:text-amber-400">
+                                                    Monto aprobado por PM
+                                                </dt>
+                                                <dd className="font-mono font-semibold text-amber-700 dark:text-amber-400">
+                                                    {formatCurrency(selectedHistoryPayment.approved_amount)}
+                                                    {selectedHistoryPayment.was_adjusted && (
+                                                        <div className="text-[10px] font-normal text-amber-600 dark:text-amber-500">
+                                                            ajustado desde {formatCurrency(selectedHistoryPayment.total)}
+                                                        </div>
+                                                    )}
+                                                </dd>
+                                            </div>
+                                        )}
+                                    </dl>
+                                </div>
+
+                                {/* Timeline */}
+                                {!selectedHistoryPayment.is_legacy && (
+                                    <div className="space-y-3 rounded-lg border p-4">
+                                        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Timeline del Flujo</h3>
+                                        <ul className="space-y-2 text-sm">
+                                            <li className="flex items-center gap-2">
+                                                <CheckIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                                <span className="text-muted-foreground">Capturado:</span>
+                                                <span className="ml-auto text-xs">
+                                                    {selectedHistoryPayment.created_at
+                                                        ? new Date(selectedHistoryPayment.created_at).toLocaleString('es-MX')
+                                                        : '—'}
+                                                </span>
+                                            </li>
+                                            {selectedHistoryPayment.ceo_reviewed_at && (
+                                                <li className="flex items-center gap-2">
+                                                    <CheckIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                                    <span className="text-muted-foreground">CEO revisó:</span>
+                                                    <span className="ml-auto text-xs">
+                                                        {new Date(selectedHistoryPayment.ceo_reviewed_at).toLocaleString('es-MX')}
+                                                    </span>
+                                                </li>
+                                            )}
+                                            {selectedHistoryPayment.pm_reviewed_at && (
+                                                <li className="flex items-center gap-2">
+                                                    <CheckIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                                    <span className="text-muted-foreground">PM revisó:</span>
+                                                    <span className="ml-auto text-xs">
+                                                        {new Date(selectedHistoryPayment.pm_reviewed_at).toLocaleString('es-MX')}
+                                                    </span>
+                                                </li>
+                                            )}
+                                            {selectedHistoryPayment.final_reviewed_at && (
+                                                <li className="flex items-center gap-2">
+                                                    <CheckIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                                    <span className="text-muted-foreground">CEO aprobación final:</span>
+                                                    <span className="ml-auto text-xs">
+                                                        {new Date(selectedHistoryPayment.final_reviewed_at).toLocaleString('es-MX')}
+                                                    </span>
+                                                </li>
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {/* Motivo de rechazo */}
+                                {(selectedHistoryPayment.ceo_rejection_reason
+                                    || selectedHistoryPayment.pm_rejection_reason
+                                    || selectedHistoryPayment.final_rejection_reason) && (
+                                    <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+                                        <h3 className="text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-400">Motivo del Rechazo</h3>
+                                        {selectedHistoryPayment.ceo_rejection_reason && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-red-700 dark:text-red-400">CEO Primera revisión</p>
+                                                <p className="text-sm text-red-900 dark:text-red-300">{selectedHistoryPayment.ceo_rejection_reason}</p>
+                                            </div>
+                                        )}
+                                        {selectedHistoryPayment.pm_rejection_reason && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-red-700 dark:text-red-400">Project Manager</p>
+                                                <p className="text-sm text-red-900 dark:text-red-300">{selectedHistoryPayment.pm_rejection_reason}</p>
+                                            </div>
+                                        )}
+                                        {selectedHistoryPayment.final_rejection_reason && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-red-700 dark:text-red-400">CEO Aprobación Final</p>
+                                                <p className="text-sm text-red-900 dark:text-red-300">{selectedHistoryPayment.final_rejection_reason}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Documentos */}
+                                {selectedHistoryPayment.has_documents && selectedHistoryPayment.documents.length > 0 && (
+                                    <div className="space-y-3 rounded-lg border p-4">
+                                        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Documentos</h3>
+                                        <ul className="space-y-2">
+                                            {selectedHistoryPayment.documents.map((doc, i) => {
+                                                const filename = doc.split('/').pop() ?? doc;
+                                                const ext = filename.split('.').pop()?.toUpperCase() ?? 'DOC';
+                                                return (
+                                                    <li key={i} className="flex items-center gap-2 rounded-md border px-3 py-2">
+                                                        <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                        <a
+                                                            href={`/storage/${doc}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex-1 text-sm font-medium text-primary hover:underline truncate"
+                                                        >
+                                                            Descargar {ext}
+                                                        </a>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </SheetContent>
+            </Sheet>
 
             {/* Upload documents dialog */}
             <Dialog open={uploadDialogUuid !== null} onOpenChange={(open) => { if (!open) closeUploadDialog(); }}>
