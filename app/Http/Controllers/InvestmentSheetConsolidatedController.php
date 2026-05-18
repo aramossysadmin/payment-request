@@ -131,6 +131,28 @@ class InvestmentSheetConsolidatedController extends Controller
                 ])
             : collect();
 
+        $authorizedPayments = InvestmentPaymentRequest::query()
+            ->whereIn('status', ['final_approved', 'completed'])
+            ->where('user_id', $user->id)
+            ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
+            ->whereHas('batch', fn ($q) => $q->where('week_number', $currentWeek)->where('year', $currentYear))
+            ->with(['currency', 'investmentRequest.investmentExpenseConcept'])
+            ->latest()
+            ->get()
+            ->map(fn (InvestmentPaymentRequest $p) => [
+                'id' => $p->id,
+                'uuid' => $p->uuid,
+                'folio_number' => $p->folio_number,
+                'provider' => $p->provider,
+                'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
+                'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                'total' => (string) $p->total,
+                'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : (string) $p->total,
+                'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
+                'status' => $p->status,
+                'has_documents' => is_array($p->advance_documents) && count($p->advance_documents) >= 2,
+            ]);
+
         return Inertia::render('investment-sheets/consolidated', [
             'project' => [
                 'id' => $project->id,
@@ -166,6 +188,11 @@ class InvestmentSheetConsolidatedController extends Controller
                 'payments' => $draftPayments,
                 'total' => number_format((float) $draftPayments->sum(fn ($p) => (float) $p['total']), 2, '.', ''),
             ] : null,
+            'authorizedPayments' => [
+                'week_number' => $currentWeek,
+                'year' => $currentYear,
+                'payments' => $authorizedPayments,
+            ],
         ]);
     }
 }

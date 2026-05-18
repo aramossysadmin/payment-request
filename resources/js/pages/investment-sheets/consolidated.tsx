@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Eye, FileText, Search, Send, Trash2, X, XCircle } from 'lucide-react';
+import { Banknote, Building2, CheckCircle2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Eye, FileText, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
@@ -102,6 +102,26 @@ type DraftBatch = {
     total: string;
 };
 
+type AuthorizedPayment = {
+    id: number;
+    uuid: string;
+    folio_number: number;
+    provider: string;
+    concept_name: string;
+    currency_prefix: string;
+    total: string;
+    approved_amount: string;
+    was_adjusted: boolean;
+    status: string;
+    has_documents: boolean;
+};
+
+type AuthorizedPaymentsGroup = {
+    week_number: number;
+    year: number;
+    payments: AuthorizedPayment[];
+};
+
 type PageProps = {
     project: {
         id: number;
@@ -123,6 +143,7 @@ type PageProps = {
     branches: Branch[];
     errors: Record<string, string>;
     draftBatch: DraftBatch | null;
+    authorizedPayments: AuthorizedPaymentsGroup;
 };
 
 const statusColors: Record<string, string> = {
@@ -191,7 +212,7 @@ export default function Consolidated() {
 
     const {
         project, totals, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, currencies, branches, errors, draftBatch,
+        userDepartmentId, currencies, branches, errors, draftBatch, authorizedPayments,
     } = usePage<PageProps>().props;
 
     const [search, setSearch] = useState(filters.search ?? '');
@@ -253,6 +274,41 @@ export default function Consolidated() {
                 onFinish: () => setSubmittingBatch(false),
             },
         );
+    };
+
+    const [uploadDialogUuid, setUploadDialogUuid] = useState<string | null>(null);
+    const [uploadPdf, setUploadPdf] = useState<File | null>(null);
+    const [uploadXml, setUploadXml] = useState<File | null>(null);
+    const [uploading, setUploading] = useState(false);
+
+    const handleUploadDocuments = () => {
+        if (!uploadDialogUuid || !uploadPdf || !uploadXml) return;
+        setUploading(true);
+
+        const formData = new FormData();
+        formData.append('pdf', uploadPdf);
+        formData.append('xml', uploadXml);
+
+        router.post(
+            `/investment-payment-requests/${uploadDialogUuid}/upload-documents`,
+            formData,
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    setUploadDialogUuid(null);
+                    setUploadPdf(null);
+                    setUploadXml(null);
+                },
+                onFinish: () => setUploading(false),
+            },
+        );
+    };
+
+    const closeUploadDialog = () => {
+        setUploadDialogUuid(null);
+        setUploadPdf(null);
+        setUploadXml(null);
     };
 
     const selectedDraftTotal = (draftBatch?.payments ?? [])
@@ -735,7 +791,123 @@ export default function Consolidated() {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Authorized Payments Card */}
+                {authorizedPayments && authorizedPayments.payments.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Pagos Autorizados — Semana {authorizedPayments.week_number} ({authorizedPayments.year})</CardTitle>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Solo se muestran los pagos autorizados de la semana en curso. Sube los documentos PDF y XML de cada uno para finalizar.
+                            </p>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50 dark:bg-gray-800">
+                                        <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Folio</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Monto a pagar</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Documentos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {authorizedPayments.payments.map((payment) => (
+                                            <tr key={payment.uuid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                                <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
+                                                    #{String(payment.folio_number).padStart(5, '0')}
+                                                </td>
+                                                <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
+                                                <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
+                                                    {formatCurrency(payment.approved_amount)} <span className="text-xs text-gray-500">{payment.currency_prefix}</span>
+                                                    {payment.was_adjusted && (
+                                                        <div className="mt-0.5 text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                                                            ajustado por PM
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    {payment.status === 'completed' ? (
+                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400">
+                                                            <CheckCircle2 className="h-4 w-4" />
+                                                            Documentos subidos
+                                                        </span>
+                                                    ) : (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => setUploadDialogUuid(payment.uuid)}
+                                                        >
+                                                            <Upload className="mr-1.5 h-3.5 w-3.5" />
+                                                            Subir documentos
+                                                        </Button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
+
+            {/* Upload documents dialog */}
+            <Dialog open={uploadDialogUuid !== null} onOpenChange={(open) => { if (!open) closeUploadDialog(); }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Subir documentos del pago</DialogTitle>
+                        <DialogDescription>
+                            Adjunta el PDF y el XML del pago. Ambos archivos son obligatorios y máximo 10 MB cada uno.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="upload-pdf">
+                                Archivo PDF <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="upload-pdf"
+                                type="file"
+                                accept=".pdf,application/pdf"
+                                onChange={(e) => setUploadPdf(e.target.files?.[0] ?? null)}
+                            />
+                            {uploadPdf && (
+                                <p className="text-xs text-muted-foreground">Seleccionado: {uploadPdf.name}</p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="upload-xml">
+                                Archivo XML <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="upload-xml"
+                                type="file"
+                                accept=".xml,application/xml,text/xml"
+                                onChange={(e) => setUploadXml(e.target.files?.[0] ?? null)}
+                            />
+                            {uploadXml && (
+                                <p className="text-xs text-muted-foreground">Seleccionado: {uploadXml.name}</p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-4">
+                        <Button variant="outline" onClick={closeUploadDialog} disabled={uploading}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleUploadDocuments}
+                            disabled={!uploadPdf || !uploadXml || uploading}
+                        >
+                            {uploading ? 'Subiendo...' : 'Subir documentos'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Delete draft payment confirmation */}
             <Dialog open={deleteConfirmUuid !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmUuid(null); }}>

@@ -6,6 +6,7 @@ use App\Http\Controllers\EmailApprovalController;
 use App\Http\Controllers\InvestmentBatchApprovalController;
 use App\Http\Controllers\InvestmentDashboardController;
 use App\Http\Controllers\InvestmentPaymentBatchController;
+use App\Http\Controllers\InvestmentPaymentDocumentController;
 use App\Http\Controllers\InvestmentPaymentRequestController;
 use App\Http\Controllers\InvestmentPaymentReviewController;
 use App\Http\Controllers\InvestmentRequestApprovalController;
@@ -58,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('investment-payment-requests', [InvestmentPaymentRequestController::class, 'store'])->name('investment-payment-requests.store');
     Route::delete('investment-payment-batches/payments/{payment:uuid}', [InvestmentPaymentBatchController::class, 'destroyPayment'])->name('investment-payment-batches.destroy-payment');
     Route::post('investment-payment-batches/{batch:uuid}/submit', [InvestmentPaymentBatchController::class, 'submit'])->name('investment-payment-batches.submit');
+    Route::post('investment-payment-requests/{payment:uuid}/upload-documents', [InvestmentPaymentDocumentController::class, 'upload'])->name('investment-payment-requests.upload-documents');
 
     Route::middleware('role:project_manager|super_admin')->group(function () {
         Route::get('investment-payment-review', [InvestmentPaymentReviewController::class, 'index'])->name('investment-payment-review.index');

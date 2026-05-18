@@ -256,8 +256,13 @@ class InvestmentBatchApprovalController extends Controller
                 $rejectedCount++;
             }
 
+            $adjustedAmount = null;
+            if ($stage === 'final_approved' && $payment->approved_amount !== null && (float) $payment->approved_amount < (float) $payment->total) {
+                $adjustedAmount = number_format((float) $payment->approved_amount, 2, '.', '');
+            }
+
             if ($payment->user) {
-                $payment->user->notify(new InvestmentPaymentStatusNotification($payment, $stage, $reason));
+                $payment->user->notify(new InvestmentPaymentStatusNotification($payment, $stage, $reason, $adjustedAmount));
             }
         }
 
