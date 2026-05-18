@@ -145,6 +145,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'folio_number' => $p->folio_number,
                 'provider' => $p->provider,
                 'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
+                'description' => $p->description,
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                 'total' => (string) $p->total,
                 'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : (string) $p->total,

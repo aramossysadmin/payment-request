@@ -241,13 +241,18 @@ class InvestmentRequestResource extends Resource
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('week_number')
                     ->label('Semana de registro')
-                    ->getStateUsing(fn (InvestmentRequest $record): string => 'Semana ' . $record->created_at->weekOfYear)
+                    ->getStateUsing(fn (InvestmentRequest $record): string => 'Semana '.$record->created_at->weekOfYear)
                     ->sortable(query: fn ($query, $direction) => $query->orderByRaw("strftime('%W', created_at) $direction"))
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('investmentExpenseConcept.name')
                     ->label('Concepto')
                     ->sortable()
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('description')
+                    ->label('Descripción')
+                    ->limit(50)
+                    ->tooltip(fn (?string $state): ?string => $state)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('subtotal')
                     ->label('Subtotal')
                     ->numeric(decimalPlaces: 2, thousandsSeparator: ',', decimalSeparator: '.')

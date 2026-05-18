@@ -108,6 +108,7 @@ type AuthorizedPayment = {
     folio_number: number;
     provider: string;
     concept_name: string;
+    description: string | null;
     currency_prefix: string;
     total: string;
     approved_amount: string;
@@ -711,6 +712,7 @@ export default function Consolidated() {
                                             <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
                                                 <th className="px-3 py-3 font-semibold whitespace-nowrap w-8"></th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto de Inversión</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Descripción</th>
                                                 {showProvider && <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>}
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Departamento</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Presupuesto</th>
@@ -753,6 +755,9 @@ export default function Consolidated() {
                                                                         Aditiva
                                                                     </Badge>
                                                                 )}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={isSingle ? (firstItem.description ?? undefined) : undefined}>
+                                                                {isSingle && firstItem.description ? firstItem.description : <span className="text-gray-400">—</span>}
                                                             </td>
                                                             {showProvider && (
                                                             <td className="px-4 py-3 border-r border-gray-100 dark:border-gray-800">
@@ -823,6 +828,9 @@ export default function Consolidated() {
                                                                             {ir.status.label}
                                                                         </Badge>
                                                                     </div>
+                                                                </td>
+                                                                <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={ir.description ?? undefined}>
+                                                                    {ir.description ? ir.description : <span className="text-gray-400">—</span>}
                                                                 </td>
                                                                 {showProvider && (
                                                                 <td className="px-4 py-2.5 border-r border-gray-100 dark:border-gray-800">
@@ -949,6 +957,7 @@ export default function Consolidated() {
                                         <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Folio</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Descripción</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Monto a pagar</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Documentos</th>
@@ -961,6 +970,9 @@ export default function Consolidated() {
                                                     #{String(payment.folio_number).padStart(5, '0')}
                                                 </td>
                                                 <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.description ?? undefined}>
+                                                    {payment.description ? payment.description : <span className="text-gray-400">—</span>}
+                                                </td>
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
                                                 <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
                                                     {formatCurrency(payment.approved_amount)} <span className="text-xs text-gray-500">{payment.currency_prefix}</span>
@@ -1114,6 +1126,7 @@ export default function Consolidated() {
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Folio</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Fecha</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Descripción</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Solicitado</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Aprobado</th>
@@ -1138,6 +1151,9 @@ export default function Consolidated() {
                                                     </td>
                                                     <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.concept_name}>
                                                         {payment.concept_name}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.description ?? undefined}>
+                                                        {payment.description ? payment.description : <span className="text-gray-400">—</span>}
                                                     </td>
                                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[180px] truncate" title={payment.provider}>
                                                         {payment.provider}
