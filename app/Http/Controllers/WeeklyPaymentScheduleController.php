@@ -20,8 +20,13 @@ class WeeklyPaymentScheduleController extends Controller
         $currentWeek = (int) Carbon::now()->weekOfYear;
         $currentYear = (int) Carbon::now()->year;
 
+        // Solo se programan pagos completamente listos:
+        // - 'approved': pagos del flujo anterior (legacy, 103 históricos)
+        // - 'completed': pagos del flujo nuevo CON documentos cargados
+        // Si en el futuro se permite programar sin documentos,
+        // agregar 'final_approved' a este array.
         $payments = InvestmentPaymentRequest::query()
-            ->where('status', 'approved')
+            ->whereIn('status', ['approved', 'completed'])
             ->whereNotNull('payment_provision_date')
             ->with([
                 'investmentRequest.project',
@@ -37,7 +42,9 @@ class WeeklyPaymentScheduleController extends Controller
                 'project_name' => $p->investmentRequest?->project?->name ?? '-',
                 'payment_provision_date' => $p->payment_provision_date?->format('Y-m-d'),
                 'payment_week_number' => $p->payment_week_number,
-                'total' => (string) $p->total,
+                // Usa el monto aprobado por PM si existe (flujo nuevo),
+                // si no, cae al total original (flujo anterior).
+                'total' => (string) ($p->approved_amount ?? $p->total),
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                 'description' => $p->description,
             ]);
@@ -57,7 +64,7 @@ class WeeklyPaymentScheduleController extends Controller
                 'created_at' => $s->created_at?->toISOString(),
                 'items_count' => $s->items->count(),
                 'included_count' => $s->items->where('included', true)->count(),
-                'total_amount' => $s->items->where('included', true)->sum(fn ($item) => (float) ($item->investmentPaymentRequest?->total ?? 0)),
+                'total_amount' => $s->items->where('included', true)->sum(fn ($item) => (float) ($item->investmentPaymentRequest?->approved_amount ?? $item->investmentPaymentRequest?->total ?? 0)),
                 'approval_status' => $s->approvals->first()?->status ?? 'pending',
             ]);
 

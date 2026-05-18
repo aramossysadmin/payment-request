@@ -4,6 +4,7 @@ use App\Models\Branch;
 use App\Models\Currency;
 use App\Models\Department;
 use App\Models\InvestmentRequest;
+use App\Models\Project;
 use App\Models\User;
 use App\States\InvestmentRequest\Completed;
 use Illuminate\Support\Carbon;
@@ -12,6 +13,7 @@ beforeEach(function () {
     $this->department = Department::factory()->create();
     $this->currency = Currency::factory()->create();
     $this->branch = Branch::factory()->create();
+    $this->project = Project::factory()->create();
     $this->user = User::factory()->create(['department_id' => $this->department->id]);
 
     $this->investmentRequest = InvestmentRequest::factory()->create([
@@ -19,6 +21,7 @@ beforeEach(function () {
         'department_id' => $this->department->id,
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
+        'project_id' => $this->project->id,
         'status' => Completed::$name,
         'total' => 100000,
     ]);
