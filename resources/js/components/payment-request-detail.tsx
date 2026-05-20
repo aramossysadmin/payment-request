@@ -420,7 +420,7 @@ export function PaymentRequestDetail({
                                         >
                                             <Download className="size-4 shrink-0 text-muted-foreground" />
                                             <a
-                                                href={`/storage/${doc}`}
+                                                href={`${baseUrl}/${pr.uuid}/documents/${index}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-sm font-medium text-primary hover:underline"

@@ -17,6 +17,7 @@ use App\Http\Controllers\InvestmentSheetConsolidatedIndexController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestApprovalController;
 use App\Http\Controllers\PaymentRequestController;
+use App\Http\Controllers\PaymentRequestDocumentController;
 use App\Http\Controllers\PaymentRequestPdfController;
 use App\Http\Controllers\ProviderSearchController;
 use App\Http\Controllers\WeeklyPaymentScheduleController;
@@ -51,6 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('payment-requests/{payment_request}/reject', [PaymentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('payment-requests.reject');
     Route::patch('payment-requests/{payment_request}/sap-folios', [PaymentRequestApprovalController::class, 'updateSapFolios'])->name('payment-requests.sap-folios');
     Route::get('payment-requests/{payment_request}/pdf', PaymentRequestPdfController::class)->name('payment-requests.pdf');
+    Route::get('payment-requests/{payment_request}/documents/{index}', PaymentRequestDocumentController::class)->whereNumber('index')->name('payment-requests.documents');
 
     Route::get('investment-dashboard', InvestmentDashboardController::class)->name('investment-dashboard');
     Route::get('investment-sheets/consolidated', InvestmentSheetConsolidatedIndexController::class)->name('investment-sheets.consolidated.index');
