@@ -30,3 +30,6 @@ yarn-error.log
 phpunit.xml
 .env.testing
 .claude/PENDIENTES.md
+.claude/BITACORA-COMMITS.md
+.claude/PLAN-FLUJO-PAGOS-INVERSION.md
+.claude/settings.local.json
