@@ -31,5 +31,5 @@ phpunit.xml
 .env.testing
 .claude/PENDIENTES.md
 .claude/BITACORA-COMMITS.md
-.claude/PLAN-FLUJO-PAGOS-INVERSION.md
+.claude/archive/
 .claude/settings.local.json
