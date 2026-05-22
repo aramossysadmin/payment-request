@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
+use App\Models\User;
+use App\Notifications\InvestmentBatchReadyForReviewNotification;
+use App\Notifications\InvestmentBatchRequesterSummaryNotification;
 use App\Notifications\InvestmentPaymentStatusNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,7 +88,9 @@ class InvestmentBatchApprovalController extends Controller
             ->with('user')
             ->get();
 
-        DB::transaction(function () use ($batch, $payments, $approvedUuids, $rejectionReason) {
+        $hasApproved = $payments->contains(fn ($p) => $approvedUuids->contains($p->uuid));
+
+        DB::transaction(function () use ($batch, $payments, $approvedUuids, $rejectionReason, $hasApproved) {
             foreach ($payments as $payment) {
                 if ($approvedUuids->contains($payment->uuid)) {
                     $payment->update([
@@ -101,8 +106,6 @@ class InvestmentBatchApprovalController extends Controller
                 }
             }
 
-            $hasApproved = $payments->contains(fn ($p) => $approvedUuids->contains($p->uuid));
-
             $batch->update([
                 'status' => $hasApproved ? 'ceo_approved' : 'ceo_rejected',
                 'ceo_reviewed_at' => now(),
@@ -111,24 +114,28 @@ class InvestmentBatchApprovalController extends Controller
             ]);
         });
 
-        // Notify requesters
-        $approvedCount = 0;
-        $rejectedCount = 0;
-
-        foreach ($payments as $payment) {
-            $stage = $approvedUuids->contains($payment->uuid) ? 'ceo_approved' : 'ceo_rejected';
-            $reason = $stage === 'ceo_rejected' ? $rejectionReason : null;
-
-            if ($stage === 'ceo_approved') {
-                $approvedCount++;
-            } else {
-                $rejectedCount++;
+        // Notify each requester with their consolidated summary (1 email per requester)
+        $payments->groupBy('user_id')->each(function ($userPayments) use ($approvedUuids, $rejectionReason) {
+            $user = $userPayments->first()->user;
+            if (! $user) {
+                return;
             }
 
-            if ($payment->user) {
-                $payment->user->notify(new InvestmentPaymentStatusNotification($payment, $stage, $reason));
-            }
+            $approved = $userPayments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->values();
+            $rejected = $userPayments->reject(fn ($p) => $approvedUuids->contains($p->uuid))->values();
+
+            $user->notify(new InvestmentBatchRequesterSummaryNotification($approved, $rejected, $rejectionReason));
+        });
+
+        // Notify project managers with full queue snapshot (role-based, supports rotation and multi-PM)
+        if ($hasApproved) {
+            User::role('project_manager')->get()->each(function ($pm) use ($batch) {
+                $pm->notify(new InvestmentBatchReadyForReviewNotification($batch));
+            });
         }
+
+        $approvedCount = $payments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->count();
+        $rejectedCount = $payments->count() - $approvedCount;
 
         return redirect()->route('investment-batch-approval.success', [
             'approved' => $approvedCount,
