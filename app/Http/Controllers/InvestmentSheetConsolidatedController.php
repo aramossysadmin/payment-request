@@ -187,12 +187,10 @@ class InvestmentSheetConsolidatedController extends Controller
                 'has_documents' => is_array($p->advance_documents) && count($p->advance_documents) >= 2,
             ]);
 
-        // Historial completo de pagos del usuario para el proyecto actual.
+        // Historial de pagos del departamento del usuario para el proyecto actual.
         // Excluye drafts (esos ya aparecen en la tarjeta Pagos en Borrador).
-        // Si en el futuro se desea mostrar pagos del departamento completo,
-        // cambiar where('user_id', $user->id) por where('department_id', $user->department_id).
         $userPaymentHistory = InvestmentPaymentRequest::query()
-            ->where('user_id', $user->id)
+            ->where('department_id', $user->department_id)
             ->where('status', '!=', 'draft')
             ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
             ->with(['currency', 'investmentRequest.investmentExpenseConcept', 'branch'])
@@ -208,6 +206,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'concept_folio' => $p->investmentRequest?->folio_number,
                 'branch' => $p->branch?->name ?? '—',
                 'payment_type' => $p->payment_type,
+                'payment_provision_date' => $p->payment_provision_date?->toDateString(),
                 'description' => $p->description,
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                 'subtotal' => (string) $p->subtotal,
@@ -254,6 +253,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'department_id' => $departmentId,
             ],
             'userDepartmentId' => $user->department_id,
+            'userDepartmentName' => $user->department?->name,
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'draftBatch' => $draftBatch ? [

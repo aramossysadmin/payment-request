@@ -145,6 +145,7 @@ type HistoryPayment = {
     concept_folio: number | null;
     branch: string;
     payment_type: string;
+    payment_provision_date: string | null;
     description: string | null;
     currency_prefix: string;
     subtotal: string;
@@ -182,6 +183,7 @@ type PageProps = {
     investmentRequests: PaginatedData<InvestmentRequest>;
     filters: { search?: string; status?: string; department_id?: string };
     userDepartmentId: number;
+    userDepartmentName: string | null;
     currencies: Currency[];
     branches: Branch[];
     errors: Record<string, string>;
@@ -256,7 +258,7 @@ export default function Consolidated() {
 
     const {
         project, totals, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, currencies, branches, errors, draftBatch, authorizedPayments, userPaymentHistory,
+        userDepartmentId, userDepartmentName, currencies, branches, errors, draftBatch, authorizedPayments, userPaymentHistory,
     } = usePage<PageProps>().props;
 
     const [search, setSearch] = useState(filters.search ?? '');
@@ -1062,9 +1064,9 @@ export default function Consolidated() {
                 {/* Payment History Card */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Historial de Pagos</CardTitle>
+                        <CardTitle>{userDepartmentName ? `Historial de Pagos — ${userDepartmentName}` : 'Historial de Pagos'}</CardTitle>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            Todos los pagos que has solicitado para este proyecto, en cualquier etapa del flujo. Los borradores aparecen en la tarjeta "Pagos en Borrador".
+                            Todos los pagos solicitados en {userDepartmentName ? <span className="font-medium">{userDepartmentName}</span> : 'tu departamento'} para este proyecto, en cualquier etapa del flujo. Los borradores aparecen en la tarjeta "Pagos en Borrador".
                         </p>
                     </CardHeader>
                     <CardContent>
@@ -1159,7 +1161,7 @@ export default function Consolidated() {
                                     {hasActiveHistoryFilters
                                         ? 'No hay pagos que coincidan con los filtros aplicados.'
                                         : userPaymentHistory.length === 0
-                                            ? 'Aún no has solicitado ningún pago para este proyecto.'
+                                            ? 'Aún no hay pagos registrados en tu departamento para este proyecto.'
                                             : 'Sin resultados.'}
                                 </p>
                                 {hasActiveHistoryFilters && (
@@ -1174,15 +1176,16 @@ export default function Consolidated() {
                                     <table className="w-full text-sm">
                                         <thead className="bg-gray-50 dark:bg-gray-800">
                                             <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Folio</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Fecha</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Descripción</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Solicitado</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Aprobado</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Status</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Acciones</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Folio</th>
+                                                <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700 align-middle leading-tight">Fecha<br />Solicitud</th>
+                                                <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700 align-middle leading-tight">Fecha Programación<br />Pago</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Concepto</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Descripción</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Proveedor</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">Solicitado</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">Aprobado</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Status</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right align-middle">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -1191,14 +1194,11 @@ export default function Consolidated() {
                                                     <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
                                                         #{String(payment.folio_number).padStart(5, '0')}
                                                     </td>
-                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">
-                                                        {payment.created_at
-                                                            ? new Date(payment.created_at).toLocaleDateString('es-MX', {
-                                                                day: '2-digit',
-                                                                month: 'short',
-                                                                year: 'numeric',
-                                                            })
-                                                            : '—'}
+                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 whitespace-nowrap">
+                                                        {payment.created_at ? payment.created_at.slice(0, 10) : '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 whitespace-nowrap">
+                                                        {payment.payment_provision_date ?? <span className="text-gray-400">—</span>}
                                                     </td>
                                                     <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.concept_name}>
                                                         {payment.concept_name}

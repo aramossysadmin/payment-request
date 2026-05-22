@@ -180,6 +180,11 @@ class InvestmentRequest extends Model
             });
         }
 
-        return $query->where('user_id', $user->id);
+        return $query->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+            if ($user->department_id) {
+                $q->orWhere('department_id', $user->department_id);
+            }
+        });
     }
 }
