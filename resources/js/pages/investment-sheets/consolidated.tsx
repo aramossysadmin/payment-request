@@ -103,6 +103,7 @@ type DraftPayment = {
     iva: string;
     total: string;
     advance_documents: string[];
+    concept_effective_remaining: string | null;
 };
 
 type DraftBatch = {
@@ -514,8 +515,8 @@ export default function Consolidated() {
             investment_expense_concept: { id: 0, name: payment.concept_name },
             currency: { id: payment.currency_id, name: '', prefix: payment.currency_prefix },
             branch: { id: payment.branch_id, name: '' },
-            group_remaining: null,
-            remaining_balance: '0',
+            group_remaining: payment.concept_effective_remaining,
+            remaining_balance: payment.concept_effective_remaining ?? '0',
         } as unknown as InvestmentRequest;
 
         setSelectedIr(stubIr);
@@ -1807,10 +1808,7 @@ function PaymentRequestModal({
         () => editingPayment ? [...editingPayment.advance_documents] : []
     );
 
-    const baseRemainingBalance = Number(ir.group_remaining ?? ir.remaining_balance);
-    const remainingBalance = isEditMode
-        ? baseRemainingBalance + Number(editingPayment?.total ?? 0)
-        : baseRemainingBalance;
+    const remainingBalance = Number(ir.group_remaining ?? ir.remaining_balance);
 
     const recalculate = (subtotal: number, ivaRate: number) => {
         const iva = Math.round(subtotal * ivaRate * 100) / 100;
@@ -1888,7 +1886,7 @@ function PaymentRequestModal({
                     <DialogTitle>{isEditMode ? 'Editar Pago en Borrador' : 'Solicitar Pago de Inversión'}</DialogTitle>
                     <DialogDescription>
                         {isEditMode
-                            ? <>Concepto: <span className="font-semibold">{ir.investment_expense_concept?.name}</span>{' · '}Folio del pago: <span className="font-mono">#{String(editingPayment!.folio_number).padStart(5, '0')}</span></>
+                            ? <>Concepto: <span className="font-semibold">{ir.investment_expense_concept?.name}</span>{' · '}Folio del pago: <span className="font-mono">#{String(editingPayment!.folio_number).padStart(5, '0')}</span>{' · '}Saldo disponible: <span className="font-semibold">{formatCurrency(remainingBalance)}</span></>
                             : <>Concepto #{String(ir.folio_number).padStart(5, '0')} — {ir.provider}{' · '}Saldo disponible: <span className="font-semibold">{formatCurrency(remainingBalance)}</span></>
                         }
                     </DialogDescription>

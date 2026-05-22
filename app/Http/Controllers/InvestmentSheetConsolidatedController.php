@@ -117,29 +117,51 @@ class InvestmentSheetConsolidatedController extends Controller
                 ->with(['currency', 'investmentRequest.investmentExpenseConcept'])
                 ->latest()
                 ->get()
-                ->map(fn (InvestmentPaymentRequest $p) => [
-                    'id' => $p->id,
-                    'uuid' => $p->uuid,
-                    'folio_number' => $p->folio_number,
-                    'provider' => $p->provider,
-                    'rfc' => $p->rfc,
-                    'invoice_folio' => $p->invoice_folio,
-                    'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
-                    'concept_folio' => $p->investmentRequest?->folio_number,
-                    'description' => $p->description,
-                    'currency_prefix' => $p->currency?->prefix ?? 'MXN',
-                    'currency_id' => $p->currency_id,
-                    'branch_id' => $p->branch_id,
-                    'investment_request_id' => $p->investment_request_id,
-                    'payment_provision_date' => $p->payment_provision_date?->toDateString(),
-                    'is_invoice' => $p->payment_type === 'factura',
-                    'iva_rate' => $p->iva_rate?->value,
-                    'retention' => (bool) $p->retention,
-                    'subtotal' => (string) $p->subtotal,
-                    'iva' => (string) $p->iva,
-                    'total' => (string) $p->total,
-                    'advance_documents' => array_values(array_filter($p->advance_documents ?? [], fn ($d) => is_string($d) && $d !== '')),
-                ])
+                ->map(function (InvestmentPaymentRequest $p) {
+                    $effectiveRemaining = null;
+                    $ir = $p->investmentRequest;
+                    if ($ir && $ir->investment_expense_concept_id && $ir->project_id) {
+                        $groupIds = InvestmentRequest::query()
+                            ->where('project_id', $ir->project_id)
+                            ->where('investment_expense_concept_id', $ir->investment_expense_concept_id)
+                            ->whereState('status', Completed::class)
+                            ->pluck('id');
+
+                        $groupBudget = (float) InvestmentRequest::whereIn('id', $groupIds)->sum('total');
+                        $groupPaidExcludingThis = (float) InvestmentPaymentRequest::query()
+                            ->whereIn('investment_request_id', $groupIds)
+                            ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected'])
+                            ->where('id', '!=', $p->id)
+                            ->sum('total');
+
+                        $effectiveRemaining = $groupBudget - $groupPaidExcludingThis;
+                    }
+
+                    return [
+                        'id' => $p->id,
+                        'uuid' => $p->uuid,
+                        'folio_number' => $p->folio_number,
+                        'provider' => $p->provider,
+                        'rfc' => $p->rfc,
+                        'invoice_folio' => $p->invoice_folio,
+                        'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
+                        'concept_folio' => $p->investmentRequest?->folio_number,
+                        'description' => $p->description,
+                        'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                        'currency_id' => $p->currency_id,
+                        'branch_id' => $p->branch_id,
+                        'investment_request_id' => $p->investment_request_id,
+                        'payment_provision_date' => $p->payment_provision_date?->toDateString(),
+                        'is_invoice' => $p->payment_type === 'factura',
+                        'iva_rate' => $p->iva_rate?->value,
+                        'retention' => (bool) $p->retention,
+                        'subtotal' => (string) $p->subtotal,
+                        'iva' => (string) $p->iva,
+                        'total' => (string) $p->total,
+                        'advance_documents' => array_values(array_filter($p->advance_documents ?? [], fn ($d) => is_string($d) && $d !== '')),
+                        'concept_effective_remaining' => $effectiveRemaining !== null ? number_format($effectiveRemaining, 2, '.', '') : null,
+                    ];
+                })
             : collect();
 
         $authorizedPayments = InvestmentPaymentRequest::query()
