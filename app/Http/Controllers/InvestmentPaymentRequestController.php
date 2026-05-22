@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreInvestmentPaymentRequest;
+use App\Http\Requests\UpdateInvestmentPaymentRequest;
 use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
@@ -10,6 +11,7 @@ use App\States\InvestmentRequest\Completed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class InvestmentPaymentRequestController extends Controller
@@ -105,6 +107,65 @@ class InvestmentPaymentRequestController extends Controller
         }
 
         return back()->with('success', 'Pago agregado al borrador de la semana.');
+    }
+
+    public function update(UpdateInvestmentPaymentRequest $request, InvestmentPaymentRequest $payment): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $keepDocuments = collect($validated['keep_documents'] ?? [])
+            ->filter(fn ($d) => is_string($d) && $d !== '')
+            ->values()
+            ->all();
+
+        $currentDocuments = array_values(array_filter(
+            $payment->advance_documents ?? [],
+            fn ($d) => is_string($d) && $d !== '',
+        ));
+
+        $documentsToDelete = array_diff($currentDocuments, $keepDocuments);
+        foreach ($documentsToDelete as $path) {
+            if (Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
+            }
+        }
+
+        $newDocuments = $keepDocuments;
+        $directory = 'investment-payment-documents/'.now()->format('Y/m').'/'.$payment->folio_number;
+
+        if ($request->hasFile('invoice_documents')) {
+            foreach ($request->file('invoice_documents') as $file) {
+                $newDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
+            }
+        }
+
+        if ($request->hasFile('advance_documents')) {
+            foreach ($request->file('advance_documents') as $file) {
+                $newDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
+            }
+        }
+
+        $payment->fill([
+            'provider' => $validated['provider'],
+            'rfc' => $validated['rfc'] ?? null,
+            'invoice_folio' => $validated['invoice_folio'] ?? null,
+            'payment_provision_date' => $validated['payment_provision_date'],
+            'currency_id' => $validated['currency_id'],
+            'branch_id' => $validated['branch_id'],
+            'description' => $validated['description'] ?? null,
+            'iva_rate' => $validated['iva_rate'],
+            'subtotal' => $validated['subtotal'],
+            'iva' => $validated['iva'],
+            'retention' => $request->boolean('retention'),
+            'total' => $validated['total'],
+            'payment_type' => $request->boolean('is_invoice') ? 'factura' : 'anticipo',
+            'payment_week_number' => Carbon::parse($validated['payment_provision_date'])->isoWeek,
+            'advance_documents' => $newDocuments,
+        ]);
+
+        $payment->save();
+
+        return back()->with('success', 'Pago actualizado.');
     }
 
     private function findOrCreateActiveBatch($user, InvestmentRequest $investmentRequest): InvestmentPaymentBatch

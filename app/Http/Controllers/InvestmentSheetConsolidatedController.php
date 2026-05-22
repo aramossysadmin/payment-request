@@ -122,13 +122,23 @@ class InvestmentSheetConsolidatedController extends Controller
                     'uuid' => $p->uuid,
                     'folio_number' => $p->folio_number,
                     'provider' => $p->provider,
+                    'rfc' => $p->rfc,
+                    'invoice_folio' => $p->invoice_folio,
                     'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
                     'concept_folio' => $p->investmentRequest?->folio_number,
                     'description' => $p->description,
                     'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                    'currency_id' => $p->currency_id,
+                    'branch_id' => $p->branch_id,
+                    'investment_request_id' => $p->investment_request_id,
+                    'payment_provision_date' => $p->payment_provision_date?->toDateString(),
+                    'is_invoice' => $p->payment_type === 'factura',
+                    'iva_rate' => $p->iva_rate?->value,
+                    'retention' => (bool) $p->retention,
                     'subtotal' => (string) $p->subtotal,
                     'iva' => (string) $p->iva,
                     'total' => (string) $p->total,
+                    'advance_documents' => array_values(array_filter($p->advance_documents ?? [], fn ($d) => is_string($d) && $d !== '')),
                 ])
             : collect();
 

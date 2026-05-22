@@ -10,11 +10,18 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
-class StoreInvestmentPaymentRequest extends FormRequest
+class UpdateInvestmentPaymentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $payment = $this->route('payment');
+
+        if (! $payment instanceof InvestmentPaymentRequest) {
+            return false;
+        }
+
+        return $payment->user_id === $this->user()->id
+            && $payment->status === 'draft';
     }
 
     /**
@@ -23,7 +30,6 @@ class StoreInvestmentPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'investment_request_id' => ['required', 'integer', Rule::exists('investment_requests', 'id')],
             'provider' => ['required', 'string', 'max:255'],
             'rfc' => ['nullable', 'string', 'alpha_num', 'min:12', 'max:13'],
             'invoice_folio' => ['nullable', 'string', 'max:255'],
@@ -32,6 +38,8 @@ class StoreInvestmentPaymentRequest extends FormRequest
             'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')],
             'is_invoice' => ['required', 'boolean'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'keep_documents' => ['nullable', 'array'],
+            'keep_documents.*' => ['string'],
             'invoice_documents' => ['nullable', 'array', 'max:2'],
             'invoice_documents.*' => ['file', 'max:10240', 'mimes:pdf,xml'],
             'advance_documents' => ['nullable', 'array', 'max:10'],
@@ -63,7 +71,9 @@ class StoreInvestmentPaymentRequest extends FormRequest
                 }
             }
 
-            $investmentRequest = InvestmentRequest::find($this->input('investment_request_id'));
+            $payment = $this->route('payment');
+            $investmentRequest = $payment?->investmentRequest;
+
             if ($investmentRequest && $investmentRequest->investment_expense_concept_id && $investmentRequest->project_id) {
                 $groupIds = InvestmentRequest::query()
                     ->where('project_id', $investmentRequest->project_id)
@@ -75,6 +85,7 @@ class StoreInvestmentPaymentRequest extends FormRequest
                 $groupPaid = (float) InvestmentPaymentRequest::query()
                     ->whereIn('investment_request_id', $groupIds)
                     ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected'])
+                    ->where('id', '!=', $payment->id)
                     ->sum('total');
 
                 $remaining = $groupBudget - $groupPaid;
@@ -84,15 +95,6 @@ class StoreInvestmentPaymentRequest extends FormRequest
                     $validator->errors()->add(
                         'total',
                         'El total ($'.number_format($total, 2).') excede el saldo disponible del presupuesto ($'.number_format($remaining, 2).').',
-                    );
-                }
-            } elseif ($investmentRequest) {
-                $remaining = (float) $investmentRequest->remaining_balance;
-                $total = (float) $this->input('total', 0);
-                if ($total > $remaining) {
-                    $validator->errors()->add(
-                        'total',
-                        'El total ($'.number_format($total, 2).') excede el saldo disponible del concepto ($'.number_format($remaining, 2).').',
                     );
                 }
             }
@@ -105,7 +107,6 @@ class StoreInvestmentPaymentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'investment_request_id.required' => 'El concepto de inversión es obligatorio.',
             'provider.required' => 'La razón social es obligatoria.',
             'rfc.alpha_num' => 'El RFC solo debe contener letras y números.',
             'rfc.min' => 'El RFC debe tener al menos 12 caracteres.',

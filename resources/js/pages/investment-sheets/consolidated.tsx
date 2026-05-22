@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckCircle2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileText, Inbox, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { Banknote, Building2, CheckCircle2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileText, Inbox, Pencil, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
@@ -86,13 +86,23 @@ type DraftPayment = {
     uuid: string;
     folio_number: number;
     provider: string;
+    rfc: string | null;
+    invoice_folio: string | null;
     concept_name: string;
     concept_folio: number | null;
     description: string | null;
     currency_prefix: string;
+    currency_id: number;
+    branch_id: number;
+    investment_request_id: number;
+    payment_provision_date: string | null;
+    is_invoice: boolean;
+    iva_rate: string | null;
+    retention: boolean;
     subtotal: string;
     iva: string;
     total: string;
+    advance_documents: string[];
 };
 
 type DraftBatch = {
@@ -252,6 +262,7 @@ export default function Consolidated() {
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedIr, setSelectedIr] = useState<InvestmentRequest | null>(null);
+    const [editingDraftPayment, setEditingDraftPayment] = useState<DraftPayment | null>(null);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
     const groups = groupByConcept(investmentRequests.data);
@@ -490,6 +501,25 @@ export default function Consolidated() {
 
     const openPaymentModal = (ir: InvestmentRequest) => {
         setSelectedIr(ir);
+        setEditingDraftPayment(null);
+        setModalOpen(true);
+    };
+
+    const openEditDraftPayment = (payment: DraftPayment) => {
+        const stubIr = {
+            id: payment.investment_request_id,
+            folio_number: payment.concept_folio ?? 0,
+            provider: payment.provider,
+            rfc: payment.rfc,
+            investment_expense_concept: { id: 0, name: payment.concept_name },
+            currency: { id: payment.currency_id, name: '', prefix: payment.currency_prefix },
+            branch: { id: payment.branch_id, name: '' },
+            group_remaining: null,
+            remaining_balance: '0',
+        } as unknown as InvestmentRequest;
+
+        setSelectedIr(stubIr);
+        setEditingDraftPayment(payment);
         setModalOpen(true);
     };
 
@@ -515,6 +545,7 @@ export default function Consolidated() {
     const handlePaymentModalClose = () => {
         setModalOpen(false);
         setSelectedIr(null);
+        setEditingDraftPayment(null);
         if (drawerIr) {
             fetchPayments(drawerIr.id);
         }
@@ -868,7 +899,7 @@ export default function Consolidated() {
                 {draftBatch && draftBatch.payments.length > 0 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Pagos en Borrador — Semana {draftBatch.week_number} ({draftBatch.year})</CardTitle>
+                            <CardTitle>Pagos en Borrador</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
@@ -880,6 +911,7 @@ export default function Consolidated() {
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Descripción</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Fecha Programación Pago</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Monto</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Acciones</th>
                                         </tr>
@@ -901,6 +933,9 @@ export default function Consolidated() {
                                                     {payment.description ? payment.description : <span className="text-gray-400">—</span>}
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 whitespace-nowrap">
+                                                    {payment.payment_provision_date ?? <span className="text-gray-400">—</span>}
+                                                </td>
                                                 <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
                                                     {formatCurrency(payment.total)}
                                                 </td>
@@ -909,8 +944,18 @@ export default function Consolidated() {
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
+                                                            className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
+                                                            onClick={() => openEditDraftPayment(payment)}
+                                                            title="Editar pago"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
                                                             className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950"
                                                             onClick={() => setDeleteConfirmUuid(payment.uuid)}
+                                                            title="Eliminar pago"
                                                         >
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
@@ -921,7 +966,7 @@ export default function Consolidated() {
                                     </tbody>
                                     <tfoot className="bg-gray-50 dark:bg-gray-800/50">
                                         <tr className="border-t-2 border-gray-200 dark:border-gray-700">
-                                            <td colSpan={5} className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">
+                                            <td colSpan={6} className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-400">
                                                 Total seleccionado:
                                             </td>
                                             <td className="px-4 py-3 text-right font-mono font-bold">
@@ -1521,6 +1566,7 @@ export default function Consolidated() {
                     currencies={currencies}
                     branches={branches}
                     errors={errors}
+                    editingPayment={editingDraftPayment}
                 />
             )}
         </AppLayout>
@@ -1708,44 +1754,63 @@ type PaymentRequestModalProps = {
     currencies: Currency[];
     branches: Branch[];
     errors: Record<string, string>;
+    editingPayment?: DraftPayment | null;
 };
 
 function PaymentRequestModal({
     open, onClose, investmentRequest: ir,
     currencies, branches, errors,
+    editingPayment,
 }: PaymentRequestModalProps) {
-    const [values, setValues] = useState({
-        provider: ir.provider ?? '',
-        rfc: ir.rfc ?? '',
-        invoice_folio: '',
-        payment_provision_date: '',
-        currency_id: ir.currency?.id ? String(ir.currency.id) : '',
-        branch_id: ir.branch?.id ? String(ir.branch.id) : '',
-        is_invoice: false,
-        description: '',
-        subtotal: '',
-        iva_rate: '',
-        iva: '',
-        retention: false,
-        total: '',
+    const isEditMode = !!editingPayment;
+
+    const [values, setValues] = useState(() => {
+        if (editingPayment) {
+            return {
+                provider: editingPayment.provider,
+                rfc: editingPayment.rfc ?? '',
+                invoice_folio: editingPayment.invoice_folio ?? '',
+                payment_provision_date: editingPayment.payment_provision_date ?? '',
+                currency_id: String(editingPayment.currency_id),
+                branch_id: String(editingPayment.branch_id),
+                is_invoice: editingPayment.is_invoice,
+                description: editingPayment.description ?? '',
+                subtotal: editingPayment.subtotal,
+                iva_rate: editingPayment.iva_rate ?? '',
+                iva: editingPayment.iva,
+                retention: editingPayment.retention,
+                total: editingPayment.total,
+            };
+        }
+        return {
+            provider: ir.provider ?? '',
+            rfc: ir.rfc ?? '',
+            invoice_folio: '',
+            payment_provision_date: '',
+            currency_id: ir.currency?.id ? String(ir.currency.id) : '',
+            branch_id: ir.branch?.id ? String(ir.branch.id) : '',
+            is_invoice: false,
+            description: '',
+            subtotal: '',
+            iva_rate: '',
+            iva: '',
+            retention: false,
+            total: '',
+        };
     });
 
     const [files, setFiles] = useState<File[]>([]);
     const [invoicePdf, setInvoicePdf] = useState<File | null>(null);
     const [invoiceXml, setInvoiceXml] = useState<File | null>(null);
     const [processing, setProcessing] = useState(false);
+    const [existingDocuments, setExistingDocuments] = useState<string[]>(
+        () => editingPayment ? [...editingPayment.advance_documents] : []
+    );
 
-    const remainingBalance = Number(ir.group_remaining ?? ir.remaining_balance);
-
-    const getWeekNumber = (dateStr: string): number | null => {
-        if (!dateStr) return null;
-        const date = new Date(dateStr + 'T00:00:00');
-        if (isNaN(date.getTime())) return null;
-        const startOfYear = new Date(date.getFullYear(), 0, 1);
-        const diff = date.getTime() - startOfYear.getTime();
-        const oneDay = 86400000;
-        return Math.ceil((diff / oneDay + startOfYear.getDay() + 1) / 7);
-    };
+    const baseRemainingBalance = Number(ir.group_remaining ?? ir.remaining_balance);
+    const remainingBalance = isEditMode
+        ? baseRemainingBalance + Number(editingPayment?.total ?? 0)
+        : baseRemainingBalance;
 
     const recalculate = (subtotal: number, ivaRate: number) => {
         const iva = Math.round(subtotal * ivaRate * 100) / 100;
@@ -1781,7 +1846,11 @@ function PaymentRequestModal({
         setProcessing(true);
 
         const formData = new FormData();
-        formData.append('investment_request_id', String(ir.id));
+
+        if (!isEditMode) {
+            formData.append('investment_request_id', String(ir.id));
+        }
+
         Object.entries(values).forEach(([key, val]) => {
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
@@ -1791,6 +1860,18 @@ function PaymentRequestModal({
             if (invoiceXml) formData.append('invoice_documents[]', invoiceXml);
         } else {
             files.forEach((file) => formData.append('advance_documents[]', file));
+        }
+
+        if (isEditMode && editingPayment) {
+            existingDocuments.forEach((path) => formData.append('keep_documents[]', path));
+            formData.append('_method', 'PATCH');
+
+            router.post(`/investment-payment-requests/${editingPayment.uuid}`, formData, {
+                forceFormData: true,
+                onSuccess: () => onClose(),
+                onFinish: () => setProcessing(false),
+            });
+            return;
         }
 
         router.post('/investment-payment-requests', formData, {
@@ -1804,10 +1885,12 @@ function PaymentRequestModal({
         <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
             <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Solicitar Pago de Inversión</DialogTitle>
+                    <DialogTitle>{isEditMode ? 'Editar Pago en Borrador' : 'Solicitar Pago de Inversión'}</DialogTitle>
                     <DialogDescription>
-                        Concepto #{String(ir.folio_number).padStart(5, '0')} — {ir.provider}
-                        {' · '}Saldo disponible: <span className="font-semibold">{formatCurrency(remainingBalance)}</span>
+                        {isEditMode
+                            ? <>Concepto: <span className="font-semibold">{ir.investment_expense_concept?.name}</span>{' · '}Folio del pago: <span className="font-mono">#{String(editingPayment!.folio_number).padStart(5, '0')}</span></>
+                            : <>Concepto #{String(ir.folio_number).padStart(5, '0')} — {ir.provider}{' · '}Saldo disponible: <span className="font-semibold">{formatCurrency(remainingBalance)}</span></>
+                        }
                     </DialogDescription>
                 </DialogHeader>
 
@@ -1910,21 +1993,13 @@ function PaymentRequestModal({
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="modal_payment_provision_date">Fecha Pago</Label>
-                                    <div className="flex items-center gap-3">
-                                        <Input
-                                            id="modal_payment_provision_date"
-                                            type="date"
-                                            value={values.payment_provision_date}
-                                            onChange={(e) => handleChange('payment_provision_date', e.target.value)}
-                                            className="flex-1"
-                                        />
-                                        {values.payment_provision_date && getWeekNumber(values.payment_provision_date) && (
-                                            <span className="whitespace-nowrap rounded-md bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
-                                                Semana {getWeekNumber(values.payment_provision_date)}
-                                            </span>
-                                        )}
-                                    </div>
+                                    <Label htmlFor="modal_payment_provision_date">Fecha Programación de Pago</Label>
+                                    <Input
+                                        id="modal_payment_provision_date"
+                                        type="date"
+                                        value={values.payment_provision_date}
+                                        onChange={(e) => handleChange('payment_provision_date', e.target.value)}
+                                    />
                                     <InputError message={errors.payment_provision_date} />
                                 </div>
                                 <div className="space-y-2">
@@ -2049,6 +2124,32 @@ function PaymentRequestModal({
                                         : 'Adjunta los documentos de soporte para el anticipo.'}
                                 </p>
 
+                                {isEditMode && existingDocuments.length > 0 && (
+                                    <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/40">
+                                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                            Documentos actuales ({existingDocuments.length})
+                                        </p>
+                                        <ul className="space-y-1">
+                                            {existingDocuments.map((path) => (
+                                                <li key={path} className="flex items-center justify-between gap-2 rounded border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900">
+                                                    <span className="truncate" title={path}>{path.split('/').pop()}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setExistingDocuments((prev) => prev.filter((p) => p !== path))}
+                                                        className="rounded p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                                                        title="Quitar este documento"
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            Los documentos que quites se eliminarán definitivamente al guardar. Abajo puedes subir nuevos para reemplazarlos.
+                                        </p>
+                                    </div>
+                                )}
+
                                 {values.is_invoice ? (
                                     <div className="grid gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
@@ -2090,7 +2191,7 @@ function PaymentRequestModal({
                             Cancelar
                         </Button>
                         <Button type="submit" disabled={processing || Number(values.total) > remainingBalance}>
-                            {processing ? 'Enviando...' : 'Solicitar Pago'}
+                            {processing ? (isEditMode ? 'Guardando...' : 'Enviando...') : (isEditMode ? 'Guardar Cambios' : 'Solicitar Pago')}
                         </Button>
                     </div>
                 </form>
