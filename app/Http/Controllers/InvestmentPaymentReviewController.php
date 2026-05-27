@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
+use App\Models\InvestmentRequest;
+use App\Models\Project;
 use App\Models\User;
 use App\Notifications\InvestmentBatchFinalApprovalNotification;
 use App\Notifications\InvestmentPaymentStatusNotification;
@@ -17,10 +19,38 @@ use Inertia\Response;
 
 class InvestmentPaymentReviewController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $user = $request->user();
+
+        // Lista de proyectos visibles para el usuario (mismo patrón que en otros recursos).
+        $projectIds = InvestmentRequest::query()
+            ->visibleTo($user)
+            ->whereNotNull('project_id')
+            ->pluck('project_id')
+            ->unique();
+
+        $projects = Project::whereIn('id', $projectIds)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Project $p) => ['id' => $p->id, 'name' => $p->name])
+            ->values();
+
+        $selectedProjectId = $request->integer('project_id') ?: null;
+
+        // Si no hay proyecto seleccionado (o no pertenece al usuario), retornar groups vacío.
+        if (! $selectedProjectId || ! $projectIds->contains($selectedProjectId)) {
+            return Inertia::render('investment-payment-review/index', [
+                'groups' => [],
+                'totalCount' => 0,
+                'projects' => $projects,
+                'selectedProjectId' => null,
+            ]);
+        }
+
         $payments = InvestmentPaymentRequest::query()
             ->whereIn('status', ['ceo_approved', 'projectmanager_review'])
+            ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $selectedProjectId))
             ->with([
                 'department',
                 'user',
@@ -59,6 +89,8 @@ class InvestmentPaymentReviewController extends Controller
         return Inertia::render('investment-payment-review/index', [
             'groups' => $grouped,
             'totalCount' => $payments->count(),
+            'projects' => $projects,
+            'selectedProjectId' => $selectedProjectId,
         ]);
     }
 

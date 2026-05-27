@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ProjectCombobox, type Project } from '@/components/project-combobox';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/currency';
 import type { BreadcrumbItem } from '@/types';
@@ -36,13 +37,15 @@ type Group = {
 type Props = {
     groups: Group[];
     totalCount: number;
+    projects: Project[];
+    selectedProjectId: number | null;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Revisión de Pagos', href: '/investment-payment-review' },
 ];
 
-export default function InvestmentPaymentReviewIndex({ groups, totalCount }: Props) {
+export default function InvestmentPaymentReviewIndex({ groups, totalCount, projects, selectedProjectId }: Props) {
     const [decisions, setDecisions] = useState<Record<string, { approved: boolean; approved_amount: string }>>(
         () => {
             const initial: Record<string, { approved: boolean; approved_amount: string }> = {};
@@ -141,11 +144,33 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount }: Pro
                     </p>
                 </div>
 
-                {totalCount === 0 ? (
+                {/* Project Selector */}
+                <Card>
+                    <CardContent className="pt-6">
+                        <Label className="mb-2 block">Hoja de Inversión</Label>
+                        <ProjectCombobox
+                            projects={projects}
+                            selectedId={selectedProjectId}
+                            onSelect={(id) => router.visit(`/investment-payment-review?project_id=${id}`, { preserveState: false })}
+                        />
+                    </CardContent>
+                </Card>
+
+                {!selectedProjectId ? (
                     <Card>
                         <CardContent className="py-16 text-center">
                             <Inbox className="mx-auto mb-3 h-12 w-12 text-muted-foreground/50" />
-                            <p className="text-sm text-muted-foreground">No hay pagos pendientes de revisión.</p>
+                            <p className="text-base font-medium">Selecciona una Hoja de Inversión</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Elige un proyecto del selector arriba para ver sus pagos pendientes de revisión.
+                            </p>
+                        </CardContent>
+                    </Card>
+                ) : totalCount === 0 ? (
+                    <Card>
+                        <CardContent className="py-16 text-center">
+                            <Inbox className="mx-auto mb-3 h-12 w-12 text-muted-foreground/50" />
+                            <p className="text-sm text-muted-foreground">No hay pagos pendientes de revisión para este proyecto.</p>
                         </CardContent>
                     </Card>
                 ) : (

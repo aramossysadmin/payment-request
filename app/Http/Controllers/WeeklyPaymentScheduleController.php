@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreWeeklyPaymentScheduleRequest;
 use App\Models\InvestmentPaymentRequest;
+use App\Models\InvestmentRequest;
+use App\Models\Project;
 use App\Models\WeeklyPaymentSchedule;
 use App\Services\WeeklyPaymentScheduleApprovalService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,19 +18,61 @@ class WeeklyPaymentScheduleController extends Controller
 {
     public function __construct(private WeeklyPaymentScheduleApprovalService $approvalService) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $user = $request->user();
         $currentWeek = (int) Carbon::now()->weekOfYear;
         $currentYear = (int) Carbon::now()->year;
+
+        // Lista de proyectos visibles para el usuario (via InvestmentRequest::visibleTo)
+        $projectIds = InvestmentRequest::query()
+            ->visibleTo($user)
+            ->whereNotNull('project_id')
+            ->pluck('project_id')
+            ->unique();
+
+        $projects = Project::whereIn('id', $projectIds)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Project $p) => ['id' => $p->id, 'name' => $p->name])
+            ->values();
+
+        $selectedProjectId = $request->integer('project_id') ?: null;
+
+        // Si no hay proyecto seleccionado, retornamos arrays vacíos.
+        // El frontend muestra empty state hasta que el usuario elija una Hoja de Inversión.
+        if (! $selectedProjectId) {
+            return Inertia::render('weekly-payment-schedule/index', [
+                'payments' => [],
+                'schedules' => [],
+                'projects' => $projects,
+                'selectedProjectId' => null,
+                'currentWeek' => $currentWeek,
+                'currentYear' => $currentYear,
+            ]);
+        }
+
+        // Validar que el proyecto seleccionado sea visible para el usuario.
+        // Si manda un project_id al que no tiene acceso, tratamos como sin selección.
+        if (! $projectIds->contains($selectedProjectId)) {
+            return Inertia::render('weekly-payment-schedule/index', [
+                'payments' => [],
+                'schedules' => [],
+                'projects' => $projects,
+                'selectedProjectId' => null,
+                'currentWeek' => $currentWeek,
+                'currentYear' => $currentYear,
+            ]);
+        }
 
         // Solo se programan pagos completamente listos:
         // - 'approved': pagos del flujo anterior (legacy, 103 históricos)
         // - 'completed': pagos del flujo nuevo CON documentos cargados
-        // Si en el futuro se permite programar sin documentos,
-        // agregar 'final_approved' a este array.
+        // Filtrados por el proyecto seleccionado.
         $payments = InvestmentPaymentRequest::query()
             ->whereIn('status', ['approved', 'completed'])
             ->whereNotNull('payment_provision_date')
+            ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $selectedProjectId))
             ->with([
                 'investmentRequest.project',
                 'investmentRequest.investmentExpenseConcept',
@@ -42,14 +87,17 @@ class WeeklyPaymentScheduleController extends Controller
                 'project_name' => $p->investmentRequest?->project?->name ?? '-',
                 'payment_provision_date' => $p->payment_provision_date?->format('Y-m-d'),
                 'payment_week_number' => $p->payment_week_number,
-                // Usa el monto aprobado por PM si existe (flujo nuevo),
-                // si no, cae al total original (flujo anterior).
                 'total' => (string) ($p->approved_amount ?? $p->total),
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                 'description' => $p->description,
             ]);
 
+        // Schedules que contengan al menos 1 pago del proyecto seleccionado.
         $schedules = WeeklyPaymentSchedule::query()
+            ->whereHas(
+                'items.investmentPaymentRequest.investmentRequest',
+                fn ($q) => $q->where('project_id', $selectedProjectId),
+            )
             ->with(['creator', 'items.investmentPaymentRequest', 'approvals.user'])
             ->latest()
             ->limit(20)
@@ -71,6 +119,8 @@ class WeeklyPaymentScheduleController extends Controller
         return Inertia::render('weekly-payment-schedule/index', [
             'payments' => $payments,
             'schedules' => $schedules,
+            'projects' => $projects,
+            'selectedProjectId' => $selectedProjectId,
             'currentWeek' => $currentWeek,
             'currentYear' => $currentYear,
         ]);

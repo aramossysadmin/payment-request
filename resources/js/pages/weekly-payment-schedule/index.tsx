@@ -1,11 +1,13 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { CalendarCheck, ChevronLeft, ChevronRight, Send } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, ChevronRight, Inbox, Send } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ProjectCombobox, type Project } from '@/components/project-combobox';
 import { formatCurrency } from '@/lib/currency';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
@@ -40,6 +42,8 @@ interface Schedule {
 interface Props {
     payments: Payment[];
     schedules: Schedule[];
+    projects: Project[];
+    selectedProjectId: number | null;
     currentWeek: number;
     currentYear: number;
 }
@@ -67,7 +71,7 @@ const statusColors: Record<string, string> = {
     rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
-export default function WeeklyPaymentScheduleIndex({ payments, schedules, currentWeek, currentYear }: Props) {
+export default function WeeklyPaymentScheduleIndex({ payments, schedules, projects, selectedProjectId, currentWeek, currentYear }: Props) {
     const { errors, props } = usePage();
     const flash = (props as Record<string, unknown>).flash as { success?: string } | undefined;
 
@@ -168,6 +172,28 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, curren
                     </div>
                 )}
 
+                {/* Project Selector */}
+                <Card>
+                    <CardContent className="pt-6">
+                        <Label className="mb-2 block">Hoja de Inversión</Label>
+                        <ProjectCombobox
+                            projects={projects}
+                            selectedId={selectedProjectId}
+                            onSelect={(id) => router.visit(`/weekly-payment-schedule?project_id=${id}`, { preserveState: false })}
+                        />
+                    </CardContent>
+                </Card>
+
+                {!selectedProjectId ? (
+                    <div className="rounded-md border border-dashed py-16 text-center">
+                        <Inbox className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-gray-600" />
+                        <p className="text-base font-medium">Selecciona una Hoja de Inversión</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Elige un proyecto del selector arriba para ver sus pagos programados y el historial de programaciones.
+                        </p>
+                    </div>
+                ) : (
+                    <>
                 {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -339,7 +365,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, curren
                 {schedules.length > 0 && (
                     <Card>
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-base">Historial de Programaciones</CardTitle>
+                            <CardTitle className="text-base">Historial de Programaciones — Proyecto seleccionado</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
@@ -388,6 +414,8 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, curren
                             </div>
                         </CardContent>
                     </Card>
+                )}
+                    </>
                 )}
             </div>
         </AppLayout>
