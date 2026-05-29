@@ -25,6 +25,8 @@ class InvestmentPaymentBatch extends Model
         'final_ceo_approval_token',
         'final_ceo_approval_token_expires_at',
         'final_ceo_reviewed_at',
+        'final_session_token',
+        'final_session_token_expires_at',
     ];
 
     protected static function booted(): void
@@ -53,6 +55,7 @@ class InvestmentPaymentBatch extends Model
             'ceo_reviewed_at' => 'datetime',
             'final_ceo_approval_token_expires_at' => 'datetime',
             'final_ceo_reviewed_at' => 'datetime',
+            'final_session_token_expires_at' => 'datetime',
             'week_number' => 'integer',
             'year' => 'integer',
         ];
@@ -70,6 +73,13 @@ class InvestmentPaymentBatch extends Model
         return $this->final_ceo_approval_token !== null
             && $this->final_ceo_approval_token_expires_at !== null
             && $this->final_ceo_approval_token_expires_at->isFuture();
+    }
+
+    public function hasValidFinalSessionToken(): bool
+    {
+        return $this->final_session_token !== null
+            && $this->final_session_token_expires_at !== null
+            && $this->final_session_token_expires_at->isFuture();
     }
 
     public function department(): BelongsTo

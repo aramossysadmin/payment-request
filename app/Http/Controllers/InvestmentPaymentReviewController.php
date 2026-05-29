@@ -7,7 +7,7 @@ use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Models\Project;
 use App\Models\User;
-use App\Notifications\InvestmentBatchFinalApprovalNotification;
+use App\Notifications\InvestmentBatchFinalApprovalSessionNotification;
 use App\Notifications\InvestmentPaymentStatusNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -223,18 +223,41 @@ class InvestmentPaymentReviewController extends Controller
             }
         }
 
-        // Send final approval emails to CEO for each batch that transitioned to final_pending
+        // Batches transitioned to final_pending in this PM submit (en esta sesión del PM).
+        // Por convención (Combobox en /investment-payment-review fuerza 1 proyecto por sesión),
+        // todos estos batches deberían ser del mismo proyecto. Por seguridad defensiva agrupamos
+        // por project_id por si la request fue manipulada y mezcla proyectos.
         $batchesToNotify = InvestmentPaymentBatch::query()
             ->whereIn('id', $affectedBatchIds)
             ->where('status', 'final_pending')
             ->whereNotNull('final_ceo_approval_token')
+            ->with(['project'])
             ->get();
+
+        // Asignar un session_token único POR PROYECTO. Todos los batches del mismo proyecto
+        // comparten el mismo session_token + expiración. El CEO recibe 1 email por proyecto
+        // con todos sus batches consolidados en una sola vista.
+        $batchesByProject = $batchesToNotify->groupBy('project_id');
+
+        foreach ($batchesByProject as $projectBatches) {
+            $sessionToken = (string) Str::uuid();
+            $sessionExpiresAt = Carbon::now()->addHours(96);
+
+            foreach ($projectBatches as $batch) {
+                $batch->update([
+                    'final_session_token' => $sessionToken,
+                    'final_session_token_expires_at' => $sessionExpiresAt,
+                ]);
+            }
+        }
 
         // Notify CEO(s) — role-based, soporta múltiples personas con el rol 'ceo'.
         // Si nadie tiene el rol asignado, los emails no se envían (silencioso, sin error).
-        User::role('ceo')->get()->each(function ($ceo) use ($batchesToNotify) {
-            foreach ($batchesToNotify as $batch) {
-                $ceo->notify(new InvestmentBatchFinalApprovalNotification($batch));
+        // Se envía 1 notification consolidada por proyecto (no 1 por batch).
+        User::role('ceo')->get()->each(function ($ceo) use ($batchesByProject) {
+            foreach ($batchesByProject as $projectBatches) {
+                $sessionToken = $projectBatches->first()->final_session_token;
+                $ceo->notify(new InvestmentBatchFinalApprovalSessionNotification($projectBatches, $sessionToken));
             }
         });
 
