@@ -42,6 +42,7 @@ const ivaRateOptions = [
     { value: '0.00', label: 'IVA 0%' },
     { value: '0.08', label: 'IVA 8%' },
     { value: '0.16', label: 'IVA 16%' },
+    { value: '0.21', label: 'IVA 21%' },
 ];
 
 type InvestmentExpenseConceptOption = { id: number; name: string; category?: { id: number; name: string } | null };
