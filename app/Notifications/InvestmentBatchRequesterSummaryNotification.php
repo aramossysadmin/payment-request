@@ -12,10 +12,14 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
 {
     use Queueable;
 
+    /**
+     * @param  'ceo'|'projectmanager'|'final'  $stage
+     */
     public function __construct(
         public Collection $approvedPayments,
         public Collection $rejectedPayments,
         public ?string $rejectionReason = null,
+        public string $stage = 'ceo',
     ) {}
 
     /**
@@ -34,7 +38,6 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
         $approvedCount = $this->approvedPayments->count();
         $rejectedCount = $this->rejectedPayments->count();
 
-        // Todos los pagos de esta notification son del mismo batch = mismo proyecto.
         $firstPayment = $this->approvedPayments->first() ?? $this->rejectedPayments->first();
         $projectName = $firstPayment?->investmentRequest?->project?->name ?? 'Sin proyecto';
 
@@ -63,6 +66,18 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
      */
     private function resolveSubjectAndDescription(int $approvedCount, int $rejectedCount, string $projectName): array
     {
+        return match ($this->stage) {
+            'projectmanager' => $this->pmCopy($approvedCount, $rejectedCount, $projectName),
+            'final' => $this->finalCopy($approvedCount, $rejectedCount, $projectName),
+            default => $this->ceoCopy($approvedCount, $rejectedCount, $projectName),
+        };
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function ceoCopy(int $approvedCount, int $rejectedCount, string $projectName): array
+    {
         if ($approvedCount > 0 && $rejectedCount === 0) {
             return [
                 "Tus pagos de inversión en {$projectName} fueron aprobados ({$approvedCount})",
@@ -80,6 +95,56 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
         return [
             "Resultado de tus pagos en {$projectName}: {$approvedCount} aprobados, {$rejectedCount} rechazados",
             "El CEO ha revisado tus pagos del proyecto {$projectName}. Aquí está el resumen consolidado del lote.",
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function pmCopy(int $approvedCount, int $rejectedCount, string $projectName): array
+    {
+        if ($approvedCount > 0 && $rejectedCount === 0) {
+            return [
+                "Tus pagos en {$projectName} fueron aprobados por el Project Manager ({$approvedCount})",
+                "El Project Manager ha aprobado tus pagos del proyecto {$projectName}. Sigue al siguiente paso: aprobación final del CEO.",
+            ];
+        }
+
+        if ($approvedCount === 0 && $rejectedCount > 0) {
+            return [
+                "Tus pagos en {$projectName} fueron rechazados por el Project Manager ({$rejectedCount})",
+                "El Project Manager ha rechazado tus pagos del proyecto {$projectName}. El presupuesto fue liberado y puedes capturar nuevos si lo requieres.",
+            ];
+        }
+
+        return [
+            "Revisión del Project Manager en {$projectName}: {$approvedCount} aprobados, {$rejectedCount} rechazados",
+            "El Project Manager ha revisado tus pagos del proyecto {$projectName}. Aquí está el resumen consolidado.",
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function finalCopy(int $approvedCount, int $rejectedCount, string $projectName): array
+    {
+        if ($approvedCount > 0 && $rejectedCount === 0) {
+            return [
+                "Aprobación final de tus pagos en {$projectName} ({$approvedCount})",
+                "El CEO ha dado la aprobación final a tus pagos del proyecto {$projectName}. Ahora debes subir los documentos correspondientes para finalizar el proceso.",
+            ];
+        }
+
+        if ($approvedCount === 0 && $rejectedCount > 0) {
+            return [
+                "Tus pagos en {$projectName} fueron rechazados en la aprobación final ({$rejectedCount})",
+                "El CEO ha rechazado tus pagos del proyecto {$projectName} en la aprobación final. El presupuesto fue liberado.",
+            ];
+        }
+
+        return [
+            "Aprobación final en {$projectName}: {$approvedCount} aprobados, {$rejectedCount} rechazados",
+            "El CEO ha completado la aprobación final de tus pagos del proyecto {$projectName}. Aquí está el resumen.",
         ];
     }
 

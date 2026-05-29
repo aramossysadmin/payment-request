@@ -8,7 +8,7 @@ use App\Models\InvestmentRequest;
 use App\Models\Project;
 use App\Models\User;
 use App\Notifications\InvestmentBatchFinalApprovalSessionNotification;
-use App\Notifications\InvestmentPaymentStatusNotification;
+use App\Notifications\InvestmentBatchRequesterSummaryNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -191,37 +191,42 @@ class InvestmentPaymentReviewController extends Controller
             }
         });
 
-        // Notify requesters
+        // Notify requesters — 1 consolidated email per requester (mismo patrón que Fase 2 CEO).
         $approvedCount = 0;
         $rejectedCount = 0;
+        $approvedByUser = collect();
+        $rejectedByUser = collect();
+
         foreach ($payments as $payment) {
             $decision = $decisionsByUuid[$payment->uuid];
 
             if ($decision['approved']) {
                 $approvedCount++;
-                $approvedAmount = (float) ($decision['approved_amount'] ?? $payment->total);
-                $adjustedAmount = $approvedAmount < (float) $payment->total ? number_format($approvedAmount, 2, '.', '') : null;
-
-                if ($payment->user) {
-                    $payment->user->notify(new InvestmentPaymentStatusNotification(
-                        $payment,
-                        'projectmanager_approved',
-                        null,
-                        $adjustedAmount,
-                    ));
-                }
+                $approvedByUser->push($payment);
             } else {
                 $rejectedCount++;
-
-                if ($payment->user) {
-                    $payment->user->notify(new InvestmentPaymentStatusNotification(
-                        $payment,
-                        'projectmanager_rejected',
-                        $rejectionReason,
-                    ));
-                }
+                $rejectedByUser->push($payment);
             }
         }
+
+        $allReviewedPayments = $approvedByUser->merge($rejectedByUser);
+        $allReviewedPayments->groupBy('user_id')->each(function ($userPayments) use ($approvedByUser, $rejectionReason) {
+            $user = $userPayments->first()->user;
+            if (! $user) {
+                return;
+            }
+
+            $approvedUuids = $approvedByUser->pluck('uuid');
+            $approved = $userPayments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->values();
+            $rejected = $userPayments->reject(fn ($p) => $approvedUuids->contains($p->uuid))->values();
+
+            $user->notify(new InvestmentBatchRequesterSummaryNotification(
+                $approved,
+                $rejected,
+                $rejectionReason,
+                'projectmanager',
+            ));
+        });
 
         // Batches transitioned to final_pending in this PM submit (en esta sesión del PM).
         // Por convención (Combobox en /investment-payment-review fuerza 1 proyecto por sesión),

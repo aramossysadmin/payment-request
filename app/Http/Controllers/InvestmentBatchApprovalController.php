@@ -7,7 +7,6 @@ use App\Models\InvestmentPaymentRequest;
 use App\Models\User;
 use App\Notifications\InvestmentBatchReadyForReviewNotification;
 use App\Notifications\InvestmentBatchRequesterSummaryNotification;
-use App\Notifications\InvestmentPaymentStatusNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -124,7 +123,7 @@ class InvestmentBatchApprovalController extends Controller
             $approved = $userPayments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->values();
             $rejected = $userPayments->reject(fn ($p) => $approvedUuids->contains($p->uuid))->values();
 
-            $user->notify(new InvestmentBatchRequesterSummaryNotification($approved, $rejected, $rejectionReason));
+            $user->notify(new InvestmentBatchRequesterSummaryNotification($approved, $rejected, $rejectionReason, 'ceo'));
         });
 
         // Notify project managers with full queue snapshot (role-based, supports rotation and multi-PM)
@@ -250,28 +249,26 @@ class InvestmentBatchApprovalController extends Controller
             ]);
         });
 
-        $approvedCount = 0;
-        $rejectedCount = 0;
+        $approvedCount = $payments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->count();
+        $rejectedCount = $payments->count() - $approvedCount;
 
-        foreach ($payments as $payment) {
-            $stage = $approvedUuids->contains($payment->uuid) ? 'final_approved' : 'final_rejected';
-            $reason = $stage === 'final_rejected' ? $rejectionReason : null;
-
-            if ($stage === 'final_approved') {
-                $approvedCount++;
-            } else {
-                $rejectedCount++;
+        // 1 consolidated email per requester.
+        $payments->groupBy('user_id')->each(function ($userPayments) use ($approvedUuids, $rejectionReason) {
+            $user = $userPayments->first()->user;
+            if (! $user) {
+                return;
             }
 
-            $adjustedAmount = null;
-            if ($stage === 'final_approved' && $payment->approved_amount !== null && (float) $payment->approved_amount < (float) $payment->total) {
-                $adjustedAmount = number_format((float) $payment->approved_amount, 2, '.', '');
-            }
+            $approved = $userPayments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->values();
+            $rejected = $userPayments->reject(fn ($p) => $approvedUuids->contains($p->uuid))->values();
 
-            if ($payment->user) {
-                $payment->user->notify(new InvestmentPaymentStatusNotification($payment, $stage, $reason, $adjustedAmount));
-            }
-        }
+            $user->notify(new InvestmentBatchRequesterSummaryNotification(
+                $approved,
+                $rejected,
+                $rejectionReason,
+                'final',
+            ));
+        });
 
         return redirect()->route('investment-batch-approval.success', [
             'approved' => $approvedCount,
@@ -424,28 +421,26 @@ class InvestmentBatchApprovalController extends Controller
             }
         });
 
-        $approvedCount = 0;
-        $rejectedCount = 0;
+        $approvedCount = $payments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->count();
+        $rejectedCount = $payments->count() - $approvedCount;
 
-        foreach ($payments as $payment) {
-            $stage = $approvedUuids->contains($payment->uuid) ? 'final_approved' : 'final_rejected';
-            $reason = $stage === 'final_rejected' ? $rejectionReason : null;
-
-            if ($stage === 'final_approved') {
-                $approvedCount++;
-            } else {
-                $rejectedCount++;
+        // 1 consolidated email per requester across all batches in the session.
+        $payments->groupBy('user_id')->each(function ($userPayments) use ($approvedUuids, $rejectionReason) {
+            $user = $userPayments->first()->user;
+            if (! $user) {
+                return;
             }
 
-            $adjustedAmount = null;
-            if ($stage === 'final_approved' && $payment->approved_amount !== null && (float) $payment->approved_amount < (float) $payment->total) {
-                $adjustedAmount = number_format((float) $payment->approved_amount, 2, '.', '');
-            }
+            $approved = $userPayments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->values();
+            $rejected = $userPayments->reject(fn ($p) => $approvedUuids->contains($p->uuid))->values();
 
-            if ($payment->user) {
-                $payment->user->notify(new InvestmentPaymentStatusNotification($payment, $stage, $reason, $adjustedAmount));
-            }
-        }
+            $user->notify(new InvestmentBatchRequesterSummaryNotification(
+                $approved,
+                $rejected,
+                $rejectionReason,
+                'final',
+            ));
+        });
 
         return redirect()->route('investment-batch-approval.success', [
             'approved' => $approvedCount,
