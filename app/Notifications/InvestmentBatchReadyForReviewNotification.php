@@ -25,8 +25,14 @@ class InvestmentBatchReadyForReviewNotification extends Notification implements 
 
     public function toMail(object $notifiable): MailMessage
     {
+        $projectId = $this->batch->project_id;
+        $projectName = $this->batch->project->name ?? 'Sin proyecto';
+
+        // Solo pagos del MISMO proyecto que el batch que dispara este correo.
+        // Cada proyecto tiene su propio flujo de autorizaciones, no se mezclan.
         $allPending = InvestmentPaymentRequest::query()
             ->whereIn('status', ['ceo_approved', 'projectmanager_review'])
+            ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $projectId))
             ->with([
                 'investmentRequest.investmentExpenseConcept',
                 'department',
@@ -50,18 +56,19 @@ class InvestmentBatchReadyForReviewNotification extends Notification implements 
         $historicalCount = $historicalPayments->count();
 
         $subject = $historicalCount > 0
-            ? "{$newCount} pagos nuevos listos para revisión (+ {$historicalCount} pendientes anteriores)"
-            : "{$newCount} pagos nuevos listos para revisión";
+            ? "{$newCount} pagos nuevos en {$projectName} (+ {$historicalCount} pendientes anteriores del mismo proyecto)"
+            : "{$newCount} pagos nuevos en {$projectName}";
 
         $description = $historicalCount > 0
-            ? 'El CEO aprobó nuevos pagos. Aquí está el panorama completo de tu cola de revisión, separado entre lo que llegó ahora y lo que sigue pendiente de revisiones anteriores.'
-            : 'El CEO aprobó nuevos pagos. Están listos para tu revisión antes de la aprobación final del CEO.';
+            ? "El CEO aprobó nuevos pagos del proyecto {$projectName}. Aquí está el panorama de tu cola de revisión, separado entre lo que llegó ahora y lo pendiente de revisiones anteriores del mismo proyecto."
+            : "El CEO aprobó nuevos pagos del proyecto {$projectName}. Están listos para tu revisión antes de la aprobación final del CEO.";
 
         return (new MailMessage)
             ->subject($subject)
             ->markdown('emails.investment-batch-ready-for-review', [
                 'greeting' => 'Hola '.$notifiable->name,
                 'description' => $description,
+                'projectName' => $projectName,
                 'newGroups' => $newGroups,
                 'newCount' => $newCount,
                 'newTotal' => number_format($newTotal, 2),

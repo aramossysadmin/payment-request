@@ -78,19 +78,17 @@ class InvestmentPaymentBatchController extends Controller
                 'status' => 'submitted',
                 'submitted_at' => now(),
                 'ceo_approval_token' => (string) Str::uuid(),
-                'ceo_approval_token_expires_at' => Carbon::now()->addHours(48),
+                'ceo_approval_token_expires_at' => Carbon::now()->addHours(96),
             ]);
         });
 
         $batch->refresh();
 
-        // Notify CEO
-        $ceoEmail = config('investment-requests.authorizer_email');
-        $ceo = User::where('email', $ceoEmail)->first();
-
-        if ($ceo) {
+        // Notify CEO(s) — role-based, soporta múltiples personas con el rol 'ceo'.
+        // Si nadie tiene el rol asignado, el email no se envía (silencioso, sin error).
+        User::role('ceo')->get()->each(function ($ceo) use ($batch) {
             $ceo->notify(new InvestmentBatchSubmittedNotification($batch));
-        }
+        });
 
         return back()->with('success', 'Lote enviado a autorización del CEO.');
     }

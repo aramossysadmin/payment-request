@@ -66,10 +66,14 @@ class InvestmentBatchFinalApprovalNotification extends Notification implements S
 
         $actionUrl = url('/investment-batch-final-approval/'.$this->batch->final_ceo_approval_token);
 
+        $projectName = $this->batch->project->name ?? 'Sin proyecto';
+        $departmentName = $this->batch->department->name ?? 'Sin departamento';
+        $paymentsCount = $this->batch->paymentRequests->count();
+
         return (new MailMessage)
-            ->subject('Aprobación FINAL de pagos de inversión — Lote revisado por PM')
+            ->subject("Aprobación FINAL — {$projectName} · {$departmentName} ({$paymentsCount} pagos)")
             ->markdown('emails.request-notification', [
-                'sectionTitle' => 'Aprobación Final del Lote',
+                'sectionTitle' => "Proyecto: {$projectName}",
                 'greeting' => 'Hola '.$notifiable->name,
                 'description' => 'El Project Manager ya revisó este lote de pagos. Algunos montos pudieron haber sido ajustados. Esta es la aprobación final antes de proceder con los pagos.',
                 'details' => $details,
@@ -77,7 +81,7 @@ class InvestmentBatchFinalApprovalNotification extends Notification implements S
                 'documents' => [],
                 'actionUrl' => $actionUrl,
                 'actionText' => 'Revisar y Autorizar Pagos (Final)',
-                'footerLines' => ['Este enlace es válido por 48 horas.'],
+                'footerLines' => ['Este enlace es válido por 96 horas.'],
                 'salutation' => 'Saludos, '.config('app.name'),
             ]);
     }

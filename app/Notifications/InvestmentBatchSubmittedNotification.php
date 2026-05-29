@@ -55,10 +55,14 @@ class InvestmentBatchSubmittedNotification extends Notification implements Shoul
 
         $actionUrl = url('/investment-batch-approval/'.$this->batch->ceo_approval_token);
 
+        $projectName = $this->batch->project->name ?? 'Sin proyecto';
+        $departmentName = $this->batch->department->name ?? 'Sin departamento';
+        $paymentsCount = $this->batch->paymentRequests->count();
+
         return (new MailMessage)
-            ->subject('Lote de pagos de inversión pendiente de autorización')
+            ->subject("Lote pendiente — {$projectName} · {$departmentName} ({$paymentsCount} pagos)")
             ->markdown('emails.request-notification', [
-                'sectionTitle' => 'Lote de Pagos de Inversión',
+                'sectionTitle' => "Proyecto: {$projectName}",
                 'greeting' => 'Hola '.$notifiable->name,
                 'description' => 'Tienes un lote de pagos de inversión pendiente de tu autorización. Puedes revisar cada pago y decidir cuáles aprobar o rechazar.',
                 'details' => $details,
@@ -66,7 +70,7 @@ class InvestmentBatchSubmittedNotification extends Notification implements Shoul
                 'documents' => [],
                 'actionUrl' => $actionUrl,
                 'actionText' => 'Revisar y Autorizar Pagos',
-                'footerLines' => ['Este enlace es válido por 48 horas.'],
+                'footerLines' => ['Este enlace es válido por 96 horas.'],
                 'salutation' => 'Saludos, '.config('app.name'),
             ]);
     }

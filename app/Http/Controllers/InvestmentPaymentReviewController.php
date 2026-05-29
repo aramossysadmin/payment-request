@@ -183,7 +183,7 @@ class InvestmentPaymentReviewController extends Controller
                     $batch->update([
                         'status' => 'final_pending',
                         'final_ceo_approval_token' => (string) Str::uuid(),
-                        'final_ceo_approval_token_expires_at' => Carbon::now()->addHours(48),
+                        'final_ceo_approval_token_expires_at' => Carbon::now()->addHours(96),
                     ]);
                 } else {
                     $batch->update(['status' => 'projectmanager_rejected']);
@@ -230,14 +230,13 @@ class InvestmentPaymentReviewController extends Controller
             ->whereNotNull('final_ceo_approval_token')
             ->get();
 
-        $ceoEmail = config('investment-requests.authorizer_email');
-        $ceo = User::where('email', $ceoEmail)->first();
-
-        if ($ceo) {
+        // Notify CEO(s) — role-based, soporta múltiples personas con el rol 'ceo'.
+        // Si nadie tiene el rol asignado, los emails no se envían (silencioso, sin error).
+        User::role('ceo')->get()->each(function ($ceo) use ($batchesToNotify) {
             foreach ($batchesToNotify as $batch) {
                 $ceo->notify(new InvestmentBatchFinalApprovalNotification($batch));
             }
-        }
+        });
 
         return redirect()
             ->route('investment-payment-review.index')

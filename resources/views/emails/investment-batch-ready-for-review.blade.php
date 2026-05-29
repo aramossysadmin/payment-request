@@ -2,7 +2,7 @@
 
 {{-- Section: Header --}}
 <div style="border-bottom: 1px solid #D4C9A9; padding-bottom: 4px; margin-bottom: 16px;">
-<span style="font-size: 14px; font-weight: 600; color: #191731; text-transform: uppercase; letter-spacing: 0.5px;">Pagos Listos para Revisión</span>
+<span style="font-size: 14px; font-weight: 600; color: #191731; text-transform: uppercase; letter-spacing: 0.5px;">Proyecto: {{ $projectName }}</span>
 </div>
 
 {{ $greeting }}
@@ -45,10 +45,10 @@
 {{-- Section: PAGOS HISTÓRICOS PENDIENTES --}}
 @if (count($historicalGroups) > 0)
 <div style="border-bottom: 1px solid #D4C9A9; padding-bottom: 4px; margin-top: 24px; margin-bottom: 16px;">
-<span style="font-size: 14px; font-weight: 600; color: #B45309; text-transform: uppercase; letter-spacing: 0.5px;">&#9203; Pagos Pendientes Anteriores ({{ $historicalCount }})</span>
+<span style="font-size: 14px; font-weight: 600; color: #B45309; text-transform: uppercase; letter-spacing: 0.5px;">&#9203; Pagos Pendientes Anteriores ({{ $historicalCount }}) — {{ $projectName }}</span>
 </div>
 
-<p style="font-size: 13px; color: #6B7280; margin-bottom: 8px;">Estos pagos llegaron en revisiones anteriores y aún no los has procesado.</p>
+<p style="font-size: 13px; color: #6B7280; margin-bottom: 8px;">Estos pagos del mismo proyecto llegaron en revisiones anteriores y aún no los has procesado.</p>
 
 @foreach ($historicalGroups as $group)
 <div style="margin-top: 12px; margin-bottom: 8px;">
