@@ -314,27 +314,43 @@ class InvestmentBatchApprovalController extends Controller
             ]);
         }
 
-        $departmentGroups = $pendingBatches->map(fn (InvestmentPaymentBatch $batch) => [
-            'batch_uuid' => $batch->uuid,
-            'department' => $batch->department->name ?? '-',
-            'week_number' => $batch->week_number,
-            'year' => $batch->year,
-            'payments' => $batch->paymentRequests->map(fn (InvestmentPaymentRequest $p) => [
-                'uuid' => $p->uuid,
-                'folio_number' => $p->folio_number,
-                'concept' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
-                'provider' => $p->provider,
-                'rfc' => $p->rfc,
-                'currency_prefix' => $p->currency?->prefix ?? 'MXN',
-                'total' => (string) $p->total,
-                'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : (string) $p->total,
-                'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
-            ])->values(),
-            'subtotal' => number_format(
-                (float) $batch->paymentRequests->sum(fn ($p) => (float) ($p->approved_amount ?? $p->total)),
-                2, '.', '',
-            ),
-        ])->values();
+        // Agrupar por departamento + semana + año. Los batches individuales se
+        // conservan en BD; aquí sólo unificamos la presentación cuando coinciden
+        // depto/semana/año (caso típico: mismo solicitante envió varios batches
+        // del mismo departamento en la misma semana).
+        $departmentGroups = $pendingBatches
+            ->groupBy(fn (InvestmentPaymentBatch $batch) => ($batch->department_id ?? 0).'|'.$batch->week_number.'|'.$batch->year)
+            ->map(function ($groupBatches) {
+                $firstBatch = $groupBatches->first();
+                $payments = $groupBatches
+                    ->flatMap(fn (InvestmentPaymentBatch $batch) => $batch->paymentRequests)
+                    ->map(fn (InvestmentPaymentRequest $p) => [
+                        'uuid' => $p->uuid,
+                        'folio_number' => $p->folio_number,
+                        'concept' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
+                        'provider' => $p->provider,
+                        'rfc' => $p->rfc,
+                        'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                        'total' => (string) $p->total,
+                        'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : (string) $p->total,
+                        'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
+                    ])
+                    ->values();
+
+                $subtotal = $groupBatches->sum(
+                    fn (InvestmentPaymentBatch $batch) => $batch->paymentRequests->sum(fn ($p) => (float) ($p->approved_amount ?? $p->total)),
+                );
+
+                return [
+                    'group_key' => ($firstBatch->department_id ?? 0).'|'.$firstBatch->week_number.'|'.$firstBatch->year,
+                    'department' => $firstBatch->department->name ?? '-',
+                    'week_number' => $firstBatch->week_number,
+                    'year' => $firstBatch->year,
+                    'payments' => $payments,
+                    'subtotal' => number_format((float) $subtotal, 2, '.', ''),
+                ];
+            })
+            ->values();
 
         $grandTotal = $pendingBatches->sum(
             fn ($b) => $b->paymentRequests->sum(fn ($p) => (float) ($p->approved_amount ?? $p->total)),

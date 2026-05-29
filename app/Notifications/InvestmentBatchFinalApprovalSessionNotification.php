@@ -39,35 +39,48 @@ class InvestmentBatchFinalApprovalSessionNotification extends Notification imple
         $firstBatch = $this->batches->first();
         $projectName = $firstBatch->project->name ?? 'Sin proyecto';
 
-        $departmentGroups = $this->batches->map(function ($batch) {
-            $departmentName = $batch->department->name ?? 'Sin departamento';
-            $payments = $batch->paymentRequests->map(function ($p) {
-                $originalTotal = (float) $p->total;
-                $approvedAmount = (float) ($p->approved_amount ?? $p->total);
-                $adjusted = $approvedAmount < $originalTotal;
+        // Agrupar por departamento + semana + año. Si el mismo solicitante envió
+        // varios batches del mismo depto en la misma semana, se muestran unificados
+        // (los batches siguen separados en BD, sólo la presentación se consolida).
+        $departmentGroups = $this->batches
+            ->groupBy(fn ($batch) => ($batch->department_id ?? 0).'|'.$batch->week_number.'|'.$batch->year)
+            ->map(function ($groupBatches) {
+                $firstBatch = $groupBatches->first();
+                $departmentName = $firstBatch->department->name ?? 'Sin departamento';
+
+                $payments = $groupBatches
+                    ->flatMap(fn ($batch) => $batch->paymentRequests)
+                    ->map(function ($p) {
+                        $originalTotal = (float) $p->total;
+                        $approvedAmount = (float) ($p->approved_amount ?? $p->total);
+                        $adjusted = $approvedAmount < $originalTotal;
+
+                        return [
+                            'folio' => $p->folio_number,
+                            'provider' => $p->provider,
+                            'concept' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
+                            'amount' => number_format($approvedAmount, 2),
+                            'currency' => $p->currency?->prefix ?? 'MXN',
+                            'adjusted' => $adjusted,
+                            'original_total' => $adjusted ? number_format($originalTotal, 2) : null,
+                        ];
+                    })
+                    ->toArray();
+
+                $subtotal = $groupBatches->sum(
+                    fn ($batch) => $batch->paymentRequests->sum(fn ($p) => (float) ($p->approved_amount ?? $p->total)),
+                );
 
                 return [
-                    'folio' => $p->folio_number,
-                    'provider' => $p->provider,
-                    'concept' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
-                    'amount' => number_format($approvedAmount, 2),
-                    'currency' => $p->currency?->prefix ?? 'MXN',
-                    'adjusted' => $adjusted,
-                    'original_total' => $adjusted ? number_format($originalTotal, 2) : null,
+                    'department' => $departmentName,
+                    'week' => $firstBatch->week_number,
+                    'year' => $firstBatch->year,
+                    'payments' => $payments,
+                    'subtotal' => number_format($subtotal, 2),
                 ];
-            })->toArray();
-
-            $subtotal = $batch->paymentRequests->sum(fn ($p) => (float) ($p->approved_amount ?? $p->total));
-
-            return [
-                'department' => $departmentName,
-                'batch_uuid' => $batch->uuid,
-                'week' => $batch->week_number,
-                'year' => $batch->year,
-                'payments' => $payments,
-                'subtotal' => number_format($subtotal, 2),
-            ];
-        })->toArray();
+            })
+            ->values()
+            ->toArray();
 
         $totalPayments = $this->batches->sum(fn ($b) => $b->paymentRequests->count());
         $grandTotal = $this->batches->sum(

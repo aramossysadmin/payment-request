@@ -20,7 +20,7 @@ type Payment = {
 };
 
 type DepartmentGroup = {
-    batch_uuid: string;
+    group_key: string;
     department: string;
     week_number: number;
     year: number;
@@ -168,7 +168,7 @@ export default function BatchApprovalShowFinalSession({ session }: Props) {
                         const groupAllChecked = group.payments.every((p) => approvedUuids.has(p.uuid));
 
                         return (
-                            <Card key={group.batch_uuid}>
+                            <Card key={group.group_key}>
                                 <CardHeader>
                                     <div className="flex items-center justify-between">
                                         <div>
