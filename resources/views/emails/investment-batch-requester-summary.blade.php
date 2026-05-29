@@ -2,7 +2,7 @@
 
 {{-- Section: Header --}}
 <div style="border-bottom: 1px solid #D4C9A9; padding-bottom: 4px; margin-bottom: 16px;">
-<span style="font-size: 14px; font-weight: 600; color: #191731; text-transform: uppercase; letter-spacing: 0.5px;">Resultado de tu Lote de Pagos</span>
+<span style="font-size: 14px; font-weight: 600; color: #191731; text-transform: uppercase; letter-spacing: 0.5px;">Resultado de tu Lote de Pagos — {{ $projectName }}</span>
 </div>
 
 {{ $greeting }}

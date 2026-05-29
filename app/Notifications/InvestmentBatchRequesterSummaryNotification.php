@@ -28,13 +28,17 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
 
     public function toMail(object $notifiable): MailMessage
     {
-        $this->approvedPayments->loadMissing(['investmentRequest.investmentExpenseConcept', 'currency']);
-        $this->rejectedPayments->loadMissing(['investmentRequest.investmentExpenseConcept', 'currency']);
+        $this->approvedPayments->loadMissing(['investmentRequest.investmentExpenseConcept', 'investmentRequest.project', 'currency']);
+        $this->rejectedPayments->loadMissing(['investmentRequest.investmentExpenseConcept', 'investmentRequest.project', 'currency']);
 
         $approvedCount = $this->approvedPayments->count();
         $rejectedCount = $this->rejectedPayments->count();
 
-        [$subject, $description] = $this->resolveSubjectAndDescription($approvedCount, $rejectedCount);
+        // Todos los pagos de esta notification son del mismo batch = mismo proyecto.
+        $firstPayment = $this->approvedPayments->first() ?? $this->rejectedPayments->first();
+        $projectName = $firstPayment?->investmentRequest?->project?->name ?? 'Sin proyecto';
+
+        [$subject, $description] = $this->resolveSubjectAndDescription($approvedCount, $rejectedCount, $projectName);
 
         $approvedItems = $this->approvedPayments->map(fn ($p) => $this->mapPayment($p))->toArray();
         $rejectedItems = $this->rejectedPayments->map(fn ($p) => $this->mapPayment($p))->toArray();
@@ -44,6 +48,7 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
             ->markdown('emails.investment-batch-requester-summary', [
                 'greeting' => 'Hola '.$notifiable->name,
                 'description' => $description,
+                'projectName' => $projectName,
                 'approvedItems' => $approvedItems,
                 'rejectedItems' => $rejectedItems,
                 'rejectionReason' => $this->rejectionReason,
@@ -56,25 +61,25 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
     /**
      * @return array<int, string>
      */
-    private function resolveSubjectAndDescription(int $approvedCount, int $rejectedCount): array
+    private function resolveSubjectAndDescription(int $approvedCount, int $rejectedCount, string $projectName): array
     {
         if ($approvedCount > 0 && $rejectedCount === 0) {
             return [
-                "Tus pagos de inversión fueron aprobados ({$approvedCount})",
-                'El CEO ha aprobado tus pagos. Sigue el flujo de revisión del Project Manager y la aprobación final.',
+                "Tus pagos de inversión en {$projectName} fueron aprobados ({$approvedCount})",
+                "El CEO ha aprobado tus pagos del proyecto {$projectName}. Sigue el flujo de revisión del Project Manager y la aprobación final.",
             ];
         }
 
         if ($approvedCount === 0 && $rejectedCount > 0) {
             return [
-                "Tus pagos de inversión fueron rechazados ({$rejectedCount})",
-                'El CEO ha rechazado tus pagos. El presupuesto fue liberado y puedes capturar nuevos si lo requieres.',
+                "Tus pagos de inversión en {$projectName} fueron rechazados ({$rejectedCount})",
+                "El CEO ha rechazado tus pagos del proyecto {$projectName}. El presupuesto fue liberado y puedes capturar nuevos si lo requieres.",
             ];
         }
 
         return [
-            "Resultado de tus pagos de inversión: {$approvedCount} aprobados, {$rejectedCount} rechazados",
-            'El CEO ha revisado tus pagos. Aquí está el resumen consolidado del lote.',
+            "Resultado de tus pagos en {$projectName}: {$approvedCount} aprobados, {$rejectedCount} rechazados",
+            "El CEO ha revisado tus pagos del proyecto {$projectName}. Aquí está el resumen consolidado del lote.",
         ];
     }
 

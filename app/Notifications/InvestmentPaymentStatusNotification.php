@@ -34,12 +34,16 @@ class InvestmentPaymentStatusNotification extends Notification implements Should
     {
         $this->paymentRequest->loadMissing([
             'investmentRequest.investmentExpenseConcept',
+            'investmentRequest.project',
             'currency',
         ]);
 
         [$stageLabel, $resultLabel, $description, $banner] = $this->resolveStageInfo();
 
+        $projectName = $this->paymentRequest->investmentRequest?->project?->name ?? 'Sin proyecto';
+
         $details = [
+            ['label' => 'Proyecto', 'value' => $projectName],
             ['label' => 'Folio', 'value' => '#'.str_pad((string) $this->paymentRequest->folio_number, 5, '0', STR_PAD_LEFT)],
             ['label' => 'Concepto', 'value' => $this->paymentRequest->investmentRequest?->investmentExpenseConcept?->name ?? '-'],
             ['label' => 'Proveedor', 'value' => $this->paymentRequest->provider],
@@ -57,10 +61,10 @@ class InvestmentPaymentStatusNotification extends Notification implements Should
         }
 
         return (new MailMessage)
-            ->subject('Actualización de tu solicitud de pago de inversión #'.$this->paymentRequest->folio_number)
+            ->subject("Actualización de pago #{$this->paymentRequest->folio_number} en {$projectName}")
             ->markdown('emails.request-notification', [
                 'banner' => $banner,
-                'sectionTitle' => 'Estado de tu Solicitud',
+                'sectionTitle' => "Estado de tu Solicitud — {$projectName}",
                 'greeting' => 'Hola '.$notifiable->name,
                 'description' => $description,
                 'details' => $details,
