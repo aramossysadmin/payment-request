@@ -95,7 +95,7 @@ export function ApprovalTimeline({
                                                 </span>
                                             </p>
                                             {approval.comments && (
-                                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                                                <p className={cn('mt-1 text-sm', config.color)}>
                                                     &ldquo;{approval.comments}
                                                     &rdquo;
                                                 </p>

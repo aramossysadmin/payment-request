@@ -60,7 +60,7 @@ class InvestmentApprovalService
             'level' => 1,
             'status' => 'approved',
             'responded_at' => now(),
-            'comments' => 'Bypass automático (autorización deshabilitada temporalmente)',
+            'comments' => 'Aprobación automática al momento de la creación',
         ]);
 
         $investmentRequest->status->transitionTo(Completed::class);
