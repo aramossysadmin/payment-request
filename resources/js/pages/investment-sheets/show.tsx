@@ -206,7 +206,7 @@ export default function Show() {
                                 {ir.description && (
                                     <div>
                                         <dt className="mb-1 text-muted-foreground">Descripción</dt>
-                                        <dd className="text-foreground">{ir.description}</dd>
+                                        <dd className="text-foreground uppercase">{ir.description}</dd>
                                     </div>
                                 )}
                             </dl>

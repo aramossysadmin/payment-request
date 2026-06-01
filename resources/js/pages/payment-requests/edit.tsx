@@ -351,13 +351,13 @@ export default function Edit() {
                                 </Label>
                                 <textarea
                                     id="description"
-                                    className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+                                    className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm uppercase shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
                                     rows={3}
                                     value={values.description}
                                     onChange={(e) =>
                                         handleChange(
                                             'description',
-                                            e.target.value,
+                                            e.target.value.toUpperCase(),
                                         )
                                     }
                                 />

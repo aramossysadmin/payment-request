@@ -790,7 +790,7 @@ export default function Consolidated() {
                                                                     </Badge>
                                                                 )}
                                                             </td>
-                                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={isSingle ? (firstItem.description ?? undefined) : undefined}>
+                                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={isSingle ? (firstItem.description ?? undefined) : undefined}>
                                                                 {isSingle && firstItem.description ? firstItem.description : <span className="text-gray-400">—</span>}
                                                             </td>
                                                             {showProvider && (
@@ -863,7 +863,7 @@ export default function Consolidated() {
                                                                         </Badge>
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={ir.description ?? undefined}>
+                                                                <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={ir.description ?? undefined}>
                                                                     {ir.description ? ir.description : <span className="text-gray-400">—</span>}
                                                                 </td>
                                                                 {showProvider && (
@@ -931,7 +931,7 @@ export default function Consolidated() {
                                                     #{String(payment.folio_number).padStart(5, '0')}
                                                 </td>
                                                 <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
-                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.description ?? undefined}>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
                                                     {payment.description ? payment.description : <span className="text-gray-400">—</span>}
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
@@ -1022,7 +1022,7 @@ export default function Consolidated() {
                                                     #{String(payment.folio_number).padStart(5, '0')}
                                                 </td>
                                                 <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
-                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.description ?? undefined}>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
                                                     {payment.description ? payment.description : <span className="text-gray-400">—</span>}
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
@@ -1195,7 +1195,7 @@ export default function Consolidated() {
                                                     <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.concept_name}>
                                                         {payment.concept_name}
                                                     </td>
-                                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.description ?? undefined}>
+                                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
                                                         {payment.description ? payment.description : <span className="text-gray-400">—</span>}
                                                     </td>
                                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[180px] truncate" title={payment.provider}>
@@ -1325,7 +1325,7 @@ export default function Consolidated() {
                                         {selectedHistoryPayment.description && (
                                             <div>
                                                 <dt className="text-muted-foreground mb-1">Descripción</dt>
-                                                <dd className="text-sm">{selectedHistoryPayment.description}</dd>
+                                                <dd className="text-sm uppercase">{selectedHistoryPayment.description}</dd>
                                             </div>
                                         )}
                                     </dl>
@@ -1958,10 +1958,10 @@ function PaymentRequestModal({
                                     <Label htmlFor="modal_description">Descripción <span className="text-gray-400">(opcional)</span></Label>
                                     <textarea
                                         id="modal_description"
-                                        className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+                                        className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm uppercase shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
                                         rows={3}
                                         value={values.description}
-                                        onChange={(e) => handleChange('description', e.target.value)}
+                                        onChange={(e) => handleChange('description', e.target.value.toUpperCase())}
                                         placeholder="Ej: Pago del 30% de anticipo por concepto de..."
                                     />
                                     <p className="text-xs text-gray-500 dark:text-gray-400">

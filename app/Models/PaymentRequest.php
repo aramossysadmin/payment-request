@@ -62,8 +62,7 @@ class PaymentRequest extends Model
             return;
         }
 
-        $trimmed = trim($value);
-        $this->attributes['description'] = mb_strtoupper(mb_substr($trimmed, 0, 1)).mb_substr($trimmed, 1);
+        $this->attributes['description'] = mb_strtoupper(trim($value));
     }
 
     protected static function booted(): void
