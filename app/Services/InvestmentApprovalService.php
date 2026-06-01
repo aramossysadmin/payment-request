@@ -16,9 +16,18 @@ class InvestmentApprovalService
 {
     /**
      * Create the single approval record and notify the authorizer.
+     *
+     * If config('investment-requests.require_authorization') is false, the
+     * request is auto-approved (Completed) without notifying anyone.
      */
     public function createApprovals(InvestmentRequest $investmentRequest): void
     {
+        if (! config('investment-requests.require_authorization')) {
+            $this->autoApprove($investmentRequest);
+
+            return;
+        }
+
         $authorizer = $this->getAuthorizer();
 
         if (! $authorizer) {
@@ -37,6 +46,24 @@ class InvestmentApprovalService
         $approval->save();
 
         $authorizer->notify(new InvestmentRequestCreated($investmentRequest, $approval->approval_token));
+    }
+
+    /**
+     * Bypass: auto-approve the request on creation with audit trail.
+     */
+    private function autoApprove(InvestmentRequest $investmentRequest): void
+    {
+        InvestmentRequestApproval::create([
+            'investment_request_id' => $investmentRequest->id,
+            'user_id' => $investmentRequest->user_id,
+            'stage' => 'department',
+            'level' => 1,
+            'status' => 'approved',
+            'responded_at' => now(),
+            'comments' => 'Bypass automático (autorización deshabilitada temporalmente)',
+        ]);
+
+        $investmentRequest->status->transitionTo(Completed::class);
     }
 
     /**
