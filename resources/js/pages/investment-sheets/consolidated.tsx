@@ -161,7 +161,7 @@ type HistoryPayment = {
     pm_reviewed_at: string | null;
     final_reviewed_at: string | null;
     has_documents: boolean;
-    documents: string[];
+    documents: { name: string; url: string }[];
 };
 
 type PageProps = {
@@ -1443,13 +1443,12 @@ export default function Consolidated() {
                                         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Documentos</h3>
                                         <ul className="space-y-2">
                                             {selectedHistoryPayment.documents.map((doc, i) => {
-                                                const filename = doc.split('/').pop() ?? doc;
-                                                const ext = filename.split('.').pop()?.toUpperCase() ?? 'DOC';
+                                                const ext = doc.name.split('.').pop()?.toUpperCase() ?? 'DOC';
                                                 return (
                                                     <li key={i} className="flex items-center gap-2 rounded-md border px-3 py-2">
                                                         <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
                                                         <a
-                                                            href={`/storage/${doc}`}
+                                                            href={doc.url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="flex-1 text-sm font-medium text-primary hover:underline truncate"

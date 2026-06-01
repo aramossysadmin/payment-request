@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\States\InvestmentRequest\Completed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -223,7 +224,18 @@ class InvestmentSheetConsolidatedController extends Controller
                 'pm_reviewed_at' => $p->pm_reviewed_at?->toISOString(),
                 'final_reviewed_at' => $p->final_reviewed_at?->toISOString(),
                 'has_documents' => is_array($p->advance_documents) && count($p->advance_documents) >= 2,
-                'documents' => is_array($p->advance_documents) ? $p->advance_documents : [],
+                'documents' => collect(is_array($p->advance_documents) ? $p->advance_documents : [])
+                    ->filter(fn ($doc) => is_string($doc) && $doc !== '')
+                    ->map(fn ($doc) => [
+                        'name' => basename($doc),
+                        'url' => URL::temporarySignedRoute(
+                            'documents.view',
+                            now()->addHours(48),
+                            ['path' => $doc],
+                        ),
+                    ])
+                    ->values()
+                    ->toArray(),
             ]);
 
         return Inertia::render('investment-sheets/consolidated', [
