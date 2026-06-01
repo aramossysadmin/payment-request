@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckCircle2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileText, Inbox, Pencil, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileText, Inbox, Pencil, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
@@ -130,8 +130,6 @@ type AuthorizedPayment = {
 };
 
 type AuthorizedPaymentsGroup = {
-    week_number: number;
-    year: number;
     payments: AuthorizedPayment[];
 };
 
@@ -999,9 +997,9 @@ export default function Consolidated() {
                 {authorizedPayments && authorizedPayments.payments.length > 0 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Pagos Autorizados — Semana {authorizedPayments.week_number} ({authorizedPayments.year})</CardTitle>
+                            <CardTitle>Pagos Pendientes de Documentos</CardTitle>
                             <p className="mt-1 text-xs text-muted-foreground">
-                                Solo se muestran los pagos autorizados de la semana en curso. Sube los documentos PDF y XML de cada uno para finalizar.
+                                Pagos que ya tienen aprobación final del CEO y requieren que subas los documentos PDF y XML para concluir el proceso.
                             </p>
                         </CardHeader>
                         <CardContent>
@@ -1037,21 +1035,14 @@ export default function Consolidated() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    {payment.status === 'completed' ? (
-                                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400">
-                                                            <CheckCircle2 className="h-4 w-4" />
-                                                            Documentos subidos
-                                                        </span>
-                                                    ) : (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => setUploadDialogUuid(payment.uuid)}
-                                                        >
-                                                            <Upload className="mr-1.5 h-3.5 w-3.5" />
-                                                            Subir documentos
-                                                        </Button>
-                                                    )}
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => setUploadDialogUuid(payment.uuid)}
+                                                    >
+                                                        <Upload className="mr-1.5 h-3.5 w-3.5" />
+                                                        Subir documentos
+                                                    </Button>
                                                 </td>
                                             </tr>
                                         ))}

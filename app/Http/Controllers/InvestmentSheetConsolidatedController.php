@@ -165,10 +165,9 @@ class InvestmentSheetConsolidatedController extends Controller
             : collect();
 
         $authorizedPayments = InvestmentPaymentRequest::query()
-            ->whereIn('status', ['final_approved', 'completed'])
+            ->where('status', 'final_approved')
             ->where('user_id', $user->id)
             ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
-            ->whereHas('batch', fn ($q) => $q->where('week_number', $currentWeek)->where('year', $currentYear))
             ->with(['currency', 'investmentRequest.investmentExpenseConcept'])
             ->latest()
             ->get()
@@ -264,8 +263,6 @@ class InvestmentSheetConsolidatedController extends Controller
                 'total' => number_format((float) $draftPayments->sum(fn ($p) => (float) $p['total']), 2, '.', ''),
             ] : null,
             'authorizedPayments' => [
-                'week_number' => $currentWeek,
-                'year' => $currentYear,
                 'payments' => $authorizedPayments,
             ],
             'userPaymentHistory' => $userPaymentHistory,
