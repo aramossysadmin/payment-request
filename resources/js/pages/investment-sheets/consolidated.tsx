@@ -54,6 +54,9 @@ type DepartmentBreakdown = {
     id: number;
     name: string;
     total: string;
+    paid: string;
+    pending: string;
+    percent_paid: number;
     count: number;
 };
 
@@ -640,19 +643,50 @@ export default function Consolidated() {
                                         key={dept.id}
                                         type="button"
                                         onClick={() => applyFilters({ department_id: filters.department_id === String(dept.id) ? '' : String(dept.id) })}
-                                        className={`flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
+                                        className={`flex flex-col gap-2.5 rounded-lg border p-3 text-left transition-colors ${
                                             filters.department_id === String(dept.id)
                                                 ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
                                                 : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                                         }`}
                                     >
-                                        <div>
-                                            <p className="text-sm font-medium">{dept.name}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                {dept.count} {dept.count === 1 ? 'concepto' : 'conceptos'}
-                                            </p>
+                                        {/* Header: nombre+count a la izquierda, total a la derecha */}
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-medium">{dept.name}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {dept.count} {dept.count === 1 ? 'concepto' : 'conceptos'}
+                                                </p>
+                                            </div>
+                                            <span className="whitespace-nowrap text-sm font-semibold">{formatCurrency(dept.total)}</span>
                                         </div>
-                                        <span className="text-sm font-semibold">{formatCurrency(dept.total)}</span>
+
+                                        {/* Separador */}
+                                        <div className="border-t border-gray-200 dark:border-gray-700" />
+
+                                        {/* Barra de progreso + porcentaje */}
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                                                <div
+                                                    className="h-full rounded-full bg-emerald-500 transition-all"
+                                                    style={{ width: `${Math.min(dept.percent_paid, 100)}%` }}
+                                                />
+                                            </div>
+                                            <span className="whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400">
+                                                {dept.percent_paid.toFixed(0)}% pagado
+                                            </span>
+                                        </div>
+
+                                        {/* Pagado / Pendiente */}
+                                        <div className="space-y-1">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-emerald-700 dark:text-emerald-400">Pagado</span>
+                                                <span className="font-medium text-emerald-700 dark:text-emerald-400">{formatCurrency(dept.paid)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-amber-700 dark:text-amber-400">Pendiente</span>
+                                                <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrency(dept.pending)}</span>
+                                            </div>
+                                        </div>
                                     </button>
                                 ))}
                             </div>

@@ -98,6 +98,19 @@ class InvestmentSheetConsolidatedController extends Controller
             ->orderByDesc('department_total')
             ->get();
 
+        $visibleIrIds = InvestmentRequest::query()
+            ->where('project_id', $project->id)
+            ->visibleTo($user)
+            ->pluck('id');
+
+        $paidByDepartment = InvestmentPaymentRequest::query()
+            ->join('investment_requests', 'investment_payment_requests.investment_request_id', '=', 'investment_requests.id')
+            ->whereIn('investment_payment_requests.investment_request_id', $visibleIrIds)
+            ->whereIn('investment_payment_requests.status', ['pending_approval', 'approved'])
+            ->groupBy('investment_requests.department_id')
+            ->selectRaw('investment_requests.department_id, SUM(investment_payment_requests.total) as paid_total')
+            ->pluck('paid_total', 'department_id');
+
         $project->load('branch');
 
         $now = Carbon::now();
@@ -253,12 +266,22 @@ class InvestmentSheetConsolidatedController extends Controller
                 'pending' => number_format((float) ($totals->pending_total ?? 0), 2, '.', ''),
                 'count' => (int) ($totals->total_count ?? 0),
             ],
-            'departmentBreakdown' => $departmentBreakdown->map(fn ($d) => [
-                'id' => $d->department_id,
-                'name' => $d->department_name,
-                'total' => number_format((float) $d->department_total, 2, '.', ''),
-                'count' => (int) $d->department_count,
-            ]),
+            'departmentBreakdown' => $departmentBreakdown->map(function ($d) use ($paidByDepartment) {
+                $total = (float) $d->department_total;
+                $paid = (float) ($paidByDepartment[$d->department_id] ?? 0);
+                $pending = max(0, $total - $paid);
+                $percentPaid = $total > 0 ? ($paid / $total) * 100 : 0;
+
+                return [
+                    'id' => $d->department_id,
+                    'name' => $d->department_name,
+                    'total' => number_format($total, 2, '.', ''),
+                    'paid' => number_format($paid, 2, '.', ''),
+                    'pending' => number_format($pending, 2, '.', ''),
+                    'percent_paid' => round($percentPaid, 1),
+                    'count' => (int) $d->department_count,
+                ];
+            }),
             'investmentRequests' => InvestmentRequestResource::collection($investmentRequests),
             'filters' => [
                 'search' => $request->input('search'),
