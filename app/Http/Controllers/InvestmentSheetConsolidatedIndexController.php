@@ -13,17 +13,21 @@ class InvestmentSheetConsolidatedIndexController extends Controller
     {
         $user = $request->user();
 
+        // NOTA: el whereHas(investmentRequests, visibleTo) anterior ocultaba
+        // proyectos nuevos sin Solicitudes capturadas todavía, dejándolos
+        // invisibles para todos los usuarios hasta la primera captura.
+        // Solución temporal Opción A: mostrar TODOS los proyectos activos.
+        // En sesión futura se aplicará un punto más fino que respete permisos
+        // pero permita descubrir proyectos nuevos.
         $projects = Project::query()
             ->with('branch')
+            ->where('is_active', true)
             ->withCount(['investmentRequests' => function ($q) use ($user) {
                 $q->visibleTo($user);
             }])
             ->withSum(['investmentRequests' => function ($q) use ($user) {
                 $q->visibleTo($user);
             }], 'total')
-            ->whereHas('investmentRequests', function ($q) use ($user) {
-                $q->visibleTo($user);
-            })
             ->orderBy('name')
             ->get();
 

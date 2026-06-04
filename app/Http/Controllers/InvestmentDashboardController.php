@@ -17,8 +17,11 @@ class InvestmentDashboardController extends Controller
     {
         $user = $request->user();
 
+        // NOTA: el whereHas(investmentRequests) anterior ocultaba proyectos
+        // nuevos sin Solicitudes capturadas. Solución temporal Opción A:
+        // mostrar TODOS los proyectos activos.
         $projects = Project::query()
-            ->whereHas('investmentRequests')
+            ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name']);
 
