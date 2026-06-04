@@ -72,6 +72,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('investment-payment-review', [InvestmentPaymentReviewController::class, 'submit'])->name('investment-payment-review.submit');
     });
     Route::resource('investment-sheets', InvestmentRequestController::class)->parameters(['investment-sheets' => 'investment_request']);
+    Route::patch('investment-sheets/{investment_request}/description', [InvestmentRequestController::class, 'updateDescription'])->name('investment-sheets.update-description');
     Route::post('investment-sheets/{investment_request}/approve', [InvestmentRequestApprovalController::class, 'approve'])->middleware('throttle:10,1')->name('investment-sheets.approve');
     Route::post('investment-sheets/{investment_request}/reject', [InvestmentRequestApprovalController::class, 'reject'])->middleware('throttle:10,1')->name('investment-sheets.reject');
     Route::get('investment-sheets/{investment_request}/pdf', InvestmentRequestPdfController::class)->name('investment-sheets.pdf');

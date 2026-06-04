@@ -21,6 +21,7 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -321,6 +322,40 @@ export default function Consolidated() {
             {
                 preserveScroll: true,
                 onFinish: () => setSubmittingBatch(false),
+            },
+        );
+    };
+
+    // Estado del modal de edición de descripción (micro-edit en la tabla de detalle)
+    const [editDescState, setEditDescState] = useState<{ uuid: string; folio: number; concept: string } | null>(null);
+    const [editDescValue, setEditDescValue] = useState('');
+    const [editDescSaving, setEditDescSaving] = useState(false);
+
+    const openEditDescription = (ir: { uuid: string; folio_number: number; description: string | null; investment_expense_concept?: { name: string } | null; expense_concept?: { name: string } | null }) => {
+        setEditDescState({
+            uuid: ir.uuid,
+            folio: ir.folio_number,
+            concept: ir.investment_expense_concept?.name ?? ir.expense_concept?.name ?? '—',
+        });
+        setEditDescValue(ir.description ?? '');
+    };
+
+    const closeEditDescription = () => {
+        setEditDescState(null);
+        setEditDescValue('');
+        setEditDescSaving(false);
+    };
+
+    const handleSaveDescription = () => {
+        if (!editDescState) return;
+        setEditDescSaving(true);
+        router.patch(
+            `/investment-sheets/${editDescState.uuid}/description`,
+            { description: editDescValue },
+            {
+                preserveScroll: true,
+                onSuccess: () => closeEditDescription(),
+                onFinish: () => setEditDescSaving(false),
             },
         );
     };
@@ -824,8 +859,24 @@ export default function Consolidated() {
                                                                     </Badge>
                                                                 )}
                                                             </td>
-                                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={isSingle ? (firstItem.description ?? undefined) : undefined}>
-                                                                {isSingle && firstItem.description ? firstItem.description : <span className="text-gray-400">—</span>}
+                                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px]" title={isSingle ? (firstItem.description ?? undefined) : undefined}>
+                                                                {isSingle ? (
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="flex-1 truncate uppercase">
+                                                                            {firstItem.description ? firstItem.description : <span className="text-gray-400">—</span>}
+                                                                        </span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => { e.stopPropagation(); openEditDescription(firstItem); }}
+                                                                            className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                                                            title="Editar descripción"
+                                                                        >
+                                                                            <Pencil className="h-3.5 w-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-gray-400">—</span>
+                                                                )}
                                                             </td>
                                                             {showProvider && (
                                                             <td className="px-4 py-3 border-r border-gray-100 dark:border-gray-800">
@@ -897,8 +948,20 @@ export default function Consolidated() {
                                                                         </Badge>
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={ir.description ?? undefined}>
-                                                                    {ir.description ? ir.description : <span className="text-gray-400">—</span>}
+                                                                <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px]" title={ir.description ?? undefined}>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="flex-1 truncate uppercase">
+                                                                            {ir.description ? ir.description : <span className="text-gray-400">—</span>}
+                                                                        </span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => { e.stopPropagation(); openEditDescription(ir); }}
+                                                                            className="shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                                                            title="Editar descripción"
+                                                                        >
+                                                                            <Pencil className="h-3 w-3" />
+                                                                        </button>
+                                                                    </div>
                                                                 </td>
                                                                 {showProvider && (
                                                                 <td className="px-4 py-2.5 border-r border-gray-100 dark:border-gray-800">
@@ -1500,6 +1563,38 @@ export default function Consolidated() {
                     )}
                 </SheetContent>
             </Sheet>
+
+            {/* Edit description dialog */}
+            <Dialog open={editDescState !== null} onOpenChange={(open) => { if (!open) closeEditDescription(); }}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Editar Descripción — #{editDescState ? String(editDescState.folio).padStart(5, '0') : ''}</DialogTitle>
+                        <DialogDescription>
+                            {editDescState?.concept}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 py-2">
+                        <Label htmlFor="edit_description">Descripción <span className="text-gray-400">(opcional)</span></Label>
+                        <textarea
+                            id="edit_description"
+                            className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm uppercase shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+                            rows={4}
+                            value={editDescValue}
+                            onChange={(e) => setEditDescValue(e.target.value.toUpperCase())}
+                            placeholder="Descripción del concepto..."
+                            autoFocus
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={closeEditDescription} disabled={editDescSaving}>
+                            Cancelar
+                        </Button>
+                        <Button type="button" onClick={handleSaveDescription} disabled={editDescSaving}>
+                            {editDescSaving ? 'Guardando...' : 'Guardar'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Upload documents dialog */}
             <Dialog open={uploadDialogUuid !== null} onOpenChange={(open) => { if (!open) closeUploadDialog(); }}>

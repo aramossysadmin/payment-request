@@ -228,6 +228,23 @@ class InvestmentRequestController extends Controller
             ->with('success', 'Hoja de inversión actualizada exitosamente.');
     }
 
+    /**
+     * Micro-edit endpoint: actualiza únicamente el campo description.
+     * Sin restricción de status — utilizable también en estado Completed.
+     */
+    public function updateDescription(Request $request, InvestmentRequest $investmentRequest): RedirectResponse
+    {
+        Gate::authorize('update', $investmentRequest);
+
+        $validated = $request->validate([
+            'description' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $investmentRequest->update(['description' => $validated['description'] ?? null]);
+
+        return back()->with('success', 'Descripción actualizada.');
+    }
+
     public function destroy(InvestmentRequest $investmentRequest): RedirectResponse
     {
         Gate::authorize('delete', $investmentRequest);
