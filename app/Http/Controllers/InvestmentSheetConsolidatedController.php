@@ -253,11 +253,55 @@ class InvestmentSheetConsolidatedController extends Controller
                     ->toArray(),
             ]);
 
+        // Dashboard de presupuesto del proyecto (suma de Solicitudes con status=completed)
+        $originalBudget = (float) InvestmentRequest::query()
+            ->where('project_id', $project->id)
+            ->where('is_addendum', false)
+            ->where('is_deductive', false)
+            ->whereState('status', Completed::class)
+            ->sum('total');
+
+        $additionalBudget = (float) InvestmentRequest::query()
+            ->where('project_id', $project->id)
+            ->where('is_addendum', true)
+            ->where('is_deductive', false)
+            ->whereState('status', Completed::class)
+            ->sum('total');
+
+        $deductiveBudget = (float) InvestmentRequest::query()
+            ->where('project_id', $project->id)
+            ->where('is_deductive', true)
+            ->whereState('status', Completed::class)
+            ->sum('total');
+
+        $updatedBudget = $originalBudget + $additionalBudget - $deductiveBudget;
+
+        $paidProjectTotal = (float) InvestmentPaymentRequest::query()
+            ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
+            ->whereIn('status', ['pending_approval', 'approved'])
+            ->sum('total');
+
+        $remainingBudget = $updatedBudget - $paidProjectTotal;
+
         return Inertia::render('investment-sheets/consolidated', [
             'project' => [
                 'id' => $project->id,
                 'name' => $project->name,
                 'branch' => $project->branch?->name,
+                'start_date' => $project->start_date?->toDateString(),
+                'opening_date' => $project->opening_date?->toDateString(),
+                'authorized_budget' => $project->authorized_budget !== null ? number_format((float) $project->authorized_budget, 2, '.', '') : null,
+            ],
+            'projectDashboard' => [
+                'current_week' => $currentWeek,
+                'current_year' => $currentYear,
+                'today_date' => $now->toDateString(),
+                'original_budget' => number_format($originalBudget, 2, '.', ''),
+                'additional_budget' => number_format($additionalBudget, 2, '.', ''),
+                'deductive_budget' => number_format($deductiveBudget, 2, '.', ''),
+                'updated_budget' => number_format($updatedBudget, 2, '.', ''),
+                'paid_total' => number_format($paidProjectTotal, 2, '.', ''),
+                'remaining_budget' => number_format($remainingBudget, 2, '.', ''),
             ],
             'totals' => [
                 'subtotal' => number_format((float) ($totals->total_subtotal ?? 0), 2, '.', ''),

@@ -43,6 +43,25 @@ class ProjectResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\DatePicker::make('start_date')
+                                    ->label('Fecha de Inicio')
+                                    ->native(false)
+                                    ->displayFormat('d/m/Y')
+                                    ->helperText('Cuándo arranca formalmente el proyecto.'),
+                                Forms\Components\DatePicker::make('opening_date')
+                                    ->label('Fecha de Apertura')
+                                    ->native(false)
+                                    ->displayFormat('d/m/Y')
+                                    ->helperText('Cuándo se abre operativamente al equipo.'),
+                            ]),
+                        Forms\Components\TextInput::make('authorized_budget')
+                            ->label('Presupuesto Autorizado')
+                            ->numeric()
+                            ->prefix('$')
+                            ->minValue(0)
+                            ->helperText('Monto autorizado para el proyecto. Se utiliza como referencia en el dashboard de Hojas de Inversión.'),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Activo')
                             ->default(true)

@@ -18,6 +18,9 @@ class Project extends Model
     protected $fillable = [
         'name',
         'branch_id',
+        'start_date',
+        'opening_date',
+        'authorized_budget',
         'is_active',
     ];
 
@@ -30,6 +33,9 @@ class Project extends Model
     {
         return [
             'is_active' => 'boolean',
+            'start_date' => 'date',
+            'opening_date' => 'date',
+            'authorized_budget' => 'decimal:2',
         ];
     }
 

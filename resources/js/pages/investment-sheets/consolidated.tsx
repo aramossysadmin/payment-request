@@ -173,6 +173,9 @@ type PageProps = {
         id: number;
         name: string;
         branch: string | null;
+        start_date: string | null;
+        opening_date: string | null;
+        authorized_budget: string | null;
     };
     totals: {
         subtotal: string;
@@ -180,6 +183,17 @@ type PageProps = {
         authorized: string;
         pending: string;
         count: number;
+    };
+    projectDashboard: {
+        current_week: number;
+        current_year: number;
+        today_date: string;
+        original_budget: string;
+        additional_budget: string;
+        deductive_budget: string;
+        updated_budget: string;
+        paid_total: string;
+        remaining_budget: string;
     };
     departmentBreakdown: DepartmentBreakdown[];
     investmentRequests: PaginatedData<InvestmentRequest>;
@@ -213,6 +227,19 @@ const ivaRateOptions = [
 
 function formatCurrency(value: string | number): string {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(value));
+}
+
+// Formato sin sufijo de moneda. Usado en las tarjetas del dashboard del proyecto
+// mientras no exista el feature de moneda base por proyecto (registrado en PENDIENTES).
+function formatCurrencyPlain(value: string | number | null): string {
+    if (value === null || value === undefined) return '—';
+    return '$' + new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value));
+}
+
+function formatDateEs(dateStr: string | null): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 type ConceptGroup = {
@@ -260,7 +287,7 @@ export default function Consolidated() {
     const showProvider = false;
 
     const {
-        project, totals, departmentBreakdown, investmentRequests, filters,
+        project, totals, projectDashboard, departmentBreakdown, investmentRequests, filters,
         userDepartmentId, userDepartmentName, currencies, branches, errors, draftBatch, authorizedPayments, userPaymentHistory,
     } = usePage<PageProps>().props;
 
@@ -609,6 +636,98 @@ export default function Consolidated() {
                     )}
                 </div>
 
+                {/* Project Dashboard — 3 tarjetas (calendario, fechas proyecto, presupuesto) */}
+                <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3">
+                    {/* Tarjeta 1 — Calendario */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Calendario</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <div className="flex items-baseline justify-between">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">Semana</span>
+                                <span className="text-2xl font-bold">{projectDashboard.current_week}</span>
+                            </div>
+                            <div className="flex items-baseline justify-between">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">Fecha</span>
+                                <span className="text-sm font-medium">{formatDateEs(projectDashboard.today_date)}</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Tarjeta 2 — Fechas del Proyecto */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Fechas del Proyecto</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <div className="flex items-baseline justify-between">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">Fecha Inicio</span>
+                                {project.start_date ? (
+                                    <span className="text-sm font-medium">{formatDateEs(project.start_date)}</span>
+                                ) : (
+                                    <span className="text-sm font-medium text-gray-400 italic">Sin definir</span>
+                                )}
+                            </div>
+                            <div className="flex items-baseline justify-between">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">Fecha Apertura</span>
+                                {project.opening_date ? (
+                                    <span className="text-sm font-medium">{formatDateEs(project.opening_date)}</span>
+                                ) : (
+                                    <span className="text-sm font-medium text-gray-400 italic">Sin definir</span>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Tarjeta 3 — Presupuesto */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Presupuesto</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-1.5">
+                            <div className="flex items-baseline justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Autorizado</span>
+                                {project.authorized_budget !== null ? (
+                                    <span className="font-semibold">{formatCurrencyPlain(project.authorized_budget)}</span>
+                                ) : (
+                                    <span className="font-medium text-gray-400 italic">Sin definir</span>
+                                )}
+                            </div>
+                            <div className="flex items-baseline justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Original</span>
+                                <span className="font-medium">{formatCurrencyPlain(projectDashboard.original_budget)}</span>
+                            </div>
+                            <div className="flex items-baseline justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Aditivas</span>
+                                <span className="font-medium">{formatCurrencyPlain(projectDashboard.additional_budget)}</span>
+                            </div>
+                            <div className="flex items-baseline justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Deductivas</span>
+                                <span className="font-medium">{formatCurrencyPlain(projectDashboard.deductive_budget)}</span>
+                            </div>
+                            <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
+                            <div className="flex items-baseline justify-between text-sm">
+                                <span className="font-semibold text-gray-700 dark:text-gray-300">Actualizado</span>
+                                <span className="font-bold">{formatCurrencyPlain(projectDashboard.updated_budget)}</span>
+                            </div>
+                            <div className="flex items-baseline justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Pagado</span>
+                                <span className="font-medium">{formatCurrencyPlain(projectDashboard.paid_total)}</span>
+                            </div>
+                            <div className="flex items-baseline justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Por Pagar</span>
+                                <span className={cn(
+                                    'font-semibold',
+                                    Number(projectDashboard.remaining_budget) < 0 && 'text-red-600 dark:text-red-400',
+                                )}>
+                                    {formatCurrencyPlain(projectDashboard.remaining_budget)}
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
                 {/* Summary Cards */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <Card>
@@ -644,7 +763,7 @@ export default function Consolidated() {
                                     <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Monto Autorizado</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Monto Completado</p>
                                     <p className="text-2xl font-bold">{formatCurrency(totals.authorized)}</p>
                                 </div>
                             </div>
@@ -657,7 +776,7 @@ export default function Consolidated() {
                                     <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Monto Pendiente</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">En Proceso</p>
                                     <p className="text-2xl font-bold">{formatCurrency(totals.pending)}</p>
                                 </div>
                             </div>
