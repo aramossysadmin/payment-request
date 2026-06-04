@@ -167,18 +167,20 @@ class InvestmentDashboardController extends Controller
             ->selectRaw('
                 investment_expense_concepts.id as concept_id,
                 investment_expense_concepts.name as concept_name,
+                departments.id as department_id,
                 departments.name as dept_name,
                 SUM(CASE WHEN investment_requests.is_addendum = 0 THEN investment_requests.total ELSE 0 END) as base_budget,
                 SUM(CASE WHEN investment_requests.is_addendum = 1 THEN investment_requests.total ELSE 0 END) as addendum_total,
                 SUM(investment_requests.total) as total_budget,
                 COUNT(CASE WHEN investment_requests.is_addendum = 1 THEN 1 END) as addendum_count
             ')
-            ->groupBy('investment_expense_concepts.id', 'investment_expense_concepts.name', 'departments.name')
+            ->groupBy('investment_expense_concepts.id', 'investment_expense_concepts.name', 'departments.id', 'departments.name')
             ->orderByDesc('total_budget')
             ->get()
             ->map(function ($row) use ($completedIds) {
                 $groupIds = InvestmentRequest::whereIn('id', $completedIds)
                     ->where('investment_expense_concept_id', $row->concept_id)
+                    ->where('department_id', $row->department_id)
                     ->pluck('id');
 
                 $paid = (float) InvestmentPaymentRequest::query()

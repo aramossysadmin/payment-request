@@ -60,6 +60,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 $groupIds = InvestmentRequest::query()
                     ->where('project_id', $project->id)
                     ->where('investment_expense_concept_id', $ir->investment_expense_concept_id)
+                    ->where('department_id', $ir->department_id)
                     ->whereState('status', Completed::class)
                     ->pluck('id');
 
@@ -125,6 +126,7 @@ class InvestmentSheetConsolidatedController extends Controller
                         $groupIds = InvestmentRequest::query()
                             ->where('project_id', $ir->project_id)
                             ->where('investment_expense_concept_id', $ir->investment_expense_concept_id)
+                            ->where('department_id', $ir->department_id)
                             ->whereState('status', Completed::class)
                             ->pluck('id');
 

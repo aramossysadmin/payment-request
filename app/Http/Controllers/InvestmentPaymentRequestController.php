@@ -26,6 +26,7 @@ class InvestmentPaymentRequestController extends Controller
             $groupIds = InvestmentRequest::query()
                 ->where('project_id', $investmentRequest->project_id)
                 ->where('investment_expense_concept_id', $investmentRequest->investment_expense_concept_id)
+                ->where('department_id', $investmentRequest->department_id)
                 ->whereState('status', Completed::class)
                 ->pluck('id');
         }
