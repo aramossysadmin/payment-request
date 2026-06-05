@@ -192,6 +192,7 @@ type PageProps = {
         additional_budget: string;
         deductive_budget: string;
         pending_additional: string;
+        pending_deductive: string;
         updated_budget: string;
         paid_total: string;
         remaining_budget: string;
@@ -715,17 +716,25 @@ export default function Consolidated() {
                                 <span className="font-semibold text-gray-700 dark:text-gray-300">Actualizado</span>
                                 <span className="font-bold">{formatCurrencyPlain(projectDashboard.updated_budget)}</span>
                             </div>
-                            {Number(projectDashboard.pending_additional) > 0 && (
+                            {(Number(projectDashboard.pending_additional) > 0 || Number(projectDashboard.pending_deductive) > 0) && (
                                 <>
                                     <div className="my-1.5 flex items-center gap-2 text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                         <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
                                         <span>En proceso de autorización</span>
                                         <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
                                     </div>
-                                    <div className="flex items-baseline justify-between text-sm">
-                                        <span className="text-amber-700 dark:text-amber-400">Aditivas en proceso</span>
-                                        <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrencyPlain(projectDashboard.pending_additional)}</span>
-                                    </div>
+                                    {Number(projectDashboard.pending_additional) > 0 && (
+                                        <div className="flex items-baseline justify-between text-sm">
+                                            <span className="text-amber-700 dark:text-amber-400">Aditivas en proceso</span>
+                                            <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrencyPlain(projectDashboard.pending_additional)}</span>
+                                        </div>
+                                    )}
+                                    {Number(projectDashboard.pending_deductive) > 0 && (
+                                        <div className="flex items-baseline justify-between text-sm">
+                                            <span className="text-amber-700 dark:text-amber-400">Deductivas en proceso</span>
+                                            <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrencyPlain(projectDashboard.pending_deductive)}</span>
+                                        </div>
+                                    )}
                                 </>
                             )}
                             <div className="my-1 border-t border-gray-200 dark:border-gray-700" />

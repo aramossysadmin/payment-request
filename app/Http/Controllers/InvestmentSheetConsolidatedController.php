@@ -274,13 +274,19 @@ class InvestmentSheetConsolidatedController extends Controller
             ->whereState('status', Completed::class)
             ->sum('total');
 
-        // Aditivas capturadas pero aún pendientes de autorización (status != completed).
-        // Se muestra como subsección "En proceso de autorización" en el dashboard,
-        // SOLO cuando es > 0.
+        // Aditivas y Deductivas capturadas pero aún pendientes de autorización
+        // (status != completed). Se muestran como subsección "En proceso de
+        // autorización" en el dashboard, cada una SOLO cuando es > 0.
         $pendingAdditional = (float) InvestmentRequest::query()
             ->where('project_id', $project->id)
             ->where('is_addendum', true)
             ->where('is_deductive', false)
+            ->whereStateNot('status', Completed::class)
+            ->sum('total');
+
+        $pendingDeductive = (float) InvestmentRequest::query()
+            ->where('project_id', $project->id)
+            ->where('is_deductive', true)
             ->whereStateNot('status', Completed::class)
             ->sum('total');
 
@@ -310,6 +316,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'additional_budget' => number_format($additionalBudget, 2, '.', ''),
                 'deductive_budget' => number_format($deductiveBudget, 2, '.', ''),
                 'pending_additional' => number_format($pendingAdditional, 2, '.', ''),
+                'pending_deductive' => number_format($pendingDeductive, 2, '.', ''),
                 'updated_budget' => number_format($updatedBudget, 2, '.', ''),
                 'paid_total' => number_format($paidProjectTotal, 2, '.', ''),
                 'remaining_budget' => number_format($remainingBudget, 2, '.', ''),
