@@ -277,17 +277,19 @@ class InvestmentSheetConsolidatedController extends Controller
         // Aditivas y Deductivas capturadas pero aún pendientes de autorización
         // (status != completed). Se muestran como subsección "En proceso de
         // autorización" en el dashboard, cada una SOLO cuando es > 0.
+        // NOTA: usamos where('status', '!=', ...) directo porque Spatie
+        // ModelStates no expone un scope whereStateNot — solo whereState.
         $pendingAdditional = (float) InvestmentRequest::query()
             ->where('project_id', $project->id)
             ->where('is_addendum', true)
             ->where('is_deductive', false)
-            ->whereStateNot('status', Completed::class)
+            ->where('status', '!=', Completed::$name)
             ->sum('total');
 
         $pendingDeductive = (float) InvestmentRequest::query()
             ->where('project_id', $project->id)
             ->where('is_deductive', true)
-            ->whereStateNot('status', Completed::class)
+            ->where('status', '!=', Completed::$name)
             ->sum('total');
 
         $updatedBudget = $originalBudget + $additionalBudget - $deductiveBudget;
