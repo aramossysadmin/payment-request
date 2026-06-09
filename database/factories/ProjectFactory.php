@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Branch;
+use App\Models\Currency;
 use App\Models\Project;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -16,6 +17,7 @@ class ProjectFactory extends Factory
         return [
             'name' => fake()->unique()->company(),
             'branch_id' => Branch::factory(),
+            'currency_id' => Currency::factory(),
             'is_active' => true,
         ];
     }

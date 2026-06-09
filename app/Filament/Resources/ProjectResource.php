@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectResource\Pages;
+use App\Models\Currency;
 use App\Models\Project;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -43,6 +44,14 @@ class ProjectResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
+                        Forms\Components\Select::make('currency_id')
+                            ->label('Moneda por Defecto')
+                            ->relationship('currency', 'name')
+                            ->default(fn (): ?int => Currency::where('prefix', 'MXN')->value('id'))
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->helperText('Moneda predeterminada del proyecto.'),
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\DatePicker::make('start_date')
@@ -83,6 +92,10 @@ class ProjectResource extends Resource
                     ->label('Sucursal')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('currency.prefix')
+                    ->label('Moneda')
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\ToggleColumn::make('is_active')
                     ->label('Estado')
                     ->sortable(),

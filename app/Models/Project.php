@@ -18,6 +18,7 @@ class Project extends Model
     protected $fillable = [
         'name',
         'branch_id',
+        'currency_id',
         'start_date',
         'opening_date',
         'authorized_budget',
@@ -42,6 +43,11 @@ class Project extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
     }
 
     public function investmentRequests(): HasMany
