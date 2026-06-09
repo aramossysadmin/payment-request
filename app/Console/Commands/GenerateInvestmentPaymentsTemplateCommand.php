@@ -170,7 +170,7 @@ class GenerateInvestmentPaymentsTemplateCommand extends Command
             ['provider', 'Sí', 'Texto', 'Razón social del proveedor.'],
             ['rfc', 'No', '12 o 13 caracteres alfanuméricos', 'RFC del proveedor.'],
             ['invoice_folio', 'No', 'Texto', 'Folio fiscal de la factura. Vacío para anticipos.'],
-            ['payment_type', 'Sí', 'anticipo  |  factura', 'Tipo de pago.'],
+            ['payment_type', 'Sí', 'factura  |  reembolso  |  estrategia  |  anticipo', 'Tipo de pago.'],
             ['payment_provision_date', 'Sí', 'YYYY-MM-DD', 'Fecha real del pago, o de previsión si aún no se ejecuta.'],
             ['description', 'No', 'Texto', 'Descripción libre del pago.'],
             ['subtotal', 'Sí', 'Número decimal ≥ 0', 'Subtotal sin IVA.'],

@@ -10,6 +10,7 @@ use App\Models\InvestmentRequest;
 use App\States\InvestmentRequest\Completed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -79,12 +80,12 @@ class InvestmentPaymentRequestController extends Controller
 
         $batch = $this->findOrCreateActiveBatch($user, $investmentRequest);
 
-        $paymentRequest = new InvestmentPaymentRequest($validated);
+        $paymentRequest = new InvestmentPaymentRequest(Arr::except($validated, ['invoice_documents', 'advance_documents']));
         $paymentRequest->user_id = $user->id;
         $paymentRequest->department_id = $user->department_id;
         $paymentRequest->batch_id = $batch->id;
         $paymentRequest->status = 'draft';
-        $paymentRequest->payment_type = $request->boolean('is_invoice') ? 'factura' : 'anticipo';
+        $paymentRequest->payment_type = $validated['payment_type'];
         $paymentRequest->payment_week_number = Carbon::parse($validated['payment_provision_date'])->isoWeek;
         $paymentRequest->save();
 
@@ -159,7 +160,7 @@ class InvestmentPaymentRequestController extends Controller
             'iva' => $validated['iva'],
             'retention' => $request->boolean('retention'),
             'total' => $validated['total'],
-            'payment_type' => $request->boolean('is_invoice') ? 'factura' : 'anticipo',
+            'payment_type' => $validated['payment_type'],
             'payment_week_number' => Carbon::parse($validated['payment_provision_date'])->isoWeek,
             'advance_documents' => $newDocuments,
         ]);

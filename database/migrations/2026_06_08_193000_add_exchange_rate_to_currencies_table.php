@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('currencies', 'exchange_rate')) {
+            return;
+        }
+
         Schema::table('currencies', function (Blueprint $table) {
             $table->decimal('exchange_rate', 12, 4)->default(1)->after('prefix');
         });
@@ -21,6 +25,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (! Schema::hasColumn('currencies', 'exchange_rate')) {
+            return;
+        }
+
         Schema::table('currencies', function (Blueprint $table) {
             $table->dropColumn('exchange_rate');
         });

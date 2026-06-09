@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\InvestmentPaymentType;
 use App\Filament\Resources\InvestmentPaymentRequestResource\Pages;
 use App\Models\Department;
 use App\Models\InvestmentPaymentRequest;
@@ -47,7 +48,7 @@ class InvestmentPaymentRequestResource extends Resource
                         ->content(fn (InvestmentPaymentRequest $record): string => self::statusLabel($record->status)),
                     Placeholder::make('payment_type')
                         ->label('Tipo de Pago')
-                        ->content(fn (InvestmentPaymentRequest $record): string => $record->payment_type === 'factura' ? 'Factura' : 'Anticipo'),
+                        ->content(fn (InvestmentPaymentRequest $record): string => InvestmentPaymentType::labelFor($record->payment_type)),
                     Placeholder::make('user')
                         ->label('Solicitante')
                         ->content(fn (InvestmentPaymentRequest $record): string => $record->user?->name ?? '—'),

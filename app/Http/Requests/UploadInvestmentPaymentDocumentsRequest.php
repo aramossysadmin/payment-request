@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\InvestmentPaymentType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UploadInvestmentPaymentDocumentsRequest extends FormRequest
@@ -18,23 +20,43 @@ class UploadInvestmentPaymentDocumentsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pdf' => ['required', 'file', 'mimes:pdf', 'max:10240'],
-            'xml' => ['required', 'file', 'mimes:xml', 'max:10240'],
+            'payment_type' => ['required', Rule::enum(InvestmentPaymentType::class)],
+            'pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            'xml' => ['nullable', 'file', 'mimes:xml', 'max:10240'],
+            'document' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $pdf = $this->file('pdf');
-            $xml = $this->file('xml');
+            $paymentType = $this->input('payment_type');
 
-            if ($pdf && strtolower($pdf->getClientOriginalExtension()) !== 'pdf') {
-                $validator->errors()->add('pdf', 'El archivo PDF debe tener extensión .pdf');
+            if ($paymentType === 'factura') {
+                $pdf = $this->file('pdf');
+                $xml = $this->file('xml');
+
+                if (! $pdf) {
+                    $validator->errors()->add('pdf', 'El archivo PDF es obligatorio.');
+                } elseif (strtolower($pdf->getClientOriginalExtension()) !== 'pdf') {
+                    $validator->errors()->add('pdf', 'El archivo PDF debe tener extensión .pdf');
+                }
+
+                if (! $xml) {
+                    $validator->errors()->add('xml', 'El archivo XML es obligatorio.');
+                } elseif (strtolower($xml->getClientOriginalExtension()) !== 'xml') {
+                    $validator->errors()->add('xml', 'El archivo XML debe tener extensión .xml');
+                }
             }
 
-            if ($xml && strtolower($xml->getClientOriginalExtension()) !== 'xml') {
-                $validator->errors()->add('xml', 'El archivo XML debe tener extensión .xml');
+            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo'], true)) {
+                $document = $this->file('document');
+
+                if (! $document) {
+                    $validator->errors()->add('document', 'El documento es obligatorio.');
+                } elseif (! in_array(strtolower($document->getClientOriginalExtension()), ['pdf', 'jpg', 'jpeg', 'png'], true)) {
+                    $validator->errors()->add('document', 'El documento debe ser PDF o imagen (JPG, JPEG o PNG).');
+                }
             }
         });
     }
@@ -45,14 +67,16 @@ class UploadInvestmentPaymentDocumentsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'pdf.required' => 'El archivo PDF es obligatorio.',
+            'payment_type.required' => 'Debe indicar el tipo de pago.',
             'pdf.file' => 'El PDF debe ser un archivo válido.',
             'pdf.mimes' => 'El archivo PDF debe ser de tipo PDF.',
             'pdf.max' => 'El archivo PDF no puede exceder 10MB.',
-            'xml.required' => 'El archivo XML es obligatorio.',
             'xml.file' => 'El XML debe ser un archivo válido.',
             'xml.mimes' => 'El archivo XML debe ser de tipo XML.',
             'xml.max' => 'El archivo XML no puede exceder 10MB.',
+            'document.file' => 'El documento debe ser un archivo válido.',
+            'document.mimes' => 'El documento debe ser PDF o imagen (JPG, JPEG o PNG).',
+            'document.max' => 'El documento no puede exceder 10MB.',
         ];
     }
 }

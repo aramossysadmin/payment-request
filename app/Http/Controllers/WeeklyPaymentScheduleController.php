@@ -11,6 +11,7 @@ use App\Services\WeeklyPaymentScheduleApprovalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -90,6 +91,19 @@ class WeeklyPaymentScheduleController extends Controller
                 'total' => (string) ($p->approved_amount ?? $p->total),
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                 'description' => $p->description,
+                'payment_type' => $p->payment_type,
+                'documents' => collect(is_array($p->advance_documents) ? $p->advance_documents : [])
+                    ->filter(fn ($doc) => is_string($doc) && $doc !== '')
+                    ->map(fn ($doc) => [
+                        'name' => basename($doc),
+                        'url' => URL::temporarySignedRoute(
+                            'documents.view',
+                            now()->addHours(48),
+                            ['path' => $doc],
+                        ),
+                    ])
+                    ->values()
+                    ->toArray(),
             ]);
 
         // Schedules que contengan al menos 1 pago del proyecto seleccionado.

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\InvestmentPaymentType;
 use App\Enums\IvaRate;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
@@ -30,7 +31,7 @@ class StoreInvestmentPaymentRequest extends FormRequest
             'payment_provision_date' => ['required', 'date'],
             'currency_id' => ['required', 'integer', Rule::exists('currencies', 'id')],
             'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')],
-            'is_invoice' => ['required', 'boolean'],
+            'payment_type' => ['required', Rule::enum(InvestmentPaymentType::class)],
             'description' => ['nullable', 'string', 'max:1000'],
             'invoice_documents' => ['nullable', 'array', 'max:2'],
             'invoice_documents.*' => ['file', 'max:10240', 'mimes:pdf,xml'],
@@ -47,18 +48,30 @@ class StoreInvestmentPaymentRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            if ($this->boolean('is_invoice')) {
+            $paymentType = $this->input('payment_type');
+
+            if ($paymentType === 'factura') {
                 $files = $this->file('invoice_documents', []);
                 if (is_array($files) && count($files) > 0) {
                     if (count($files) !== 2) {
                         $validator->errors()->add('invoice_documents', 'Si adjuntas documentos de factura, debe ser exactamente 1 PDF y 1 XML.');
-
-                        return;
+                    } else {
+                        $extensions = array_map(fn ($file) => strtolower($file->getClientOriginalExtension()), $files);
+                        sort($extensions);
+                        if ($extensions !== ['pdf', 'xml']) {
+                            $validator->errors()->add('invoice_documents', 'Si adjuntas documentos de factura, debe ser exactamente 1 PDF y 1 XML.');
+                        }
                     }
-                    $extensions = array_map(fn ($file) => strtolower($file->getClientOriginalExtension()), $files);
-                    sort($extensions);
-                    if ($extensions !== ['pdf', 'xml']) {
-                        $validator->errors()->add('invoice_documents', 'Si adjuntas documentos de factura, debe ser exactamente 1 PDF y 1 XML.');
+                }
+            }
+
+            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo'], true)) {
+                $files = $this->file('advance_documents', []);
+                if (is_array($files) && count($files) > 0) {
+                    if (count($files) > 1) {
+                        $validator->errors()->add('advance_documents', 'Para reembolso, estrategia o anticipo, adjunta un solo documento (PDF o imagen).');
+                    } elseif (! in_array(strtolower($files[0]->getClientOriginalExtension()), ['pdf', 'jpg', 'jpeg', 'png'], true)) {
+                        $validator->errors()->add('advance_documents', 'El documento debe ser PDF o imagen (JPG, JPEG o PNG).');
                     }
                 }
             }
@@ -114,8 +127,9 @@ class StoreInvestmentPaymentRequest extends FormRequest
             'payment_provision_date.date' => 'La fecha de programación de pago debe ser una fecha válida.',
             'currency_id.required' => 'La moneda es obligatoria.',
             'branch_id.required' => 'La sucursal es obligatoria.',
-            'is_invoice.required' => 'Debe indicar si es factura o anticipo.',
+            'payment_type.required' => 'Debe indicar el tipo de pago.',
             'invoice_documents.max' => 'Los documentos de factura no pueden ser más de 2 (1 PDF y 1 XML).',
+            'advance_documents.max' => 'No se permiten más de 10 documentos.',
             'iva_rate.required' => 'La tasa de IVA es obligatoria.',
             'subtotal.required' => 'El subtotal es obligatorio.',
             'subtotal.min' => 'El subtotal debe ser mayor o igual a 0.',

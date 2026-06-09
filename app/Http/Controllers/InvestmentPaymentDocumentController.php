@@ -23,22 +23,22 @@ class InvestmentPaymentDocumentController extends Controller
 
         abort_unless(in_array($payment->status, $allowedStatuses, true), Response::HTTP_CONFLICT, 'Este pago no está en estado de carga de documentos.');
 
+        $paymentType = $request->input('payment_type');
         $directory = 'investment-payment-documents/'.now()->format('Y/m').'/'.$payment->folio_number;
 
-        $pdfPath = $request->file('pdf')->storeAs(
-            $directory,
-            Str::uuid().'.pdf',
-            'local',
-        );
-
-        $xmlPath = $request->file('xml')->storeAs(
-            $directory,
-            Str::uuid().'.xml',
-            'local',
-        );
+        if ($paymentType === 'factura') {
+            $pdfPath = $request->file('pdf')->storeAs($directory, Str::uuid().'.pdf', 'local');
+            $xmlPath = $request->file('xml')->storeAs($directory, Str::uuid().'.xml', 'local');
+            $documents = [$pdfPath, $xmlPath];
+        } else {
+            $document = $request->file('document');
+            $ext = strtolower($document->getClientOriginalExtension());
+            $documents = [$document->storeAs($directory, Str::uuid().'.'.$ext, 'local')];
+        }
 
         $payment->update([
-            'advance_documents' => [$pdfPath, $xmlPath],
+            'advance_documents' => $documents,
+            'payment_type' => $paymentType,
             'status' => 'completed',
         ]);
 

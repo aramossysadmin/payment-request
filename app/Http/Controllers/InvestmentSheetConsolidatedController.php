@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\InvestmentRequestResource;
 use App\Models\Branch;
 use App\Models\Currency;
+use App\Models\InvestmentExpenseConcept;
 use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
@@ -200,6 +201,7 @@ class InvestmentSheetConsolidatedController extends Controller
                         'investment_request_id' => $p->investment_request_id,
                         'payment_provision_date' => $p->payment_provision_date?->toDateString(),
                         'is_invoice' => $p->payment_type === 'factura',
+                        'payment_type' => $p->payment_type,
                         'iva_rate' => $p->iva_rate?->value,
                         'retention' => (bool) $p->retention,
                         'subtotal' => (string) $p->subtotal,
@@ -236,8 +238,21 @@ class InvestmentSheetConsolidatedController extends Controller
                 'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : (string) $p->total,
                 'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
                 'status' => $p->status,
+                'payment_type' => $p->payment_type,
                 'is_legacy' => $p->batch_id === null,
                 'has_documents' => is_array($p->advance_documents) && count($p->advance_documents) >= 2,
+                'documents' => collect(is_array($p->advance_documents) ? $p->advance_documents : [])
+                    ->filter(fn ($doc) => is_string($doc) && $doc !== '')
+                    ->map(fn ($doc) => [
+                        'name' => basename($doc),
+                        'url' => URL::temporarySignedRoute(
+                            'documents.view',
+                            now()->addHours(48),
+                            ['path' => $doc],
+                        ),
+                    ])
+                    ->values()
+                    ->toArray(),
             ]);
 
         // Historial de pagos del departamento del usuario para el proyecto actual.
@@ -406,6 +421,9 @@ class InvestmentSheetConsolidatedController extends Controller
             'isSuperAdmin' => $isSuperAdmin,
             'currencies' => Currency::all(['id', 'name', 'prefix', 'exchange_rate']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
+            'availableConcepts' => InvestmentExpenseConcept::active()
+                ->orderBy('name')
+                ->get(['id', 'name']),
             'draftBatch' => $draftBatch ? [
                 'uuid' => $draftBatch->uuid,
                 'week_number' => $draftBatch->week_number,

@@ -5,6 +5,7 @@ use App\Models\Currency;
 use App\Models\Department;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
+use App\Models\Project;
 use App\Models\User;
 use App\Models\WeeklyPaymentSchedule;
 use App\States\InvestmentRequest\Completed;
@@ -130,6 +131,55 @@ it('requires at least one item', function () {
     $this->actingAs($this->user)
         ->post(route('weekly-payment-schedule.store'), $data)
         ->assertSessionHasErrors('items');
+});
+
+function makeProjectedIR(): array
+{
+    $project = Project::factory()->create(['currency_id' => test()->currency->id]);
+    $ir = InvestmentRequest::factory()->create([
+        'user_id' => test()->user->id,
+        'department_id' => test()->department->id,
+        'currency_id' => test()->currency->id,
+        'branch_id' => test()->branch->id,
+        'project_id' => $project->id,
+        'status' => Completed::$name,
+        'total' => 100000,
+    ]);
+
+    return [$project, $ir];
+}
+
+it('exposes payment_type and documents URLs in the payments prop', function () {
+    [$project, $ir] = makeProjectedIR();
+
+    $payment = createApprovedPayment(['investment_request_id' => $ir->id, 'payment_type' => 'factura']);
+    $payment->update([
+        'advance_documents' => [
+            'investment-payment-documents/2026/06/0001/aaa.pdf',
+            'investment-payment-documents/2026/06/0001/bbb.xml',
+        ],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('weekly-payment-schedule.index', ['project_id' => $project->id]))
+        ->assertInertia(fn ($page) => $page
+            ->where('payments.0.payment_type', 'factura')
+            ->has('payments.0.documents', 2, fn ($doc) => $doc
+                ->has('name')
+                ->has('url')
+                ->where('url', fn (string $u) => str_contains($u, '/documents/view') && str_contains($u, 'signature='))
+            ),
+        );
+});
+
+it('exposes empty documents array when payment has no files', function () {
+    [$project, $ir] = makeProjectedIR();
+
+    createApprovedPayment(['investment_request_id' => $ir->id, 'payment_type' => 'anticipo']);
+
+    $this->actingAs($this->user)
+        ->get(route('weekly-payment-schedule.index', ['project_id' => $project->id]))
+        ->assertInertia(fn ($page) => $page->has('payments.0.documents', 0));
 });
 
 it('validates item ids exist', function () {

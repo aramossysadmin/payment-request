@@ -28,9 +28,22 @@ class DocumentViewController extends Controller
         $filename = basename($path);
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
-        if ($extension === 'pdf') {
+        $inlineMimes = [
+            'pdf' => 'application/pdf',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+        ];
+
+        if (isset($inlineMimes[$extension])) {
             return Storage::disk('local')->response($path, $filename, [
-                'Content-Type' => 'application/pdf',
+                'Content-Type' => $inlineMimes[$extension],
+                'Content-Disposition' => 'inline; filename="'.$filename.'"',
+                // Permitir embebido en <iframe>/<img> desde el mismo origen
+                // (sobrescribe el X-Frame-Options: DENY global solo para esta respuesta).
+                'X-Frame-Options' => 'SAMEORIGIN',
             ]);
         }
 

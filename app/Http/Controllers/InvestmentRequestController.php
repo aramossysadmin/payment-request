@@ -219,7 +219,7 @@ class InvestmentRequestController extends Controller
     }
 
     /**
-     * Micro-edit endpoint: actualiza únicamente el campo description.
+     * Micro-edit endpoint: actualiza description y/o investment_expense_concept_id.
      * Sin restricción de status — utilizable también en estado Completed.
      */
     public function updateDescription(Request $request, InvestmentRequest $investmentRequest): RedirectResponse
@@ -228,11 +228,18 @@ class InvestmentRequestController extends Controller
 
         $validated = $request->validate([
             'description' => ['nullable', 'string', 'max:500'],
+            'investment_expense_concept_id' => ['nullable', 'integer', 'exists:investment_expense_concepts,id'],
         ]);
 
-        $investmentRequest->update(['description' => $validated['description'] ?? null]);
+        $payload = ['description' => $validated['description'] ?? null];
 
-        return back()->with('success', 'Descripción actualizada.');
+        if (array_key_exists('investment_expense_concept_id', $validated) && $validated['investment_expense_concept_id'] !== null) {
+            $payload['investment_expense_concept_id'] = $validated['investment_expense_concept_id'];
+        }
+
+        $investmentRequest->update($payload);
+
+        return back()->with('success', 'Solicitud actualizada.');
     }
 
     public function destroy(InvestmentRequest $investmentRequest): RedirectResponse

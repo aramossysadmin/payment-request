@@ -37,7 +37,7 @@ it('stores payment_provision_date and calculates payment_week_number', function 
         'payment_provision_date' => $date->format('Y-m-d'),
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
-        'is_invoice' => false,
+        'payment_type' => 'anticipo',
         'description' => 'Test payment',
         'subtotal' => 1000.00,
         'iva_rate' => '0.16',
@@ -51,7 +51,7 @@ it('stores payment_provision_date and calculates payment_week_number', function 
         ->assertRedirect();
 
     $this->assertDatabaseHas('investment_payment_requests', [
-        'payment_provision_date' => $date->format('Y-m-d') . ' 00:00:00',
+        'payment_provision_date' => $date->format('Y-m-d').' 00:00:00',
         'payment_week_number' => $date->weekOfYear,
         'provider' => 'PROVEEDOR TEST',
     ]);
@@ -63,7 +63,7 @@ it('requires payment_provision_date', function () {
         'provider' => 'Proveedor Test',
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
-        'is_invoice' => false,
+        'payment_type' => 'anticipo',
         'subtotal' => 1000.00,
         'iva_rate' => '0.16',
         'iva' => 160.00,
@@ -83,7 +83,7 @@ it('accepts past dates for payment_provision_date', function () {
         'payment_provision_date' => Carbon::yesterday()->format('Y-m-d'),
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
-        'is_invoice' => false,
+        'payment_type' => 'anticipo',
         'subtotal' => 1000.00,
         'iva_rate' => '0.16',
         'iva' => 160.00,
@@ -105,7 +105,7 @@ it('calculates correct week number for different dates', function () {
         'payment_provision_date' => $date->format('Y-m-d'),
         'currency_id' => $this->currency->id,
         'branch_id' => $this->branch->id,
-        'is_invoice' => false,
+        'payment_type' => 'anticipo',
         'subtotal' => 500.00,
         'iva_rate' => '0.00',
         'iva' => 0.00,

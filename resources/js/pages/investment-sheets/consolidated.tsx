@@ -1,12 +1,14 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileText, Inbox, Pencil, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { DocumentPreview } from '@/components/document-preview';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { Pagination } from '@/components/pagination';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { WeekNavigator } from '@/components/week-navigator';
 import { useCurrencyFormatters, useDisplayCurrency } from '@/contexts/display-currency';
+import { investmentPaymentTypeLabel } from '@/lib/payment-type-labels';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,7 +71,7 @@ type InvestmentPayment = {
     folio_number: number;
     provider: string;
     rfc: string | null;
-    payment_type: 'factura' | 'anticipo';
+    payment_type: string;
     currency_prefix: string;
     subtotal: string;
     iva: string;
@@ -103,6 +105,7 @@ type DraftPayment = {
     investment_request_id: number;
     payment_provision_date: string | null;
     is_invoice: boolean;
+    payment_type: string;
     iva_rate: string | null;
     retention: boolean;
     subtotal: string;
@@ -133,8 +136,10 @@ type AuthorizedPayment = {
     approved_amount: string;
     was_adjusted: boolean;
     status: string;
+    payment_type: string;
     is_legacy: boolean;
     has_documents: boolean;
+    documents: { name: string; url: string }[];
 };
 
 type AuthorizedPaymentsGroup = {
@@ -213,6 +218,7 @@ type PageProps = {
     userDepartmentName: string | null;
     currencies: Currency[];
     branches: Branch[];
+    availableConcepts: { id: number; name: string }[];
     errors: Record<string, string>;
     draftBatch: DraftBatch | null;
     authorizedPayments: AuthorizedPaymentsGroup;
@@ -289,7 +295,7 @@ export default function Consolidated() {
 
     const {
         project, totals, projectDashboard, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, userDepartmentName, currencies, branches, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin,
+        userDepartmentId, userDepartmentName, currencies, branches, availableConcepts, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin,
     } = usePage<PageProps>().props;
 
     // Moneda de visualización: los agregados llegan en MXN (normalizados en backend) → formatMxn;
@@ -359,32 +365,41 @@ export default function Consolidated() {
         );
     };
 
-    // Estado del modal de edición de descripción (micro-edit en la tabla de detalle)
-    const [editDescState, setEditDescState] = useState<{ uuid: string; folio: number; concept: string } | null>(null);
+    // Estado del modal de edición inline (concepto + descripción) en la tabla de detalle
+    const [editDescState, setEditDescState] = useState<{ uuid: string; folio: number } | null>(null);
     const [editDescValue, setEditDescValue] = useState('');
+    const [editConceptId, setEditConceptId] = useState<string>('');
     const [editDescSaving, setEditDescSaving] = useState(false);
 
-    const openEditDescription = (ir: { uuid: string; folio_number: number; description: string | null; investment_expense_concept?: { name: string } | null; expense_concept?: { name: string } | null }) => {
+    const openEditDescription = (ir: { uuid: string; folio_number: number; description: string | null; investment_expense_concept_id?: number | null; investment_expense_concept?: { id?: number; name: string } | null; expense_concept?: { name: string } | null }) => {
         setEditDescState({
             uuid: ir.uuid,
             folio: ir.folio_number,
-            concept: ir.investment_expense_concept?.name ?? ir.expense_concept?.name ?? '—',
         });
         setEditDescValue(ir.description ?? '');
+        const conceptId = ir.investment_expense_concept_id ?? ir.investment_expense_concept?.id ?? null;
+        setEditConceptId(conceptId !== null ? String(conceptId) : '');
     };
 
     const closeEditDescription = () => {
         setEditDescState(null);
         setEditDescValue('');
+        setEditConceptId('');
         setEditDescSaving(false);
     };
 
     const handleSaveDescription = () => {
         if (!editDescState) return;
         setEditDescSaving(true);
+        const payload: { description: string; investment_expense_concept_id?: number } = {
+            description: editDescValue,
+        };
+        if (editConceptId !== '') {
+            payload.investment_expense_concept_id = Number(editConceptId);
+        }
         router.patch(
             `/investment-sheets/${editDescState.uuid}/description`,
-            { description: editDescValue },
+            payload,
             {
                 preserveScroll: true,
                 onSuccess: () => closeEditDescription(),
@@ -393,18 +408,49 @@ export default function Consolidated() {
         );
     };
 
+    type UploadType = 'factura' | 'reembolso' | 'estrategia' | 'anticipo';
+    const UPLOAD_TYPES: UploadType[] = ['factura', 'reembolso', 'estrategia', 'anticipo'];
+    const isValidUploadType = (value: string | undefined | null): value is UploadType =>
+        UPLOAD_TYPES.includes(value as UploadType);
+
     const [uploadDialogUuid, setUploadDialogUuid] = useState<string | null>(null);
+    const [uploadType, setUploadType] = useState<UploadType>('factura');
     const [uploadPdf, setUploadPdf] = useState<File | null>(null);
     const [uploadXml, setUploadXml] = useState<File | null>(null);
+    const [uploadDocument, setUploadDocument] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
 
+    const openUploadDialog = (uuid: string, currentPaymentType?: string | null) => {
+        setUploadType(isValidUploadType(currentPaymentType) ? currentPaymentType : 'factura');
+        setUploadPdf(null);
+        setUploadXml(null);
+        setUploadDocument(null);
+        setUploadDialogUuid(uuid);
+    };
+
+    const changeUploadType = (type: UploadType) => {
+        setUploadType(type);
+        setUploadPdf(null);
+        setUploadXml(null);
+        setUploadDocument(null);
+    };
+
+    const uploadCanSubmit = uploadType === 'factura'
+        ? Boolean(uploadPdf && uploadXml)
+        : Boolean(uploadDocument);
+
     const handleUploadDocuments = () => {
-        if (!uploadDialogUuid || !uploadPdf || !uploadXml) return;
+        if (!uploadDialogUuid || !uploadCanSubmit) return;
         setUploading(true);
 
         const formData = new FormData();
-        formData.append('pdf', uploadPdf);
-        formData.append('xml', uploadXml);
+        formData.append('payment_type', uploadType);
+        if (uploadType === 'factura') {
+            if (uploadPdf) formData.append('pdf', uploadPdf);
+            if (uploadXml) formData.append('xml', uploadXml);
+        } else if (uploadDocument) {
+            formData.append('document', uploadDocument);
+        }
 
         router.post(
             `/investment-payment-requests/${uploadDialogUuid}/upload-documents`,
@@ -416,6 +462,7 @@ export default function Consolidated() {
                     setUploadDialogUuid(null);
                     setUploadPdf(null);
                     setUploadXml(null);
+                    setUploadDocument(null);
                 },
                 onFinish: () => setUploading(false),
             },
@@ -426,6 +473,7 @@ export default function Consolidated() {
         setUploadDialogUuid(null);
         setUploadPdf(null);
         setUploadXml(null);
+        setUploadDocument(null);
     };
 
     // Historial de pagos — estado de filtros + paginación + drawer
@@ -1318,7 +1366,7 @@ export default function Consolidated() {
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        onClick={() => setUploadDialogUuid(payment.uuid)}
+                                                        onClick={() => openUploadDialog(payment.uuid, payment.payment_type)}
                                                     >
                                                         <Upload className="mr-1.5 h-3.5 w-3.5" />
                                                         Subir documentos
@@ -1585,9 +1633,9 @@ export default function Consolidated() {
                                         size="sm"
                                         className="w-full"
                                         onClick={() => {
-                                            const uuid = selectedHistoryPayment.uuid;
+                                            const target = selectedHistoryPayment;
                                             setHistoryDetailUuid(null);
-                                            setUploadDialogUuid(uuid);
+                                            openUploadDialog(target.uuid, target.payment_type);
                                         }}
                                     >
                                         <Upload className="mr-1.5 h-3.5 w-3.5" />
@@ -1615,7 +1663,7 @@ export default function Consolidated() {
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-muted-foreground">Tipo</dt>
-                                            <dd className="font-medium capitalize">{selectedHistoryPayment.payment_type}</dd>
+                                            <dd className="font-medium">{investmentPaymentTypeLabel(selectedHistoryPayment.payment_type)}</dd>
                                         </div>
                                         {selectedHistoryPayment.description && (
                                             <div>
@@ -1767,26 +1815,42 @@ export default function Consolidated() {
                 </SheetContent>
             </Sheet>
 
-            {/* Edit description dialog */}
+            {/* Edit inline dialog (concepto + descripción) */}
             <Dialog open={editDescState !== null} onOpenChange={(open) => { if (!open) closeEditDescription(); }}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Editar Descripción — #{editDescState ? String(editDescState.folio).padStart(5, '0') : ''}</DialogTitle>
+                        <DialogTitle>Editar Solicitud — #{editDescState ? String(editDescState.folio).padStart(5, '0') : ''}</DialogTitle>
                         <DialogDescription>
-                            {editDescState?.concept}
+                            Actualiza el concepto de inversión y/o la descripción.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-2 py-2">
-                        <Label htmlFor="edit_description">Descripción <span className="text-gray-400">(opcional)</span></Label>
-                        <textarea
-                            id="edit_description"
-                            className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm uppercase shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
-                            rows={4}
-                            value={editDescValue}
-                            onChange={(e) => setEditDescValue(e.target.value.toUpperCase())}
-                            placeholder="Descripción del concepto..."
-                            autoFocus
-                        />
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit_concept">Concepto de Inversión</Label>
+                            <Select value={editConceptId} onValueChange={setEditConceptId}>
+                                <SelectTrigger id="edit_concept" className="w-full">
+                                    <SelectValue placeholder="Selecciona un concepto" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableConcepts.map((c) => (
+                                        <SelectItem key={c.id} value={String(c.id)}>
+                                            {c.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit_description">Descripción <span className="text-gray-400">(opcional)</span></Label>
+                            <textarea
+                                id="edit_description"
+                                className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm uppercase shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+                                rows={4}
+                                value={editDescValue}
+                                onChange={(e) => setEditDescValue(e.target.value.toUpperCase())}
+                                placeholder="Descripción del concepto..."
+                            />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={closeEditDescription} disabled={editDescSaving}>
@@ -1801,46 +1865,99 @@ export default function Consolidated() {
 
             {/* Upload documents dialog */}
             <Dialog open={uploadDialogUuid !== null} onOpenChange={(open) => { if (!open) closeUploadDialog(); }}>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Subir documentos del pago</DialogTitle>
                         <DialogDescription>
-                            Adjunta el PDF y el XML del pago. Ambos archivos son obligatorios y máximo 10 MB cada uno.
+                            {uploadType === 'factura'
+                                ? 'Adjunta el PDF y el XML de la factura. Ambos son obligatorios (máximo 10 MB cada uno).'
+                                : 'Adjunta un documento (PDF o imagen, máximo 10 MB).'}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 pt-2 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label>
-                                Factura PDF <span className="text-red-500">*</span>
-                            </Label>
-                            <FileUpload
-                                files={uploadPdf ? [uploadPdf] : []}
-                                onChange={(f) => setUploadPdf(f[0] ?? null)}
-                                maxFiles={1}
-                                accept=".pdf"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>
-                                Factura XML <span className="text-red-500">*</span>
-                            </Label>
-                            <FileUpload
-                                files={uploadXml ? [uploadXml] : []}
-                                onChange={(f) => setUploadXml(f[0] ?? null)}
-                                maxFiles={1}
-                                accept=".xml"
-                            />
+                    {(() => {
+                        const target = uploadDialogUuid
+                            ? (authorizedPayments?.payments.find((p) => p.uuid === uploadDialogUuid)
+                                ?? userPaymentHistory.find((p) => p.uuid === uploadDialogUuid))
+                            : null;
+                        if (!target?.documents || target.documents.length === 0) {
+                            return null;
+                        }
+                        return (
+                            <div className="space-y-2 pt-2">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Documentos actuales — {target.documents.length}
+                                </p>
+                                <DocumentPreview documents={target.documents} />
+                                <p className="text-[11px] text-muted-foreground">
+                                    Si los documentos están equivocados, carga nuevos abajo para reemplazarlos.
+                                </p>
+                            </div>
+                        );
+                    })()}
+                    <div className="space-y-2 pt-2">
+                        <Label>Tipo de pago</Label>
+                        <div className="flex flex-wrap gap-2">
+                            {UPLOAD_TYPES.map((type) => (
+                                <Button
+                                    key={type}
+                                    type="button"
+                                    size="sm"
+                                    variant={uploadType === type ? 'default' : 'outline'}
+                                    onClick={() => changeUploadType(type)}
+                                    disabled={uploading}
+                                >
+                                    {investmentPaymentTypeLabel(type)}
+                                </Button>
+                            ))}
                         </div>
                     </div>
+                    {uploadType === 'factura' ? (
+                        <div className="grid gap-4 pt-2 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label>Factura PDF <span className="text-red-500">*</span></Label>
+                                <FileUpload
+                                    files={uploadPdf ? [uploadPdf] : []}
+                                    onChange={(f) => setUploadPdf(f[0] ?? null)}
+                                    maxFiles={1}
+                                    accept=".pdf"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Factura XML <span className="text-red-500">*</span></Label>
+                                <FileUpload
+                                    files={uploadXml ? [uploadXml] : []}
+                                    onChange={(f) => setUploadXml(f[0] ?? null)}
+                                    maxFiles={1}
+                                    accept=".xml"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-2 pt-2">
+                            <Label>Documento <span className="text-red-500">*</span></Label>
+                            <FileUpload
+                                files={uploadDocument ? [uploadDocument] : []}
+                                onChange={(f) => setUploadDocument(f[0] ?? null)}
+                                maxFiles={1}
+                                accept=".pdf,.jpg,.jpeg,.png"
+                            />
+                        </div>
+                    )}
                     <div className="flex justify-end gap-2 pt-4">
                         <Button variant="outline" onClick={closeUploadDialog} disabled={uploading}>
                             Cancelar
                         </Button>
                         <Button
                             onClick={handleUploadDocuments}
-                            disabled={!uploadPdf || !uploadXml || uploading}
+                            disabled={!uploadCanSubmit || uploading}
                         >
-                            {uploading ? 'Subiendo...' : 'Subir documentos'}
+                            {uploading
+                                ? 'Subiendo...'
+                                : ((uploadDialogUuid
+                                    && (authorizedPayments?.payments.find((p) => p.uuid === uploadDialogUuid)?.documents.length
+                                        ?? userPaymentHistory.find((p) => p.uuid === uploadDialogUuid)?.documents.length ?? 0) > 0)
+                                    ? 'Reemplazar documentos'
+                                    : 'Subir documentos')}
                         </Button>
                     </div>
                 </DialogContent>
@@ -2045,7 +2162,7 @@ function PaymentsDrawer({
                                                             #{String(payment.folio_number).padStart(5, '0')}
                                                         </span>
                                                         <Badge variant="outline" className="text-xs">
-                                                            {payment.payment_type === 'factura' ? 'Factura' : 'Anticipo'}
+                                                            {investmentPaymentTypeLabel(payment.payment_type)}
                                                         </Badge>
                                                     </div>
                                                     <p className="mt-1 text-sm font-medium">{payment.provider}</p>
@@ -2105,7 +2222,7 @@ function PaymentRequestModal({
                 payment_provision_date: editingPayment.payment_provision_date ?? '',
                 currency_id: String(editingPayment.currency_id),
                 branch_id: String(editingPayment.branch_id),
-                is_invoice: editingPayment.is_invoice,
+                payment_type: (['factura', 'reembolso', 'estrategia', 'anticipo'].includes(editingPayment.payment_type) ? editingPayment.payment_type : 'factura') as 'factura' | 'reembolso' | 'estrategia' | 'anticipo',
                 description: editingPayment.description ?? '',
                 subtotal: editingPayment.subtotal,
                 iva_rate: editingPayment.iva_rate ?? '',
@@ -2121,7 +2238,7 @@ function PaymentRequestModal({
             payment_provision_date: '',
             currency_id: ir.currency?.id ? String(ir.currency.id) : '',
             branch_id: ir.branch?.id ? String(ir.branch.id) : '',
-            is_invoice: false,
+            payment_type: 'factura' as 'factura' | 'reembolso' | 'estrategia' | 'anticipo',
             description: '',
             subtotal: '',
             iva_rate: '',
@@ -2163,8 +2280,8 @@ function PaymentRequestModal({
         setValues((prev) => ({ ...prev, [field]: value }));
     };
 
-    const toggleIsInvoice = (checked: boolean) => {
-        setValues((prev) => ({ ...prev, is_invoice: checked }));
+    const changePaymentType = (type: 'factura' | 'reembolso' | 'estrategia' | 'anticipo') => {
+        setValues((prev) => ({ ...prev, payment_type: type }));
         setFiles([]);
         setInvoicePdf(null);
         setInvoiceXml(null);
@@ -2184,7 +2301,7 @@ function PaymentRequestModal({
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
 
-        if (values.is_invoice) {
+        if (values.payment_type === 'factura') {
             if (invoicePdf) formData.append('invoice_documents[]', invoicePdf);
             if (invoiceXml) formData.append('invoice_documents[]', invoiceXml);
         } else {
@@ -2437,20 +2554,26 @@ function PaymentRequestModal({
                                 <CardTitle className="text-base">Documentos Adjuntos</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <Checkbox
-                                        id="modal_is_invoice"
-                                        checked={values.is_invoice}
-                                        onCheckedChange={(checked) => toggleIsInvoice(checked === true)}
-                                    />
-                                    <Label htmlFor="modal_is_invoice" className="cursor-pointer">
-                                        Factura
-                                    </Label>
+                                <div className="space-y-2">
+                                    <Label>Tipo de pago</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(['factura', 'reembolso', 'estrategia', 'anticipo'] as const).map((type) => (
+                                            <Button
+                                                key={type}
+                                                type="button"
+                                                size="sm"
+                                                variant={values.payment_type === type ? 'default' : 'outline'}
+                                                onClick={() => changePaymentType(type)}
+                                            >
+                                                {investmentPaymentTypeLabel(type)}
+                                            </Button>
+                                        ))}
+                                    </div>
                                 </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {values.is_invoice
+                                    {values.payment_type === 'factura'
                                         ? 'Adjunta el PDF y XML de la factura.'
-                                        : 'Adjunta los documentos de soporte para el anticipo.'}
+                                        : 'Adjunta 1 documento (PDF o imagen).'}
                                 </p>
 
                                 {isEditMode && existingDocuments.length > 0 && (
@@ -2479,10 +2602,10 @@ function PaymentRequestModal({
                                     </div>
                                 )}
 
-                                {values.is_invoice ? (
+                                {values.payment_type === 'factura' ? (
                                     <div className="grid gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
-                                            <Label>Factura PDF <span className="text-red-500">*</span></Label>
+                                            <Label>Factura PDF</Label>
                                             <FileUpload
                                                 files={invoicePdf ? [invoicePdf] : []}
                                                 onChange={(f) => setInvoicePdf(f[0] ?? null)}
@@ -2492,7 +2615,7 @@ function PaymentRequestModal({
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Factura XML <span className="text-red-500">*</span></Label>
+                                            <Label>Factura XML</Label>
                                             <FileUpload
                                                 files={invoiceXml ? [invoiceXml] : []}
                                                 onChange={(f) => setInvoiceXml(f[0] ?? null)}
@@ -2506,7 +2629,8 @@ function PaymentRequestModal({
                                     <FileUpload
                                         files={files}
                                         onChange={setFiles}
-                                        maxFiles={10}
+                                        maxFiles={1}
+                                        accept=".pdf,.jpg,.jpeg,.png"
                                         error={errors.advance_documents || errors['advance_documents.0']}
                                     />
                                 )}

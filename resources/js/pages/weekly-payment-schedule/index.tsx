@@ -1,15 +1,18 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Inbox, Send } from 'lucide-react';
+import { FileText, Image as ImageIcon, Inbox, Send } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { DocumentPreview } from '@/components/document-preview';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProjectCombobox, type Project } from '@/components/project-combobox';
 import { WeekNavigator } from '@/components/week-navigator';
 import { formatCurrency } from '@/lib/currency';
+import { investmentPaymentTypeLabel } from '@/lib/payment-type-labels';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -24,6 +27,21 @@ interface Payment {
     total: string;
     currency_prefix: string;
     description: string | null;
+    payment_type: string;
+    documents: { name: string; url: string }[];
+}
+
+type DocumentItem = { name: string; url: string };
+type DocKind = 'pdf' | 'xml' | 'img' | 'other';
+
+function classifyDocs(docs: DocumentItem[]): Array<DocumentItem & { kind: DocKind }> {
+    return docs.map((d) => {
+        const ext = (d.name.split('.').pop() ?? '').toLowerCase();
+        if (ext === 'pdf') return { ...d, kind: 'pdf' };
+        if (ext === 'xml') return { ...d, kind: 'xml' };
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return { ...d, kind: 'img' };
+        return { ...d, kind: 'other' };
+    });
 }
 
 interface Schedule {
@@ -79,6 +97,12 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
     const [selectedWeek, setSelectedWeek] = useState(currentWeek);
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [processing, setProcessing] = useState(false);
+    const [previewDocs, setPreviewDocs] = useState<DocumentItem[] | null>(null);
+
+    const selectedProject = useMemo(
+        () => projects.find((p) => p.id === selectedProjectId) ?? null,
+        [projects, selectedProjectId],
+    );
 
     const weekPayments = useMemo(
         () => payments.filter((p) => p.payment_week_number === selectedWeek),
@@ -198,7 +222,12 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                 {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Programación de Pagos Semanal</h1>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h1 className="text-2xl font-bold tracking-tight">Programación de Pagos Semanal</h1>
+                            {selectedProject && (
+                                <Badge variant="secondary" className="text-xs">{selectedProject.name}</Badge>
+                            )}
+                        </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             Selecciona los pagos autorizados que se procesarán en bancos esta semana.
                         </p>
@@ -268,11 +297,12 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                             <th className="pb-3 pr-4 font-medium">Folio</th>
                                             <th className="pb-3 pr-4 font-medium">Proveedor</th>
                                             <th className="pb-3 pr-4 font-medium">Concepto</th>
-                                            <th className="pb-3 pr-4 font-medium">Proyecto</th>
+                                            <th className="pb-3 pr-4 font-medium">Tipo de pago</th>
                                             <th className="pb-3 pr-4 font-medium">Fecha Provisión</th>
                                             <th className="pb-3 pr-4 text-right font-medium">Total</th>
                                             <th className="pb-3 pr-4 font-medium">Moneda</th>
-                                            <th className="pb-3 font-medium">Razón de exclusión</th>
+                                            <th className="pb-3 pr-4 font-medium">Razón de exclusión</th>
+                                            <th className="pb-3 font-medium">Documentos</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -296,7 +326,11 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                     </td>
                                                     <td className="py-3 pr-4 font-medium">{payment.provider}</td>
                                                     <td className="py-3 pr-4">{payment.concept_name}</td>
-                                                    <td className="py-3 pr-4">{payment.project_name}</td>
+                                                    <td className="py-3 pr-4">
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {investmentPaymentTypeLabel(payment.payment_type)}
+                                                        </Badge>
+                                                    </td>
                                                     <td className="py-3 pr-4">
                                                         {payment.payment_provision_date
                                                             ? new Date(payment.payment_provision_date + 'T00:00:00').toLocaleDateString('es-MX', {
@@ -310,7 +344,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                         {formatCurrency(payment.total)}
                                                     </td>
                                                     <td className="py-3 pr-4">{payment.currency_prefix}</td>
-                                                    <td className="py-3">
+                                                    <td className="py-3 pr-4">
                                                         {!isIncluded && (
                                                             <Input
                                                                 placeholder="Razón (opcional)"
@@ -319,6 +353,29 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                                 disabled={!!existingScheduleForWeek}
                                                                 className="h-8 text-xs"
                                                             />
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3">
+                                                        {payment.documents.length > 0 && (
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex items-center gap-1"
+                                                                onClick={() => setPreviewDocs(payment.documents)}
+                                                                title="Previsualizar documentos"
+                                                            >
+                                                                {classifyDocs(payment.documents).map((d, i) => {
+                                                                    const Icon = d.kind === 'img' ? ImageIcon : FileText;
+                                                                    const label = d.kind === 'pdf' ? 'PDF' : d.kind === 'xml' ? 'XML' : d.kind === 'img' ? 'IMG' : 'DOC';
+                                                                    return (
+                                                                        <span
+                                                                            key={i}
+                                                                            className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent"
+                                                                        >
+                                                                            <Icon className="h-3 w-3" /> {label}
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                            </button>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -409,6 +466,16 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                     </>
                 )}
             </div>
+
+            <Dialog open={previewDocs !== null} onOpenChange={(open) => { if (!open) setPreviewDocs(null); }}>
+                <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Documentos del pago</DialogTitle>
+                        <DialogDescription>Vista previa de los archivos adjuntos.</DialogDescription>
+                    </DialogHeader>
+                    {previewDocs && <DocumentPreview documents={previewDocs} />}
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }
