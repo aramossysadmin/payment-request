@@ -27,9 +27,9 @@ class InvestmentSheetConsolidatedController extends Controller
     {
         $table = $query->getModel()->getTable();
 
-        return (float) $query
-            ->join('currencies', "{$table}.currency_id", '=', 'currencies.id')
-            ->sum(DB::raw("{$table}.total * currencies.exchange_rate"));
+        return (float) $query->sum(DB::raw(
+            "{$table}.total * (select exchange_rate from currencies where currencies.id = {$table}.currency_id)"
+        ));
     }
 
     public function __invoke(Request $request, Project $project): Response
