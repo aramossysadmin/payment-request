@@ -41,6 +41,13 @@ class CurrencyResource extends Resource
                             ->label('Prefijo')
                             ->required()
                             ->maxLength(10),
+                        Forms\Components\TextInput::make('exchange_rate')
+                            ->label('Tipo de cambio')
+                            ->required()
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.0001)
+                            ->default(1),
                     ])
                     ->columns(2),
             ]);
@@ -58,6 +65,10 @@ class CurrencyResource extends Resource
                 Tables\Columns\TextColumn::make('prefix')
                     ->label('Prefijo')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('exchange_rate')
+                    ->label('Tipo de cambio')
+                    ->numeric(decimalPlaces: 4)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
