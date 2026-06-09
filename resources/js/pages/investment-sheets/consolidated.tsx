@@ -5,6 +5,7 @@ import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { Pagination } from '@/components/pagination';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
+import { WeekNavigator } from '@/components/week-navigator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -148,6 +149,8 @@ type HistoryPayment = {
     branch: string;
     payment_type: string;
     payment_provision_date: string | null;
+    week_number: number | null;
+    week_year: number | null;
     description: string | null;
     currency_prefix: string;
     subtotal: string;
@@ -427,12 +430,27 @@ export default function Consolidated() {
     // Historial de pagos — estado de filtros + paginación + drawer
     const [historySearch, setHistorySearch] = useState('');
     const [historyStatus, setHistoryStatus] = useState<string>('all');
-    const [historyDateFrom, setHistoryDateFrom] = useState('');
-    const [historyDateTo, setHistoryDateTo] = useState('');
+    const [selectedWeek, setSelectedWeek] = useState(projectDashboard.current_week);
+    const [selectedYear, setSelectedYear] = useState(projectDashboard.current_year);
     const [historyQuickFilter, setHistoryQuickFilter] = useState<'all' | 'in_process' | 'completed' | 'rejected'>('all');
     const [historyPage, setHistoryPage] = useState(1);
     const [historyDetailUuid, setHistoryDetailUuid] = useState<string | null>(null);
     const HISTORY_PER_PAGE = 20;
+
+    const navigateWeek = (direction: number) => {
+        let newWeek = selectedWeek + direction;
+        let newYear = selectedYear;
+        if (newWeek > 52) {
+            newWeek = 1;
+            newYear += 1;
+        } else if (newWeek < 1) {
+            newWeek = 52;
+            newYear -= 1;
+        }
+        setSelectedWeek(newWeek);
+        setSelectedYear(newYear);
+        setHistoryPage(1);
+    };
 
     const historyStatusGroups: Record<'in_process' | 'completed' | 'rejected', string[]> = {
         in_process: ['submitted', 'ceo_approved', 'projectmanager_review', 'projectmanager_approved', 'final_pending', 'documents_pending', 'pending_approval'],
@@ -456,11 +474,8 @@ export default function Consolidated() {
         if (historyStatus !== 'all' && p.status !== historyStatus) {
             return false;
         }
-        // Date range
-        if (historyDateFrom && p.created_at && p.created_at.slice(0, 10) < historyDateFrom) {
-            return false;
-        }
-        if (historyDateTo && p.created_at && p.created_at.slice(0, 10) > historyDateTo) {
+        // Semana de provisión
+        if (p.week_number !== selectedWeek || p.week_year !== selectedYear) {
             return false;
         }
         // Free search (folio, provider, concept)
@@ -488,13 +503,13 @@ export default function Consolidated() {
     const clearHistoryFilters = () => {
         setHistorySearch('');
         setHistoryStatus('all');
-        setHistoryDateFrom('');
-        setHistoryDateTo('');
+        setSelectedWeek(projectDashboard.current_week);
+        setSelectedYear(projectDashboard.current_year);
         setHistoryQuickFilter('all');
         setHistoryPage(1);
     };
 
-    const hasActiveHistoryFilters = historySearch !== '' || historyStatus !== 'all' || historyDateFrom !== '' || historyDateTo !== '' || historyQuickFilter !== 'all';
+    const hasActiveHistoryFilters = historySearch !== '' || historyStatus !== 'all' || selectedWeek !== projectDashboard.current_week || selectedYear !== projectDashboard.current_year || historyQuickFilter !== 'all';
 
     const selectedHistoryPayment = historyDetailUuid
         ? userPaymentHistory.find((p) => p.uuid === historyDetailUuid)
@@ -1348,21 +1363,13 @@ export default function Consolidated() {
                                 </Select>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Desde</label>
-                                <Input
-                                    type="date"
-                                    className="w-40"
-                                    value={historyDateFrom}
-                                    onChange={(e) => { setHistoryDateFrom(e.target.value); setHistoryPage(1); }}
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Hasta</label>
-                                <Input
-                                    type="date"
-                                    className="w-40"
-                                    value={historyDateTo}
-                                    onChange={(e) => { setHistoryDateTo(e.target.value); setHistoryPage(1); }}
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Semana de provisión</label>
+                                <WeekNavigator
+                                    week={selectedWeek}
+                                    year={selectedYear}
+                                    currentWeek={projectDashboard.current_week}
+                                    currentYear={projectDashboard.current_year}
+                                    onNavigate={navigateWeek}
                                 />
                             </div>
                             {hasActiveHistoryFilters && (

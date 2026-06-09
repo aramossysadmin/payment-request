@@ -222,6 +222,8 @@ class InvestmentSheetConsolidatedController extends Controller
                 'branch' => $p->branch?->name ?? '—',
                 'payment_type' => $p->payment_type,
                 'payment_provision_date' => $p->payment_provision_date?->toDateString(),
+                'week_number' => $p->payment_provision_date ? (int) $p->payment_provision_date->isoWeek : null,
+                'week_year' => $p->payment_provision_date ? (int) $p->payment_provision_date->isoWeekYear : null,
                 'description' => $p->description,
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                 'subtotal' => (string) $p->subtotal,

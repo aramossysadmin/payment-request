@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { CalendarCheck, ChevronLeft, ChevronRight, Inbox, Send } from 'lucide-react';
+import { Inbox, Send } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProjectCombobox, type Project } from '@/components/project-combobox';
+import { WeekNavigator } from '@/components/week-navigator';
 import { formatCurrency } from '@/lib/currency';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
@@ -204,23 +205,13 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                     </div>
 
                     {/* Week navigator */}
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={() => navigateWeek(-1)}>
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <div className="flex items-center gap-2 rounded-lg border px-4 py-2">
-                            <CalendarCheck className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm font-medium">
-                                Semana {selectedWeek} / {selectedYear}
-                            </span>
-                            {selectedWeek === currentWeek && selectedYear === currentYear && (
-                                <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Actual</Badge>
-                            )}
-                        </div>
-                        <Button variant="outline" size="icon" onClick={() => navigateWeek(1)}>
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
-                    </div>
+                    <WeekNavigator
+                        week={selectedWeek}
+                        year={selectedYear}
+                        currentWeek={currentWeek}
+                        currentYear={currentYear}
+                        onNavigate={navigateWeek}
+                    />
                 </div>
 
                 {/* Summary cards */}
