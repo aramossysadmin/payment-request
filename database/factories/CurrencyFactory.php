@@ -19,6 +19,7 @@ class CurrencyFactory extends Factory
         return [
             'name' => fake()->unique()->currencyCode(),
             'prefix' => fake()->currencyCode(),
+            'exchange_rate' => fake()->randomFloat(4, 1, 25),
         ];
     }
 }

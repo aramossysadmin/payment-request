@@ -16,7 +16,18 @@ class Currency extends Model
     protected $fillable = [
         'name',
         'prefix',
+        'exchange_rate',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'exchange_rate' => 'decimal:4',
+        ];
+    }
 
     protected function setNameAttribute(string $value): void
     {
