@@ -6,7 +6,7 @@ import InputError from '@/components/input-error';
 import { Pagination } from '@/components/pagination';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { WeekNavigator } from '@/components/week-navigator';
-import { useDisplayCurrency } from '@/contexts/display-currency';
+import { useCurrencyFormatters, useDisplayCurrency } from '@/contexts/display-currency';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -295,13 +295,7 @@ export default function Consolidated() {
     // Moneda de visualización: los agregados llegan en MXN (normalizados en backend) → formatMxn;
     // los importes por pago se convierten desde su moneda nativa con formatNative.
     const displayCurrency = useDisplayCurrency();
-    const formatCurrency = (value: string | number): string => displayCurrency.formatMxn(value);
-    const formatCurrencyPlain = (value: string | number | null): string =>
-        value === null || value === undefined ? '—' : displayCurrency.formatMxn(value);
-    const formatNative = (value: string | number | null, currencyId: number | null | undefined): string =>
-        displayCurrency.format(value, currencyId);
-    const nativeNoteOf = (value: string | number | null, currencyId: number | null | undefined): string | null =>
-        displayCurrency.nativeNote(value, currencyId);
+    const { formatCurrency, formatCurrencyPlain, formatNative, nativeNoteOf } = useCurrencyFormatters();
 
     const [search, setSearch] = useState(filters.search ?? '');
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1926,6 +1920,8 @@ type PaymentsDrawerProps = {
 function PaymentsDrawer({
     open, onClose, investmentRequest: ir, payments, summary, loading, userDepartmentId, onRequestPayment,
 }: PaymentsDrawerProps) {
+    const { formatCurrency, formatNative, nativeNoteOf } = useCurrencyFormatters();
+
     if (!ir) return null;
 
     const isUserDept = ir.department?.id === userDepartmentId;
@@ -2097,6 +2093,7 @@ function PaymentRequestModal({
     currencies, branches, errors,
     editingPayment,
 }: PaymentRequestModalProps) {
+    const { formatCurrency } = useCurrencyFormatters();
     const isEditMode = !!editingPayment;
 
     const [values, setValues] = useState(() => {

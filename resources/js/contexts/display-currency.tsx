@@ -92,3 +92,24 @@ export function useDisplayCurrency(): DisplayCurrencyContextValue {
     }
     return ctx;
 }
+
+type CurrencyFormatters = {
+    formatCurrency: (value: string | number) => string;
+    formatCurrencyPlain: (value: string | number | null) => string;
+    formatNative: (value: string | number | null, currencyId: number | null | undefined) => string;
+    nativeNoteOf: (value: string | number | null, currencyId: number | null | undefined) => string | null;
+};
+
+export function useCurrencyFormatters(): CurrencyFormatters {
+    const dc = useDisplayCurrency();
+
+    return {
+        formatCurrency: (value: string | number): string => dc.formatMxn(value),
+        formatCurrencyPlain: (value: string | number | null): string =>
+            value === null || value === undefined ? '—' : dc.formatMxn(value),
+        formatNative: (value: string | number | null, currencyId: number | null | undefined): string =>
+            dc.format(value, currencyId),
+        nativeNoteOf: (value: string | number | null, currencyId: number | null | undefined): string | null =>
+            dc.nativeNote(value, currencyId),
+    };
+}
