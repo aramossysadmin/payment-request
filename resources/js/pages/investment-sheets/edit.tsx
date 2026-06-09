@@ -1,7 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { Button } from '@/components/ui/button';
@@ -83,7 +82,6 @@ export default function Edit() {
 
     const [selectedProjectId, setSelectedProjectId] = useState(String(pr.project?.id ?? ''));
     const [expenseConceptOpen, setExpenseConceptOpen] = useState(false);
-    const [files, setFiles] = useState<File[]>([]);
     const [processing, setProcessing] = useState(false);
 
     const handleProjectChange = (projectId: string) => {
@@ -126,8 +124,6 @@ export default function Edit() {
         Object.entries(values).forEach(([key, val]) => {
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
-
-        files.forEach((file) => formData.append('advance_documents[]', file));
 
         router.post(`/investment-sheets/${pr.uuid}`, formData, {
             forceFormData: true,
@@ -463,41 +459,6 @@ export default function Edit() {
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>
-                                    Documentos Adjuntos <span className="text-sm font-normal text-gray-400">(opcional)</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                                    Es recomendable adjuntar la cotización correspondiente a este concepto de inversión.
-                                </p>
-                                {pr.advance_documents &&
-                                    pr.advance_documents.filter((doc): doc is string => typeof doc === 'string' && doc.length > 0).length > 0 && (
-                                        <div className="mb-4">
-                                            <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                                Documentos actuales:
-                                            </p>
-                                            <ul className="space-y-1">
-                                                {pr.advance_documents
-                                                    .filter((doc): doc is string => typeof doc === 'string' && doc.length > 0)
-                                                    .map((doc, i) => (
-                                                        <li key={i} className="text-sm text-gray-700 dark:text-gray-300">
-                                                            {doc.split('/').pop()}
-                                                        </li>
-                                                    ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                <FileUpload
-                                    files={files}
-                                    onChange={setFiles}
-                                    maxFiles={10}
-                                    error={errors.advance_documents || errors['advance_documents.0']}
-                                />
-                            </CardContent>
-                        </Card>
                     </div>
 
                     <div className="flex justify-end gap-3">

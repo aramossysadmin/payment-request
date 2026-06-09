@@ -1,7 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { Button } from '@/components/ui/button';
@@ -82,7 +81,6 @@ export default function Create() {
 
     const [selectedProjectId, setSelectedProjectId] = useState('');
     const [expenseConceptOpen, setExpenseConceptOpen] = useState(false);
-    const [files, setFiles] = useState<File[]>([]);
     const [processing, setProcessing] = useState(false);
 
     const handleProjectChange = (projectId: string) => {
@@ -124,8 +122,6 @@ export default function Create() {
         Object.entries(values).forEach(([key, val]) => {
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
-
-        files.forEach((file) => formData.append('advance_documents[]', file));
 
         router.post('/investment-sheets', formData, {
             forceFormData: true,
@@ -472,25 +468,6 @@ export default function Create() {
                             </CardContent>
                         </Card>
 
-                        {/* Section 4: Documentos Adjuntos */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>
-                                    Documentos Adjuntos <span className="text-sm font-normal text-gray-400">(opcional)</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                                    Es recomendable adjuntar la cotización correspondiente a este concepto de inversión.
-                                </p>
-                                <FileUpload
-                                    files={files}
-                                    onChange={setFiles}
-                                    maxFiles={10}
-                                    error={errors.advance_documents || errors['advance_documents.0']}
-                                />
-                            </CardContent>
-                        </Card>
                     </div>
 
                     <div className="flex justify-end gap-3">

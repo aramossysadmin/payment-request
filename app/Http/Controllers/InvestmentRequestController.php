@@ -131,11 +131,6 @@ class InvestmentRequestController extends Controller
                 $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
             }
         }
-        if ($request->hasFile('advance_documents')) {
-            foreach ($request->file('advance_documents') as $file) {
-                $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
-            }
-        }
 
         if (! empty($allDocuments)) {
             $investmentRequest->update(['advance_documents' => $allDocuments]);
@@ -197,7 +192,7 @@ class InvestmentRequestController extends Controller
 
         $validated = $request->validated();
 
-        $hasNewFiles = $request->hasFile('invoice_documents') || $request->hasFile('advance_documents');
+        $hasNewFiles = $request->hasFile('invoice_documents');
         $allDocuments = $investmentRequest->advance_documents ?? [];
 
         if ($hasNewFiles) {
@@ -208,11 +203,6 @@ class InvestmentRequestController extends Controller
             $allDocuments = [];
             if ($request->hasFile('invoice_documents')) {
                 foreach ($request->file('invoice_documents') as $file) {
-                    $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
-                }
-            }
-            if ($request->hasFile('advance_documents')) {
-                foreach ($request->file('advance_documents') as $file) {
                     $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
                 }
             }
