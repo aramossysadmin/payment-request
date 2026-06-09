@@ -12,8 +12,16 @@ class InvestmentPaymentDocumentController extends Controller
 {
     public function upload(UploadInvestmentPaymentDocumentsRequest $request, InvestmentPaymentRequest $payment): RedirectResponse
     {
-        abort_unless($payment->user_id === auth()->id(), Response::HTTP_FORBIDDEN, 'Solo el solicitante puede subir documentos.');
-        abort_unless($payment->status === 'final_approved', Response::HTTP_CONFLICT, 'Este pago no está en estado de carga de documentos.');
+        $user = auth()->user();
+        $isSuperAdmin = $user->hasRole('super_admin');
+
+        abort_unless($isSuperAdmin || $payment->user_id === $user->id, Response::HTTP_FORBIDDEN, 'Solo el solicitante puede subir documentos.');
+
+        $allowedStatuses = $isSuperAdmin
+            ? ['final_approved', 'approved', 'completed']
+            : ['final_approved'];
+
+        abort_unless(in_array($payment->status, $allowedStatuses, true), Response::HTTP_CONFLICT, 'Este pago no está en estado de carga de documentos.');
 
         $directory = 'investment-payment-documents/'.now()->format('Y/m').'/'.$payment->folio_number;
 

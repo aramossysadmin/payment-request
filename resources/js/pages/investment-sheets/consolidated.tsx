@@ -131,6 +131,7 @@ type AuthorizedPayment = {
     approved_amount: string;
     was_adjusted: boolean;
     status: string;
+    is_legacy: boolean;
     has_documents: boolean;
 };
 
@@ -211,6 +212,7 @@ type PageProps = {
     draftBatch: DraftBatch | null;
     authorizedPayments: AuthorizedPaymentsGroup;
     userPaymentHistory: HistoryPayment[];
+    isSuperAdmin: boolean;
 };
 
 const statusColors: Record<string, string> = {
@@ -293,7 +295,7 @@ export default function Consolidated() {
 
     const {
         project, totals, projectDashboard, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, userDepartmentName, currencies, branches, errors, draftBatch, authorizedPayments, userPaymentHistory,
+        userDepartmentId, userDepartmentName, currencies, branches, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin,
     } = usePage<PageProps>().props;
 
     const [search, setSearch] = useState(filters.search ?? '');
@@ -1286,6 +1288,9 @@ export default function Consolidated() {
                                             <tr key={payment.uuid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                                 <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
                                                     #{String(payment.folio_number).padStart(5, '0')}
+                                                    {payment.is_legacy && (
+                                                        <Badge variant="secondary" className="ml-1.5 align-middle text-[10px]">Histórico</Badge>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
@@ -1557,6 +1562,23 @@ export default function Consolidated() {
                                         <span className="ml-1 text-xs font-normal opacity-75">(Flujo anterior)</span>
                                     )}
                                 </div>
+
+                                {/* Reemplazar documentos (solo superadmin, pagos completados) */}
+                                {isSuperAdmin && selectedHistoryPayment.status === 'completed' && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full"
+                                        onClick={() => {
+                                            const uuid = selectedHistoryPayment.uuid;
+                                            setHistoryDetailUuid(null);
+                                            setUploadDialogUuid(uuid);
+                                        }}
+                                    >
+                                        <Upload className="mr-1.5 h-3.5 w-3.5" />
+                                        Reemplazar documentos
+                                    </Button>
+                                )}
 
                                 {/* Información del pago */}
                                 <div className="space-y-3 rounded-lg border p-4">

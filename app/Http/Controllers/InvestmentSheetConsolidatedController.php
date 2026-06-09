@@ -21,6 +21,7 @@ class InvestmentSheetConsolidatedController extends Controller
     public function __invoke(Request $request, Project $project): Response
     {
         $user = $request->user();
+        $isSuperAdmin = $user->hasRole('super_admin');
 
         // Default department filter to user's department on first load
         $departmentId = $request->filled('department_id')
@@ -181,9 +182,14 @@ class InvestmentSheetConsolidatedController extends Controller
             : collect();
 
         $authorizedPayments = InvestmentPaymentRequest::query()
-            ->where('status', 'final_approved')
-            ->where('user_id', $user->id)
             ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
+            ->when($isSuperAdmin,
+                fn ($q) => $q->where(function ($q) {
+                    $q->where('status', 'final_approved')
+                        ->orWhere(fn ($q) => $q->where('status', 'approved')->whereNull('batch_id'));
+                }),
+                fn ($q) => $q->where('status', 'final_approved')->where('user_id', $user->id),
+            )
             ->with(['currency', 'investmentRequest.investmentExpenseConcept'])
             ->latest()
             ->get()
@@ -199,6 +205,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : (string) $p->total,
                 'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
                 'status' => $p->status,
+                'is_legacy' => $p->batch_id === null,
                 'has_documents' => is_array($p->advance_documents) && count($p->advance_documents) >= 2,
             ]);
 
@@ -356,6 +363,7 @@ class InvestmentSheetConsolidatedController extends Controller
             ],
             'userDepartmentId' => $user->department_id,
             'userDepartmentName' => $user->department?->name,
+            'isSuperAdmin' => $isSuperAdmin,
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'draftBatch' => $draftBatch ? [
