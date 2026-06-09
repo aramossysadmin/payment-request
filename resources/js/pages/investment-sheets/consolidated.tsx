@@ -6,6 +6,7 @@ import InputError from '@/components/input-error';
 import { Pagination } from '@/components/pagination';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { WeekNavigator } from '@/components/week-navigator';
+import { useDisplayCurrency } from '@/contexts/display-currency';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -127,6 +128,7 @@ type AuthorizedPayment = {
     concept_name: string;
     description: string | null;
     currency_prefix: string;
+    currency_id: number;
     total: string;
     approved_amount: string;
     was_adjusted: boolean;
@@ -154,6 +156,7 @@ type HistoryPayment = {
     week_year: number | null;
     description: string | null;
     currency_prefix: string;
+    currency_id: number;
     subtotal: string;
     iva: string;
     total: string;
@@ -177,6 +180,8 @@ type PageProps = {
         id: number;
         name: string;
         branch: string | null;
+        currency_id: number | null;
+        currency_prefix: string;
         start_date: string | null;
         opening_date: string | null;
         authorized_budget: string | null;
@@ -232,17 +237,6 @@ const ivaRateOptions = [
     { value: '0.21', label: 'IVA 21%' },
 ];
 
-function formatCurrency(value: string | number): string {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(value));
-}
-
-// Formato sin sufijo de moneda. Usado en las tarjetas del dashboard del proyecto
-// mientras no exista el feature de moneda base por proyecto (registrado en PENDIENTES).
-function formatCurrencyPlain(value: string | number | null): string {
-    if (value === null || value === undefined) return '—';
-    return '$' + new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value));
-}
-
 function formatDateEs(dateStr: string | null): string {
     if (!dateStr) return '';
     const d = new Date(dateStr + 'T00:00:00');
@@ -297,6 +291,17 @@ export default function Consolidated() {
         project, totals, projectDashboard, departmentBreakdown, investmentRequests, filters,
         userDepartmentId, userDepartmentName, currencies, branches, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin,
     } = usePage<PageProps>().props;
+
+    // Moneda de visualización: los agregados llegan en MXN (normalizados en backend) → formatMxn;
+    // los importes por pago se convierten desde su moneda nativa con formatNative.
+    const displayCurrency = useDisplayCurrency();
+    const formatCurrency = (value: string | number): string => displayCurrency.formatMxn(value);
+    const formatCurrencyPlain = (value: string | number | null): string =>
+        value === null || value === undefined ? '—' : displayCurrency.formatMxn(value);
+    const formatNative = (value: string | number | null, currencyId: number | null | undefined): string =>
+        displayCurrency.format(value, currencyId);
+    const nativeNoteOf = (value: string | number | null, currencyId: number | null | undefined): string | null =>
+        displayCurrency.nativeNote(value, currencyId);
 
     const [search, setSearch] = useState(filters.search ?? '');
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -551,9 +556,10 @@ export default function Consolidated() {
         return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
     };
 
+    // Normalizado a MXN (cada borrador × su tipo de cambio) para sumar monedas mezcladas.
     const selectedDraftTotal = (draftBatch?.payments ?? [])
         .filter((p) => selectedDraftIds.has(p.uuid))
-        .reduce((sum, p) => sum + Number(p.total), 0);
+        .reduce((sum, p) => sum + Number(p.total) * displayCurrency.rateOf(p.currency_id), 0);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Hojas de Inversión', href: '/investment-sheets/consolidated' },
@@ -1144,7 +1150,10 @@ export default function Consolidated() {
                                                                     {ir.department?.name}
                                                                 </td>
                                                                 <td className="px-4 py-2.5 text-right font-mono text-sm border-r border-gray-100 dark:border-gray-800">
-                                                                    {formatCurrency(ir.total)}
+                                                                    {formatNative(ir.total, ir.currency?.id)}
+                                                                    {nativeNoteOf(ir.total, ir.currency?.id) && (
+                                                                        <div className="text-[10px] text-gray-400">orig. {nativeNoteOf(ir.total, ir.currency?.id)}</div>
+                                                                    )}
                                                                 </td>
                                                                 <td className="px-4 py-2.5 border-r border-gray-100 dark:border-gray-800"></td>
                                                                 <td className="px-4 py-2.5"></td>
@@ -1207,7 +1216,10 @@ export default function Consolidated() {
                                                     {payment.payment_provision_date ?? <span className="text-gray-400">—</span>}
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
-                                                    {formatCurrency(payment.total)}
+                                                    {formatNative(payment.total, payment.currency_id)}
+                                                    {nativeNoteOf(payment.total, payment.currency_id) && (
+                                                        <div className="text-[10px] font-normal text-gray-400">orig. {nativeNoteOf(payment.total, payment.currency_id)}</div>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center justify-end gap-1">
@@ -1298,7 +1310,10 @@ export default function Consolidated() {
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
                                                 <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
-                                                    {formatCurrency(payment.approved_amount)} <span className="text-xs text-gray-500">{payment.currency_prefix}</span>
+                                                    {formatNative(payment.approved_amount, payment.currency_id)}
+                                                    {nativeNoteOf(payment.approved_amount, payment.currency_id) && (
+                                                        <div className="text-[10px] font-normal text-gray-400">orig. {nativeNoteOf(payment.approved_amount, payment.currency_id)}</div>
+                                                    )}
                                                     {payment.was_adjusted && (
                                                         <div className="mt-0.5 text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400">
                                                             ajustado por PM
@@ -1465,12 +1480,18 @@ export default function Consolidated() {
                                                         {payment.provider}
                                                     </td>
                                                     <td className="px-4 py-3 text-right font-mono text-sm border-r border-gray-100 dark:border-gray-800">
-                                                        {formatCurrency(payment.total)}
+                                                        {formatNative(payment.total, payment.currency_id)}
+                                                        {nativeNoteOf(payment.total, payment.currency_id) && (
+                                                            <div className="text-[10px] text-gray-400">orig. {nativeNoteOf(payment.total, payment.currency_id)}</div>
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-3 text-right font-mono text-sm border-r border-gray-100 dark:border-gray-800">
                                                         {payment.approved_amount !== null ? (
                                                             <>
-                                                                {formatCurrency(payment.approved_amount)}
+                                                                {formatNative(payment.approved_amount, payment.currency_id)}
+                                                                {nativeNoteOf(payment.approved_amount, payment.currency_id) && (
+                                                                    <div className="text-[10px] text-gray-400">orig. {nativeNoteOf(payment.approved_amount, payment.currency_id)}</div>
+                                                                )}
                                                                 {payment.was_adjusted && (
                                                                     <div className="text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400">
                                                                         ajustado
@@ -1617,15 +1638,20 @@ export default function Consolidated() {
                                     <dl className="space-y-2 text-sm">
                                         <div className="flex justify-between">
                                             <dt className="text-muted-foreground">Subtotal</dt>
-                                            <dd className="font-mono">{formatCurrency(selectedHistoryPayment.subtotal)}</dd>
+                                            <dd className="font-mono">{formatNative(selectedHistoryPayment.subtotal, selectedHistoryPayment.currency_id)}</dd>
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-muted-foreground">IVA</dt>
-                                            <dd className="font-mono">{formatCurrency(selectedHistoryPayment.iva)}</dd>
+                                            <dd className="font-mono">{formatNative(selectedHistoryPayment.iva, selectedHistoryPayment.currency_id)}</dd>
                                         </div>
                                         <div className="flex justify-between border-t pt-2">
                                             <dt className="font-semibold">Total solicitado</dt>
-                                            <dd className="font-mono font-semibold">{formatCurrency(selectedHistoryPayment.total)} {selectedHistoryPayment.currency_prefix}</dd>
+                                            <dd className="text-right font-mono font-semibold">
+                                                {formatNative(selectedHistoryPayment.total, selectedHistoryPayment.currency_id)}
+                                                {nativeNoteOf(selectedHistoryPayment.total, selectedHistoryPayment.currency_id) && (
+                                                    <div className="text-[10px] font-normal text-gray-400">orig. {nativeNoteOf(selectedHistoryPayment.total, selectedHistoryPayment.currency_id)}</div>
+                                                )}
+                                            </dd>
                                         </div>
                                         {selectedHistoryPayment.approved_amount !== null && (
                                             <div className="flex justify-between">
@@ -1633,10 +1659,10 @@ export default function Consolidated() {
                                                     Monto aprobado por PM
                                                 </dt>
                                                 <dd className="font-mono font-semibold text-amber-700 dark:text-amber-400">
-                                                    {formatCurrency(selectedHistoryPayment.approved_amount)}
+                                                    {formatNative(selectedHistoryPayment.approved_amount, selectedHistoryPayment.currency_id)}
                                                     {selectedHistoryPayment.was_adjusted && (
                                                         <div className="text-[10px] font-normal text-amber-600 dark:text-amber-500">
-                                                            ajustado desde {formatCurrency(selectedHistoryPayment.total)}
+                                                            ajustado desde {formatNative(selectedHistoryPayment.total, selectedHistoryPayment.currency_id)}
                                                         </div>
                                                     )}
                                                 </dd>
@@ -1933,7 +1959,12 @@ function PaymentsDrawer({
                     <div className="space-y-3 rounded-lg border p-4">
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Este concepto</span>
-                            <span className="font-mono font-semibold">{formatCurrency(ir.total)}</span>
+                            <span className="text-right font-mono font-semibold">
+                                {formatNative(ir.total, ir.currency?.id)}
+                                {nativeNoteOf(ir.total, ir.currency?.id) && (
+                                    <div className="text-[10px] font-normal text-gray-400">orig. {nativeNoteOf(ir.total, ir.currency?.id)}</div>
+                                )}
+                            </span>
                         </div>
                         {ir.group_budget && ir.group_budget !== String(ir.total) && (
                             <div className="flex justify-between text-sm">

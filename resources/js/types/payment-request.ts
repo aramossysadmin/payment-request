@@ -16,6 +16,7 @@ export type Currency = {
     id: number;
     name: string;
     prefix: string;
+    exchange_rate?: string | number | null;
 };
 
 export type Branch = {

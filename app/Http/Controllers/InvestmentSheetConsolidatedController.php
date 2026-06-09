@@ -10,14 +10,28 @@ use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Models\Project;
 use App\States\InvestmentRequest\Completed;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class InvestmentSheetConsolidatedController extends Controller
 {
+    /**
+     * Suma de `total` normalizada a MXN (cada fila × su tipo de cambio).
+     */
+    private function sumTotalMxn(Builder $query): float
+    {
+        $table = $query->getModel()->getTable();
+
+        return (float) $query
+            ->join('currencies', "{$table}.currency_id", '=', 'currencies.id')
+            ->sum(DB::raw("{$table}.total * currencies.exchange_rate"));
+    }
+
     public function __invoke(Request $request, Project $project): Response
     {
         $user = $request->user();
@@ -55,7 +69,16 @@ class InvestmentSheetConsolidatedController extends Controller
 
         // Compute grouped budget totals (base + addendums with same concept + project)
         $investmentRequests->getCollection()->each(function (InvestmentRequest $ir) use ($project) {
-            $ir->setAttribute('remaining_balance', $ir->remaining_balance);
+            $irRate = (float) ($ir->currency?->exchange_rate ?? 1);
+            $irBudgetMxn = (float) $ir->total * $irRate;
+
+            $paidMxn = $this->sumTotalMxn(
+                InvestmentPaymentRequest::query()
+                    ->where('investment_request_id', $ir->id)
+                    ->whereIn('status', ['pending_approval', 'approved'])
+            );
+
+            $ir->setAttribute('remaining_balance', number_format($irBudgetMxn - $paidMxn, 2, '.', ''));
 
             if ($ir->investment_expense_concept_id) {
                 $groupIds = InvestmentRequest::query()
@@ -65,36 +88,39 @@ class InvestmentSheetConsolidatedController extends Controller
                     ->whereState('status', Completed::class)
                     ->pluck('id');
 
-                $groupBudget = InvestmentRequest::query()
-                    ->whereIn('id', $groupIds)
-                    ->sum('total');
+                $groupBudget = $this->sumTotalMxn(
+                    InvestmentRequest::query()->whereIn('id', $groupIds)
+                );
 
-                $groupPaid = InvestmentPaymentRequest::query()
-                    ->whereIn('investment_request_id', $groupIds)
-                    ->whereIn('status', ['pending_approval', 'approved'])
-                    ->sum('total');
+                $groupPaid = $this->sumTotalMxn(
+                    InvestmentPaymentRequest::query()
+                        ->whereIn('investment_request_id', $groupIds)
+                        ->whereIn('status', ['pending_approval', 'approved'])
+                );
 
-                $ir->setAttribute('group_budget', number_format((float) $groupBudget, 2, '.', ''));
-                $ir->setAttribute('group_paid', number_format((float) $groupPaid, 2, '.', ''));
-                $ir->setAttribute('group_remaining', number_format((float) ($groupBudget - $groupPaid), 2, '.', ''));
+                $ir->setAttribute('group_budget', number_format($groupBudget, 2, '.', ''));
+                $ir->setAttribute('group_paid', number_format($groupPaid, 2, '.', ''));
+                $ir->setAttribute('group_remaining', number_format($groupBudget - $groupPaid, 2, '.', ''));
             } else {
-                $ir->setAttribute('group_budget', (string) $ir->total);
+                $ir->setAttribute('group_budget', number_format($irBudgetMxn, 2, '.', ''));
                 $ir->setAttribute('group_paid', '0.00');
-                $ir->setAttribute('group_remaining', $ir->remaining_balance);
+                $ir->setAttribute('group_remaining', number_format($irBudgetMxn - $paidMxn, 2, '.', ''));
             }
         });
 
         $totals = InvestmentRequest::query()
             ->where('project_id', $project->id)
             ->visibleTo($user)
-            ->selectRaw("SUM(subtotal) as total_subtotal, SUM(total) as total_total, COUNT(*) as total_count, SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END) as authorized_total, SUM(CASE WHEN status != 'completed' THEN total ELSE 0 END) as pending_total")
+            ->join('currencies', 'investment_requests.currency_id', '=', 'currencies.id')
+            ->selectRaw("SUM(investment_requests.subtotal * currencies.exchange_rate) as total_subtotal, SUM(investment_requests.total * currencies.exchange_rate) as total_total, COUNT(*) as total_count, SUM(CASE WHEN investment_requests.status = 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as authorized_total, SUM(CASE WHEN investment_requests.status != 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as pending_total")
             ->first();
 
         $departmentBreakdown = InvestmentRequest::query()
             ->where('project_id', $project->id)
             ->visibleTo($user)
             ->join('departments', 'investment_requests.department_id', '=', 'departments.id')
-            ->selectRaw('departments.id as department_id, departments.name as department_name, SUM(investment_requests.total) as department_total, COUNT(*) as department_count')
+            ->join('currencies', 'investment_requests.currency_id', '=', 'currencies.id')
+            ->selectRaw('departments.id as department_id, departments.name as department_name, SUM(investment_requests.total * currencies.exchange_rate) as department_total, COUNT(*) as department_count')
             ->groupBy('departments.id', 'departments.name')
             ->orderByDesc('department_total')
             ->get();
@@ -106,13 +132,14 @@ class InvestmentSheetConsolidatedController extends Controller
 
         $paidByDepartment = InvestmentPaymentRequest::query()
             ->join('investment_requests', 'investment_payment_requests.investment_request_id', '=', 'investment_requests.id')
+            ->join('currencies', 'investment_payment_requests.currency_id', '=', 'currencies.id')
             ->whereIn('investment_payment_requests.investment_request_id', $visibleIrIds)
             ->whereIn('investment_payment_requests.status', ['pending_approval', 'approved'])
             ->groupBy('investment_requests.department_id')
-            ->selectRaw('investment_requests.department_id, SUM(investment_payment_requests.total) as paid_total')
+            ->selectRaw('investment_requests.department_id, SUM(investment_payment_requests.total * currencies.exchange_rate) as paid_total')
             ->pluck('paid_total', 'department_id');
 
-        $project->load('branch');
+        $project->load('branch', 'currency');
 
         $now = Carbon::now();
         $currentWeek = $now->isoWeek;
@@ -144,12 +171,15 @@ class InvestmentSheetConsolidatedController extends Controller
                             ->whereState('status', Completed::class)
                             ->pluck('id');
 
-                        $groupBudget = (float) InvestmentRequest::whereIn('id', $groupIds)->sum('total');
-                        $groupPaidExcludingThis = (float) InvestmentPaymentRequest::query()
-                            ->whereIn('investment_request_id', $groupIds)
-                            ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected'])
-                            ->where('id', '!=', $p->id)
-                            ->sum('total');
+                        $groupBudget = $this->sumTotalMxn(
+                            InvestmentRequest::query()->whereIn('id', $groupIds)
+                        );
+                        $groupPaidExcludingThis = $this->sumTotalMxn(
+                            InvestmentPaymentRequest::query()
+                                ->whereIn('investment_request_id', $groupIds)
+                                ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected'])
+                                ->where('id', '!=', $p->id)
+                        );
 
                         $effectiveRemaining = $groupBudget - $groupPaidExcludingThis;
                     }
@@ -201,6 +231,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
                 'description' => $p->description,
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                'currency_id' => $p->currency_id,
                 'total' => (string) $p->total,
                 'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : (string) $p->total,
                 'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
@@ -233,6 +264,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'week_year' => $p->payment_provision_date ? (int) $p->payment_provision_date->isoWeekYear : null,
                 'description' => $p->description,
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                'currency_id' => $p->currency_id,
                 'subtotal' => (string) $p->subtotal,
                 'iva' => (string) $p->iva,
                 'total' => (string) $p->total,
@@ -262,51 +294,57 @@ class InvestmentSheetConsolidatedController extends Controller
                     ->toArray(),
             ]);
 
-        // Dashboard de presupuesto del proyecto (suma de Solicitudes con status=completed)
-        $originalBudget = (float) InvestmentRequest::query()
-            ->where('project_id', $project->id)
-            ->where('is_addendum', false)
-            ->where('is_deductive', false)
-            ->whereState('status', Completed::class)
-            ->sum('total');
+        // Dashboard de presupuesto del proyecto (suma de Solicitudes con status=completed, normalizada a MXN)
+        $originalBudget = $this->sumTotalMxn(
+            InvestmentRequest::query()
+                ->where('project_id', $project->id)
+                ->where('is_addendum', false)
+                ->where('is_deductive', false)
+                ->whereState('status', Completed::class)
+        );
 
-        $additionalBudget = (float) InvestmentRequest::query()
-            ->where('project_id', $project->id)
-            ->where('is_addendum', true)
-            ->where('is_deductive', false)
-            ->whereState('status', Completed::class)
-            ->sum('total');
+        $additionalBudget = $this->sumTotalMxn(
+            InvestmentRequest::query()
+                ->where('project_id', $project->id)
+                ->where('is_addendum', true)
+                ->where('is_deductive', false)
+                ->whereState('status', Completed::class)
+        );
 
-        $deductiveBudget = (float) InvestmentRequest::query()
-            ->where('project_id', $project->id)
-            ->where('is_deductive', true)
-            ->whereState('status', Completed::class)
-            ->sum('total');
+        $deductiveBudget = $this->sumTotalMxn(
+            InvestmentRequest::query()
+                ->where('project_id', $project->id)
+                ->where('is_deductive', true)
+                ->whereState('status', Completed::class)
+        );
 
         // Aditivas y Deductivas capturadas pero aún pendientes de autorización
         // (status != completed). Se muestran como subsección "En proceso de
         // autorización" en el dashboard, cada una SOLO cuando es > 0.
         // NOTA: usamos where('status', '!=', ...) directo porque Spatie
         // ModelStates no expone un scope whereStateNot — solo whereState.
-        $pendingAdditional = (float) InvestmentRequest::query()
-            ->where('project_id', $project->id)
-            ->where('is_addendum', true)
-            ->where('is_deductive', false)
-            ->where('status', '!=', Completed::$name)
-            ->sum('total');
+        $pendingAdditional = $this->sumTotalMxn(
+            InvestmentRequest::query()
+                ->where('project_id', $project->id)
+                ->where('is_addendum', true)
+                ->where('is_deductive', false)
+                ->where('status', '!=', Completed::$name)
+        );
 
-        $pendingDeductive = (float) InvestmentRequest::query()
-            ->where('project_id', $project->id)
-            ->where('is_deductive', true)
-            ->where('status', '!=', Completed::$name)
-            ->sum('total');
+        $pendingDeductive = $this->sumTotalMxn(
+            InvestmentRequest::query()
+                ->where('project_id', $project->id)
+                ->where('is_deductive', true)
+                ->where('status', '!=', Completed::$name)
+        );
 
         $updatedBudget = $originalBudget + $additionalBudget - $deductiveBudget;
 
-        $paidProjectTotal = (float) InvestmentPaymentRequest::query()
-            ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
-            ->whereIn('status', ['pending_approval', 'approved'])
-            ->sum('total');
+        $paidProjectTotal = $this->sumTotalMxn(
+            InvestmentPaymentRequest::query()
+                ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
+                ->whereIn('status', ['pending_approval', 'approved'])
+        );
 
         $remainingBudget = $updatedBudget - $paidProjectTotal;
 
@@ -315,6 +353,8 @@ class InvestmentSheetConsolidatedController extends Controller
                 'id' => $project->id,
                 'name' => $project->name,
                 'branch' => $project->branch?->name,
+                'currency_id' => $project->currency_id,
+                'currency_prefix' => $project->currency?->prefix ?? 'MXN',
                 'start_date' => $project->start_date?->toDateString(),
                 'opening_date' => $project->opening_date?->toDateString(),
                 'authorized_budget' => $project->authorized_budget !== null ? number_format((float) $project->authorized_budget, 2, '.', '') : null,
@@ -364,7 +404,7 @@ class InvestmentSheetConsolidatedController extends Controller
             'userDepartmentId' => $user->department_id,
             'userDepartmentName' => $user->department?->name,
             'isSuperAdmin' => $isSuperAdmin,
-            'currencies' => Currency::all(['id', 'name', 'prefix']),
+            'currencies' => Currency::all(['id', 'name', 'prefix', 'exchange_rate']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'draftBatch' => $draftBatch ? [
                 'uuid' => $draftBatch->uuid,
