@@ -1,6 +1,8 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { DocumentPreview } from '@/components/document-preview';
+import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { Button } from '@/components/ui/button';
@@ -83,6 +85,7 @@ export default function Edit() {
     const [selectedProjectId, setSelectedProjectId] = useState(String(pr.project?.id ?? ''));
     const [expenseConceptOpen, setExpenseConceptOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [files, setFiles] = useState<File[]>([]);
 
     const handleProjectChange = (projectId: string) => {
         setSelectedProjectId(projectId);
@@ -124,6 +127,8 @@ export default function Edit() {
         Object.entries(values).forEach(([key, val]) => {
             formData.append(key, typeof val === 'boolean' ? (val ? '1' : '0') : String(val));
         });
+
+        files.forEach((file) => formData.append('advance_documents[]', file));
 
         router.post(`/investment-sheets/${pr.uuid}`, formData, {
             forceFormData: true,
@@ -331,25 +336,25 @@ export default function Edit() {
                         </Card>
                     </div>
 
-                    {/* Row 2: Datos Financieros + Documentos Adjuntos */}
+                    {/* Row 2: Datos del Presupuesto + Documentos Adjuntos */}
                     <div className="grid gap-6 lg:grid-cols-2">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Datos Financieros</CardTitle>
+                                <CardTitle>Datos del Presupuesto</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="invoice_folio">
-                                        Folio de Factura o Cotización <span className="text-gray-400">(opcional)</span>
+                                        Folio de Cotización <span className="text-gray-400">(opcional)</span>
                                     </Label>
                                     <Input
                                         id="invoice_folio"
                                         value={values.invoice_folio}
                                         onChange={(e) => handleChange('invoice_folio', e.target.value)}
-                                        placeholder="FAC-0001 / COT-0001"
+                                        placeholder="COT-0001"
                                     />
                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        Si no cuenta con folio de factura o cotización, puede dejar este campo en blanco.
+                                        Si no cuenta con folio de cotización, puede dejar este campo en blanco.
                                     </p>
                                     <InputError message={errors.invoice_folio} />
                                 </div>
@@ -459,6 +464,38 @@ export default function Edit() {
                             </CardContent>
                         </Card>
 
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>
+                                    Documentos Adjuntos <span className="text-sm font-normal text-gray-400">(opcional)</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {pr.documents && pr.documents.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            Documentos actuales — {pr.documents.length}
+                                        </p>
+                                        <DocumentPreview documents={pr.documents} />
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Si subes nuevos archivos, reemplazarán los actuales.
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Adjunta archivos (PDF o imagen).
+                                    </p>
+                                    <FileUpload
+                                        files={files}
+                                        onChange={setFiles}
+                                        maxFiles={5}
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        error={errors.advance_documents || errors['advance_documents.0']}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     <div className="flex justify-end gap-3">

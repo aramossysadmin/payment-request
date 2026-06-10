@@ -16,7 +16,6 @@ use App\States\InvestmentRequest\PendingDepartment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -131,6 +130,11 @@ class InvestmentRequestController extends Controller
                 $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
             }
         }
+        if ($request->hasFile('advance_documents')) {
+            foreach ($request->file('advance_documents') as $file) {
+                $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
+            }
+        }
 
         if (! empty($allDocuments)) {
             $investmentRequest->update(['advance_documents' => $allDocuments]);
@@ -192,17 +196,21 @@ class InvestmentRequestController extends Controller
 
         $validated = $request->validated();
 
-        $hasNewFiles = $request->hasFile('invoice_documents');
+        $hasNewFiles = $request->hasFile('invoice_documents') || $request->hasFile('advance_documents');
         $allDocuments = $investmentRequest->advance_documents ?? [];
 
         if ($hasNewFiles) {
-            foreach ($allDocuments as $oldPath) {
-                Storage::disk('local')->delete($oldPath);
-            }
+            // Reemplazo lógico: el nuevo set sobrescribe la columna; los archivos físicos
+            // anteriores quedan huérfanos en disco (no se borran — regla del proyecto: no destruir datos).
             $directory = 'investment-advance-documents/'.now()->format('Y/m').'/'.$investmentRequest->folio_number;
             $allDocuments = [];
             if ($request->hasFile('invoice_documents')) {
                 foreach ($request->file('invoice_documents') as $file) {
+                    $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
+                }
+            }
+            if ($request->hasFile('advance_documents')) {
+                foreach ($request->file('advance_documents') as $file) {
                     $allDocuments[] = $file->storeAs($directory, Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
                 }
             }

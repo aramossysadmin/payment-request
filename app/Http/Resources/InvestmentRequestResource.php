@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Models\InvestmentRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\URL;
 
 /** @mixin InvestmentRequest */
 class InvestmentRequestResource extends JsonResource
@@ -37,6 +38,18 @@ class InvestmentRequestResource extends JsonResource
                 'name' => $this->project?->name,
             ],
             'advance_documents' => $this->advance_documents,
+            'documents' => collect(is_array($this->advance_documents) ? $this->advance_documents : [])
+                ->filter(fn ($doc) => is_string($doc) && $doc !== '')
+                ->map(fn ($doc) => [
+                    'name' => basename($doc),
+                    'url' => URL::temporarySignedRoute(
+                        'documents.view',
+                        now()->addHours(48),
+                        ['path' => $doc],
+                    ),
+                ])
+                ->values()
+                ->toArray(),
             'status' => [
                 'name' => $this->status::$name,
                 'label' => $this->status->label(),

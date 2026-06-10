@@ -41,6 +41,7 @@ export type InvestmentRequest = {
         name: string;
     } | null;
     advance_documents: string[] | null;
+    documents: { name: string; url: string }[];
     status: InvestmentRequestStatus;
     iva_rate: { value: string; label: string };
     subtotal: string;
