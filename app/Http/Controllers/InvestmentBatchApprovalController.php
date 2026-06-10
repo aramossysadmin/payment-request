@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\User;
+use App\Notifications\InvestmentBatchFinalApprovalSummaryToPmNotification;
 use App\Notifications\InvestmentBatchReadyForReviewNotification;
 use App\Notifications\InvestmentBatchRequesterSummaryNotification;
 use Illuminate\Http\RedirectResponse;
@@ -220,7 +221,7 @@ class InvestmentBatchApprovalController extends Controller
         $payments = InvestmentPaymentRequest::query()
             ->where('batch_id', $batch->id)
             ->where('status', 'projectmanager_approved')
-            ->with('user')
+            ->with(['user', 'department', 'currency', 'investmentRequest.investmentExpenseConcept.category'])
             ->get();
 
         DB::transaction(function () use ($batch, $payments, $approvedUuids, $rejectionReason) {
@@ -269,6 +270,22 @@ class InvestmentBatchApprovalController extends Controller
                 'final',
             ));
         });
+
+        // Notificación al Project Manager con resumen + PDF de los pagos aprobados.
+        $approvedPayments = $payments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->values();
+        if ($approvedPayments->isNotEmpty()) {
+            $batch->loadMissing('project');
+            $approverCeo = User::role('ceo')->first();
+            User::role('project_manager')->get()->each(function ($pm) use ($approvedPayments, $batch, $approverCeo, $rejectedCount) {
+                $pm->notify(new InvestmentBatchFinalApprovalSummaryToPmNotification(
+                    approvedPayments: $approvedPayments,
+                    project: $batch->project,
+                    approverCeo: $approverCeo,
+                    approvedAt: now(),
+                    rejectedCount: $rejectedCount,
+                ));
+            });
+        }
 
         return redirect()->route('investment-batch-approval.success', [
             'approved' => $approvedCount,
@@ -402,7 +419,7 @@ class InvestmentBatchApprovalController extends Controller
         $payments = InvestmentPaymentRequest::query()
             ->whereIn('batch_id', $pendingBatchIds)
             ->where('status', 'projectmanager_approved')
-            ->with('user')
+            ->with(['user', 'department', 'currency', 'investmentRequest.investmentExpenseConcept.category'])
             ->get();
 
         DB::transaction(function () use ($pendingBatches, $payments, $approvedUuids, $rejectionReason) {
@@ -457,6 +474,22 @@ class InvestmentBatchApprovalController extends Controller
                 'final',
             ));
         });
+
+        // Notificación al Project Manager con resumen + PDF de los pagos aprobados en toda la sesión.
+        $approvedPayments = $payments->filter(fn ($p) => $approvedUuids->contains($p->uuid))->values();
+        if ($approvedPayments->isNotEmpty()) {
+            $firstBatch->loadMissing('project');
+            $approverCeo = User::role('ceo')->first();
+            User::role('project_manager')->get()->each(function ($pm) use ($approvedPayments, $firstBatch, $approverCeo, $rejectedCount) {
+                $pm->notify(new InvestmentBatchFinalApprovalSummaryToPmNotification(
+                    approvedPayments: $approvedPayments,
+                    project: $firstBatch->project,
+                    approverCeo: $approverCeo,
+                    approvedAt: now(),
+                    rejectedCount: $rejectedCount,
+                ));
+            });
+        }
 
         return redirect()->route('investment-batch-approval.success', [
             'approved' => $approvedCount,
