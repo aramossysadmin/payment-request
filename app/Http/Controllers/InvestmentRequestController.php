@@ -234,6 +234,14 @@ class InvestmentRequestController extends Controller
     {
         Gate::authorize('update', $investmentRequest);
 
+        // Solo los roles supervisores pueden editar concepto/descripción desde la hoja consolidada.
+        // Defensa en profundidad: si un usuario normal llama el endpoint directamente, recibe 403.
+        abort_unless(
+            $request->user()->hasAnyRole(['super_admin', 'ceo', 'project_manager']),
+            403,
+            'Solo los roles supervisores pueden editar el concepto y la descripción.'
+        );
+
         $validated = $request->validate([
             'description' => ['nullable', 'string', 'max:500'],
             'investment_expense_concept_id' => ['nullable', 'integer', 'exists:investment_expense_concepts,id'],

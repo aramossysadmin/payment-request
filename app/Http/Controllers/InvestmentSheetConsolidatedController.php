@@ -39,6 +39,7 @@ class InvestmentSheetConsolidatedController extends Controller
         $user = $request->user();
         $isSuperAdmin = $user->hasRole('super_admin');
         $canSeeAllDepartments = $user->hasAnyRole(['super_admin', 'ceo', 'project_manager']);
+        $canEditRequestConcept = $user->hasAnyRole(['super_admin', 'ceo', 'project_manager']);
 
         // Default department filter to user's department on first load
         $departmentId = $request->filled('department_id')
@@ -46,7 +47,7 @@ class InvestmentSheetConsolidatedController extends Controller
             : (string) $user->department_id;
 
         $query = InvestmentRequest::query()
-            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'investmentExpenseConcept', 'approvals.user'])
+            ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'investmentExpenseConcept.category', 'approvals.user'])
             ->where('project_id', $project->id)
             ->visibleTo($user);
 
@@ -431,8 +432,16 @@ class InvestmentSheetConsolidatedController extends Controller
             'currencies' => Currency::all(['id', 'name', 'prefix', 'exchange_rate']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'availableConcepts' => InvestmentExpenseConcept::active()
+                ->with('category:id,name')
                 ->orderBy('name')
-                ->get(['id', 'name']),
+                ->get(['id', 'name', 'investment_expense_category_id']),
+            'conceptDepartmentMap' => DB::table('department_investment_expense_category')
+                ->select('investment_expense_category_id', 'department_id')
+                ->get()
+                ->groupBy('investment_expense_category_id')
+                ->map(fn ($rows) => $rows->pluck('department_id')->all())
+                ->toArray(),
+            'canEditRequestConcept' => $canEditRequestConcept,
             'draftBatch' => $draftBatch ? [
                 'uuid' => $draftBatch->uuid,
                 'week_number' => $draftBatch->week_number,

@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileDown, FileText, Inbox, Pencil, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileDown, FileText, Inbox, Info, Pencil, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { DocumentPreview } from '@/components/document-preview';
 import { FileUpload } from '@/components/file-upload';
@@ -36,6 +36,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
     Select,
     SelectContent,
@@ -220,7 +221,9 @@ type PageProps = {
     userDepartmentName: string | null;
     currencies: Currency[];
     branches: Branch[];
-    availableConcepts: { id: number; name: string }[];
+    availableConcepts: { id: number; name: string; investment_expense_category_id: number; category: { id: number; name: string } | null }[];
+    conceptDepartmentMap: Record<number, number[]>;
+    canEditRequestConcept: boolean;
     errors: Record<string, string>;
     draftBatch: DraftBatch | null;
     authorizedPayments: AuthorizedPaymentsGroup;
@@ -256,6 +259,7 @@ function formatDateEs(dateStr: string | null): string {
 type ConceptGroup = {
     key: string;
     conceptName: string;
+    categoryName: string | null;
     departmentName: string;
     providerLabel: string;
     groupBudget: string;
@@ -284,6 +288,7 @@ function groupByConcept(items: InvestmentRequest[]): ConceptGroup[] {
         return {
             key,
             conceptName: first.investment_expense_concept?.name ?? '—',
+            categoryName: first.investment_expense_concept?.category?.name ?? null,
             departmentName: first.department?.name ?? '—',
             providerLabel,
             groupBudget: first.group_budget ?? first.total,
@@ -299,7 +304,7 @@ export default function Consolidated() {
 
     const {
         project, totals, projectDashboard, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, userDepartmentName, currencies, branches, availableConcepts, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
+        userDepartmentId, userDepartmentName, currencies, branches, availableConcepts, conceptDepartmentMap, canEditRequestConcept, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
     } = usePage<PageProps>().props;
 
     // Moneda de visualización: los agregados llegan en MXN (normalizados en backend) → formatMxn;
@@ -370,15 +375,33 @@ export default function Consolidated() {
     };
 
     // Estado del modal de edición inline (concepto + descripción) en la tabla de detalle
-    const [editDescState, setEditDescState] = useState<{ uuid: string; folio: number } | null>(null);
+    type EditDescState = {
+        uuid: string;
+        folio: number;
+        departmentId: number | null;
+        departmentName: string | null;
+        currentConceptSnapshot: { id: number; name: string; categoryName: string | null } | null;
+    };
+    const [editDescState, setEditDescState] = useState<EditDescState | null>(null);
     const [editDescValue, setEditDescValue] = useState('');
     const [editConceptId, setEditConceptId] = useState<string>('');
+    const [editConceptOpen, setEditConceptOpen] = useState(false);
     const [editDescSaving, setEditDescSaving] = useState(false);
 
-    const openEditDescription = (ir: { uuid: string; folio_number: number; description: string | null; investment_expense_concept_id?: number | null; investment_expense_concept?: { id?: number; name: string } | null; expense_concept?: { name: string } | null }) => {
+    const openEditDescription = (ir: { uuid: string; folio_number: number; description: string | null; investment_expense_concept_id?: number | null; investment_expense_concept?: { id?: number; name: string; category?: { id: number; name: string } | null } | null; expense_concept?: { name: string } | null; department?: { id?: number; name?: string } | null }) => {
+        const snapshot = (ir.investment_expense_concept && ir.investment_expense_concept.id)
+            ? {
+                id: ir.investment_expense_concept.id,
+                name: ir.investment_expense_concept.name,
+                categoryName: ir.investment_expense_concept.category?.name ?? null,
+            }
+            : null;
         setEditDescState({
             uuid: ir.uuid,
             folio: ir.folio_number,
+            departmentId: ir.department?.id ?? null,
+            departmentName: ir.department?.name ?? null,
+            currentConceptSnapshot: snapshot,
         });
         setEditDescValue(ir.description ?? '');
         const conceptId = ir.investment_expense_concept_id ?? ir.investment_expense_concept?.id ?? null;
@@ -389,6 +412,7 @@ export default function Consolidated() {
         setEditDescState(null);
         setEditDescValue('');
         setEditConceptId('');
+        setEditConceptOpen(false);
         setEditDescSaving(false);
     };
 
@@ -1103,32 +1127,38 @@ export default function Consolidated() {
                                                                         : <ChevronRight className="h-4 w-4" />
                                                                 )}
                                                             </td>
-                                                            <td className="px-4 py-3 border-r border-gray-100 dark:border-gray-800">
-                                                                <div className="font-medium text-foreground">{group.conceptName}</div>
-                                                                {!isSingle && (
-                                                                    <div className="text-xs text-gray-500">{group.items.length} conceptos</div>
-                                                                )}
-                                                                {isSingle && firstItem.is_addendum && (
-                                                                    <Badge variant="outline" className="mt-0.5 border-amber-400 text-amber-600 text-[10px] dark:border-amber-600 dark:text-amber-400">
-                                                                        Aditiva
-                                                                    </Badge>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px]" title={isSingle ? (firstItem.description ?? undefined) : undefined}>
-                                                                {isSingle ? (
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="flex-1 truncate uppercase">
-                                                                            {firstItem.description ? firstItem.description : <span className="text-gray-400">—</span>}
-                                                                        </span>
+                                                            <td className="px-4 py-3 border-r border-gray-100 dark:border-gray-800 max-w-[420px] align-top">
+                                                                <div className="flex items-start gap-1.5">
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="font-medium text-foreground whitespace-normal break-words leading-snug">
+                                                                            {group.categoryName ? `${group.categoryName} - ${group.conceptName}` : group.conceptName}
+                                                                        </div>
+                                                                        {!isSingle && (
+                                                                            <div className="text-xs text-gray-500 mt-0.5">{group.items.length} conceptos</div>
+                                                                        )}
+                                                                        {isSingle && firstItem.is_addendum && (
+                                                                            <Badge variant="outline" className="mt-0.5 border-amber-400 text-amber-600 text-[10px] dark:border-amber-600 dark:text-amber-400">
+                                                                                Aditiva
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    {canEditRequestConcept && isSingle && (
                                                                         <button
                                                                             type="button"
                                                                             onClick={(e) => { e.stopPropagation(); openEditDescription(firstItem); }}
                                                                             className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                                                            title="Editar descripción"
+                                                                            title="Editar concepto y descripción"
                                                                         >
                                                                             <Pencil className="h-3.5 w-3.5" />
                                                                         </button>
-                                                                    </div>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px]" title={isSingle ? (firstItem.description ?? undefined) : undefined}>
+                                                                {isSingle ? (
+                                                                    <span className="block truncate uppercase">
+                                                                        {firstItem.description ? firstItem.description : <span className="text-gray-400">—</span>}
+                                                                    </span>
                                                                 ) : (
                                                                     <span className="text-gray-400">—</span>
                                                                 )}
@@ -1201,22 +1231,22 @@ export default function Consolidated() {
                                                                         >
                                                                             {ir.status.label}
                                                                         </Badge>
+                                                                        {canEditRequestConcept && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => { e.stopPropagation(); openEditDescription(ir); }}
+                                                                                className="shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                                                                title="Editar concepto y descripción"
+                                                                            >
+                                                                                <Pencil className="h-3 w-3" />
+                                                                            </button>
+                                                                        )}
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px]" title={ir.description ?? undefined}>
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="flex-1 truncate uppercase">
-                                                                            {ir.description ? ir.description : <span className="text-gray-400">—</span>}
-                                                                        </span>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={(e) => { e.stopPropagation(); openEditDescription(ir); }}
-                                                                            className="shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                                                            title="Editar descripción"
-                                                                        >
-                                                                            <Pencil className="h-3 w-3" />
-                                                                        </button>
-                                                                    </div>
+                                                                    <span className="block truncate uppercase">
+                                                                        {ir.description ? ir.description : <span className="text-gray-400">—</span>}
+                                                                    </span>
                                                                 </td>
                                                                 {showProvider && (
                                                                 <td className="px-4 py-2.5 border-r border-gray-100 dark:border-gray-800">
@@ -1906,27 +1936,152 @@ export default function Consolidated() {
             {/* Edit inline dialog (concepto + descripción) */}
             <Dialog open={editDescState !== null} onOpenChange={(open) => { if (!open) closeEditDescription(); }}>
                 <DialogContent className="sm:max-w-lg">
+                    <TooltipProvider delayDuration={300}>
                     <DialogHeader>
                         <DialogTitle>Editar Solicitud — #{editDescState ? String(editDescState.folio).padStart(5, '0') : ''}</DialogTitle>
                         <DialogDescription>
                             Actualiza el concepto de inversión y/o la descripción.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-2">
-                        <div className="space-y-2">
+                    {(() => {
+                        const targetDeptId = editDescState?.departmentId ?? null;
+                        const targetDeptName = editDescState?.departmentName ?? null;
+                        const snapshot = editDescState?.currentConceptSnapshot ?? null;
+                        const filteredConcepts = targetDeptId !== null
+                            ? availableConcepts.filter((c) => (conceptDepartmentMap[c.investment_expense_category_id] ?? []).includes(targetDeptId))
+                            : availableConcepts;
+                        const inFiltered = snapshot ? filteredConcepts.some((c) => c.id === snapshot.id) : false;
+                        const inAvailable = snapshot ? availableConcepts.some((c) => c.id === snapshot.id) : false;
+                        const showCurrentOutOfDept = snapshot && !inFiltered && inAvailable;
+                        const showCurrentInactive = snapshot && !inAvailable;
+                        const conceptLabel = (c: PageProps['availableConcepts'][number]) =>
+                            c.category?.name ? `${c.category.name} - ${c.name}` : c.name;
+                        const snapshotLabel = snapshot
+                            ? (snapshot.categoryName ? `${snapshot.categoryName} - ${snapshot.name}` : snapshot.name)
+                            : '';
+                        // Texto del botón del Combobox
+                        const currentInList = availableConcepts.find((c) => String(c.id) === editConceptId);
+                        const selectedLabel = currentInList
+                            ? conceptLabel(currentInList)
+                            : (snapshot && String(snapshot.id) === editConceptId ? snapshotLabel : '');
+                        return (
+                    <div className="space-y-4 py-2 min-w-0">
+                        <div className="space-y-2 min-w-0">
                             <Label htmlFor="edit_concept">Concepto de Inversión</Label>
-                            <Select value={editConceptId} onValueChange={setEditConceptId}>
-                                <SelectTrigger id="edit_concept" className="w-full">
-                                    <SelectValue placeholder="Selecciona un concepto" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableConcepts.map((c) => (
-                                        <SelectItem key={c.id} value={String(c.id)}>
-                                            {c.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Tooltip>
+                                <Popover open={editConceptOpen} onOpenChange={setEditConceptOpen}>
+                                    <TooltipTrigger asChild>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                id="edit_concept"
+                                                type="button"
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={editConceptOpen}
+                                                className="w-full max-w-full min-w-0 justify-between overflow-hidden font-normal"
+                                            >
+                                                <span className="min-w-0 flex-1 truncate text-left">
+                                                    {selectedLabel || <span className="text-muted-foreground">Selecciona un concepto</span>}
+                                                </span>
+                                                <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                    </TooltipTrigger>
+                                <PopoverContent
+                                    className="p-0 overflow-hidden z-[60]"
+                                    style={{
+                                        width: 'var(--radix-popover-trigger-width)',
+                                        maxWidth: 'var(--radix-popover-trigger-width)',
+                                    }}
+                                    align="start"
+                                >
+                                    <Command>
+                                        <CommandInput placeholder="Buscar concepto..." />
+                                        <CommandList>
+                                                <CommandEmpty>Sin resultados.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {showCurrentOutOfDept && snapshot && (
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <CommandItem
+                                                                    key={`current-out-${snapshot.id}`}
+                                                                    value={`actual fuera dpto ${snapshotLabel}`}
+                                                                    onSelect={() => { setEditConceptId(String(snapshot.id)); setEditConceptOpen(false); }}
+                                                                    className="w-full min-w-0"
+                                                                >
+                                                                    <CheckIcon className={cn('mr-2 size-4 shrink-0', editConceptId === String(snapshot.id) ? 'opacity-100' : 'opacity-0')} />
+                                                                    <span className="min-w-0 flex-1 truncate">⚠️ [Actual, fuera de dpto] {snapshotLabel}</span>
+                                                                </CommandItem>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="right" className="z-[70] max-w-sm whitespace-normal break-words text-xs leading-snug">
+                                                                ⚠️ [Actual, fuera de dpto] {snapshotLabel}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    )}
+                                                    {showCurrentInactive && snapshot && (
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <CommandItem
+                                                                    key={`current-inactive-${snapshot.id}`}
+                                                                    value={`actual inactivo ${snapshotLabel}`}
+                                                                    onSelect={() => { setEditConceptId(String(snapshot.id)); setEditConceptOpen(false); }}
+                                                                    className="w-full min-w-0"
+                                                                >
+                                                                    <CheckIcon className={cn('mr-2 size-4 shrink-0', editConceptId === String(snapshot.id) ? 'opacity-100' : 'opacity-0')} />
+                                                                    <span className="min-w-0 flex-1 truncate">⚠️ [Actual, inactivo] {snapshotLabel}</span>
+                                                                </CommandItem>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="right" className="z-[70] max-w-sm whitespace-normal break-words text-xs leading-snug">
+                                                                ⚠️ [Actual, inactivo] {snapshotLabel}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    )}
+                                                    {filteredConcepts.map((c) => (
+                                                        <Tooltip key={c.id}>
+                                                            <TooltipTrigger asChild>
+                                                                <CommandItem
+                                                                    value={conceptLabel(c)}
+                                                                    onSelect={() => { setEditConceptId(String(c.id)); setEditConceptOpen(false); }}
+                                                                    className="w-full min-w-0"
+                                                                >
+                                                                    <CheckIcon className={cn('mr-2 size-4 shrink-0', editConceptId === String(c.id) ? 'opacity-100' : 'opacity-0')} />
+                                                                    <span className="min-w-0 flex-1 truncate">{conceptLabel(c)}</span>
+                                                                </CommandItem>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="right" className="z-[70] max-w-sm whitespace-normal break-words text-xs leading-snug">
+                                                                {conceptLabel(c)}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    ))}
+                                                </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                {selectedLabel && (
+                                    <TooltipContent side="bottom" align="start" className="max-w-sm whitespace-normal break-words text-xs leading-snug">
+                                        {selectedLabel}
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <span>
+                                    Solo conceptos de <span className="font-medium">{targetDeptName ?? 'tu departamento'}</span>.
+                                </span>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button type="button" className="inline-flex items-center gap-0.5 text-primary hover:underline">
+                                            <Info className="size-3" /> Ver más
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" align="start" className="max-w-sm whitespace-normal break-words text-xs leading-snug">
+                                        Si el concepto actual aparece como <em>fuera de dpto</em> o <em>inactivo</em>, puedes mantenerlo o elegir uno nuevo. ¿Necesitas uno de otro departamento?{' '}
+                                        <a href="/admin/investment-expense-categories" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                                            Agrega el departamento a la categoría
+                                        </a>.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="edit_description">Descripción <span className="text-gray-400">(opcional)</span></Label>
@@ -1940,6 +2095,8 @@ export default function Consolidated() {
                             />
                         </div>
                     </div>
+                        );
+                    })()}
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={closeEditDescription} disabled={editDescSaving}>
                             Cancelar
@@ -1948,6 +2105,7 @@ export default function Consolidated() {
                             {editDescSaving ? 'Guardando...' : 'Guardar'}
                         </Button>
                     </DialogFooter>
+                    </TooltipProvider>
                 </DialogContent>
             </Dialog>
 

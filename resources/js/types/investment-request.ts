@@ -74,6 +74,8 @@ export type InvestmentRequest = {
     investment_expense_concept: {
         id: number;
         name: string;
+        investment_expense_category_id?: number;
+        category?: { id: number; name: string } | null;
     } | null;
     is_addendum: boolean;
     remaining_balance: string;

@@ -89,6 +89,11 @@ class InvestmentRequestResource extends JsonResource
             'investment_expense_concept' => [
                 'id' => $this->investmentExpenseConcept?->id,
                 'name' => $this->investmentExpenseConcept?->name,
+                'investment_expense_category_id' => $this->investmentExpenseConcept?->investment_expense_category_id,
+                'category' => $this->investmentExpenseConcept?->category ? [
+                    'id' => $this->investmentExpenseConcept->category->id,
+                    'name' => $this->investmentExpenseConcept->category->name,
+                ] : null,
             ],
             'is_addendum' => (bool) $this->is_addendum,
             'remaining_balance' => $this->getAttribute('remaining_balance') ?? $this->remaining_balance,
