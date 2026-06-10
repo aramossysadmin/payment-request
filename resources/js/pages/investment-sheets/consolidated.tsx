@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileText, Inbox, Pencil, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileDown, FileText, Inbox, Pencil, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { DocumentPreview } from '@/components/document-preview';
 import { FileUpload } from '@/components/file-upload';
@@ -155,6 +155,8 @@ type HistoryPayment = {
     concept_name: string;
     concept_folio: number | null;
     branch: string;
+    department_id: number;
+    department_name: string;
     payment_type: string;
     payment_provision_date: string | null;
     week_number: number | null;
@@ -224,6 +226,8 @@ type PageProps = {
     authorizedPayments: AuthorizedPaymentsGroup;
     userPaymentHistory: HistoryPayment[];
     isSuperAdmin: boolean;
+    canSeeAllDepartments: boolean;
+    departments: { id: number; name: string }[];
 };
 
 const statusColors: Record<string, string> = {
@@ -295,7 +299,7 @@ export default function Consolidated() {
 
     const {
         project, totals, projectDashboard, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, userDepartmentName, currencies, branches, availableConcepts, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin,
+        userDepartmentId, userDepartmentName, currencies, branches, availableConcepts, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
     } = usePage<PageProps>().props;
 
     // Moneda de visualización: los agregados llegan en MXN (normalizados en backend) → formatMxn;
@@ -481,6 +485,8 @@ export default function Consolidated() {
     const [historyStatus, setHistoryStatus] = useState<string>('all');
     const [selectedWeek, setSelectedWeek] = useState(projectDashboard.current_week);
     const [selectedYear, setSelectedYear] = useState(projectDashboard.current_year);
+    const [historyDepartmentFilter, setHistoryDepartmentFilter] = useState<'mine' | 'all'>('mine');
+    const [weekFilterEnabled, setWeekFilterEnabled] = useState<boolean>(true);
     const [historyQuickFilter, setHistoryQuickFilter] = useState<'all' | 'in_process' | 'completed' | 'rejected'>('all');
     const [historyPage, setHistoryPage] = useState(1);
     const [historyDetailUuid, setHistoryDetailUuid] = useState<string | null>(null);
@@ -515,6 +521,11 @@ export default function Consolidated() {
     };
 
     const filteredHistory = userPaymentHistory.filter((p) => {
+        // Filtro de departamento (solo aplica si el usuario puede ver todos):
+        // 'mine' → solo su dpto; 'all' → todos. Usuarios normales reciben solo los suyos del backend.
+        if (canSeeAllDepartments && historyDepartmentFilter === 'mine' && p.department_id !== userDepartmentId) {
+            return false;
+        }
         // Quick filter chip
         if (historyQuickFilter !== 'all' && ! historyStatusGroups[historyQuickFilter].includes(p.status)) {
             return false;
@@ -523,8 +534,8 @@ export default function Consolidated() {
         if (historyStatus !== 'all' && p.status !== historyStatus) {
             return false;
         }
-        // Semana de provisión
-        if (p.week_number !== selectedWeek || p.week_year !== selectedYear) {
+        // Semana de provisión (solo si el toggle de filtro semanal está activo)
+        if (weekFilterEnabled && (p.week_number !== selectedWeek || p.week_year !== selectedYear)) {
             return false;
         }
         // Free search (folio, provider, concept)
@@ -555,10 +566,35 @@ export default function Consolidated() {
         setSelectedWeek(projectDashboard.current_week);
         setSelectedYear(projectDashboard.current_year);
         setHistoryQuickFilter('all');
+        setHistoryDepartmentFilter('mine');
+        setWeekFilterEnabled(true);
         setHistoryPage(1);
     };
 
-    const hasActiveHistoryFilters = historySearch !== '' || historyStatus !== 'all' || selectedWeek !== projectDashboard.current_week || selectedYear !== projectDashboard.current_year || historyQuickFilter !== 'all';
+    const hasActiveHistoryFilters = historySearch !== '' || historyStatus !== 'all' || selectedWeek !== projectDashboard.current_week || selectedYear !== projectDashboard.current_year || historyQuickFilter !== 'all' || historyDepartmentFilter !== 'mine' || ! weekFilterEnabled;
+
+    // URL para el PDF del historial respetando todos los filtros.
+    const buildPaymentHistoryPdfUrl = (): string => {
+        const params = new URLSearchParams();
+        if (canSeeAllDepartments && historyDepartmentFilter === 'all') {
+            params.set('department_id', 'all');
+        }
+        if (historyStatus !== 'all') {
+            params.set('status', historyStatus);
+        }
+        if (historyQuickFilter !== 'all') {
+            params.set('quick_filter', historyQuickFilter);
+        }
+        if (historySearch !== '') {
+            params.set('search', historySearch);
+        }
+        if (weekFilterEnabled) {
+            params.set('week_number', String(selectedWeek));
+            params.set('week_year', String(selectedYear));
+        }
+        const qs = params.toString();
+        return `/investment-sheets/consolidated/${project.id}/payment-history-pdf${qs ? '?' + qs : ''}`;
+    };
 
     const selectedHistoryPayment = historyDetailUuid
         ? userPaymentHistory.find((p) => p.uuid === historyDetailUuid)
@@ -1384,9 +1420,17 @@ export default function Consolidated() {
                 {/* Payment History Card */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>{userDepartmentName ? `Historial de Pagos — ${userDepartmentName}` : 'Historial de Pagos'}</CardTitle>
+                        <CardTitle>
+                            {canSeeAllDepartments && historyDepartmentFilter === 'all'
+                                ? 'Historial de Pagos — TODOS LOS DEPARTAMENTOS'
+                                : userDepartmentName
+                                    ? `Historial de Pagos — ${userDepartmentName}`
+                                    : 'Historial de Pagos'}
+                        </CardTitle>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            Todos los pagos solicitados en {userDepartmentName ? <span className="font-medium">{userDepartmentName}</span> : 'tu departamento'} para este proyecto, en cualquier etapa del flujo. Los borradores aparecen en la tarjeta "Pagos en Borrador".
+                            {canSeeAllDepartments && historyDepartmentFilter === 'all'
+                                ? 'Todos los pagos del proyecto, de todos los departamentos. Los borradores aparecen en la tarjeta "Pagos en Borrador".'
+                                : <>Todos los pagos solicitados en {userDepartmentName ? <span className="font-medium">{userDepartmentName}</span> : 'tu departamento'} para este proyecto, en cualquier etapa del flujo. Los borradores aparecen en la tarjeta "Pagos en Borrador".</>}
                         </p>
                     </CardHeader>
                     <CardContent>
@@ -1424,7 +1468,7 @@ export default function Consolidated() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-1">
+                            <div className={cn('space-y-1', ! weekFilterEnabled && 'opacity-40 pointer-events-none')}>
                                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Semana de provisión</label>
                                 <WeekNavigator
                                     week={selectedWeek}
@@ -1433,6 +1477,42 @@ export default function Consolidated() {
                                     currentYear={projectDashboard.current_year}
                                     onNavigate={navigateWeek}
                                 />
+                            </div>
+                            {canSeeAllDepartments && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">&nbsp;</label>
+                                    <Button
+                                        type="button"
+                                        variant={weekFilterEnabled ? 'outline' : 'default'}
+                                        size="sm"
+                                        onClick={() => { setWeekFilterEnabled((v) => !v); setHistoryPage(1); }}
+                                        title={weekFilterEnabled ? 'Mostrar todas las semanas' : 'Activar filtro de semana'}
+                                    >
+                                        {weekFilterEnabled ? 'Todas las semanas' : '✓ Todas las semanas'}
+                                    </Button>
+                                </div>
+                            )}
+                            {canSeeAllDepartments && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Departamento</label>
+                                    <Select value={historyDepartmentFilter} onValueChange={(v) => { setHistoryDepartmentFilter(v as 'mine' | 'all'); setHistoryPage(1); }}>
+                                        <SelectTrigger className="w-56">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="mine">Mi departamento{userDepartmentName ? ` (${userDepartmentName})` : ''}</SelectItem>
+                                            <SelectItem value="all">Todos los departamentos</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">&nbsp;</label>
+                                <Button asChild variant="outline" size="sm" className="shrink-0" title="Descargar PDF del historial filtrado">
+                                    <a href={buildPaymentHistoryPdfUrl()} target="_blank" rel="noopener noreferrer">
+                                        <FileDown className="mr-1 h-4 w-4" /> PDF
+                                    </a>
+                                </Button>
                             </div>
                             {hasActiveHistoryFilters && (
                                 <Button variant="ghost" size="icon" onClick={clearHistoryFilters} className="shrink-0" title="Limpiar filtros">
@@ -1494,6 +1574,9 @@ export default function Consolidated() {
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Concepto</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Descripción</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Proveedor</th>
+                                                {canSeeAllDepartments && historyDepartmentFilter === 'all' && (
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Depto</th>
+                                                )}
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">Solicitado</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">Aprobado</th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Status</th>
@@ -1521,6 +1604,11 @@ export default function Consolidated() {
                                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[180px] truncate" title={payment.provider}>
                                                         {payment.provider}
                                                     </td>
+                                                    {canSeeAllDepartments && historyDepartmentFilter === 'all' && (
+                                                        <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">
+                                                            {payment.department_name}
+                                                        </td>
+                                                    )}
                                                     <td className="px-4 py-3 text-right font-mono text-sm border-r border-gray-100 dark:border-gray-800">
                                                         {formatNative(payment.total, payment.currency_id)}
                                                         {nativeNoteOf(payment.total, payment.currency_id) && (

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\InvestmentRequestResource;
 use App\Models\Branch;
 use App\Models\Currency;
+use App\Models\Department;
 use App\Models\InvestmentExpenseConcept;
 use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
@@ -37,6 +38,7 @@ class InvestmentSheetConsolidatedController extends Controller
     {
         $user = $request->user();
         $isSuperAdmin = $user->hasRole('super_admin');
+        $canSeeAllDepartments = $user->hasAnyRole(['super_admin', 'ceo', 'project_manager']);
 
         // Default department filter to user's department on first load
         $departmentId = $request->filled('department_id')
@@ -255,13 +257,14 @@ class InvestmentSheetConsolidatedController extends Controller
                     ->toArray(),
             ]);
 
-        // Historial de pagos del departamento del usuario para el proyecto actual.
-        // Excluye drafts (esos ya aparecen en la tarjeta Pagos en Borrador).
+        // Historial de pagos del proyecto actual. Por defecto solo del departamento del usuario;
+        // los roles super_admin/ceo/project_manager reciben TODOS los pagos (filtrado por dpto se hace
+        // en cliente con un selector). Excluye drafts (esos ya aparecen en la tarjeta Pagos en Borrador).
         $userPaymentHistory = InvestmentPaymentRequest::query()
-            ->where('department_id', $user->department_id)
+            ->when(! $canSeeAllDepartments, fn ($q) => $q->where('department_id', $user->department_id))
             ->where('status', '!=', 'draft')
             ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
-            ->with(['currency', 'investmentRequest.investmentExpenseConcept', 'branch'])
+            ->with(['currency', 'investmentRequest.investmentExpenseConcept', 'branch', 'department'])
             ->latest('created_at')
             ->get()
             ->map(fn (InvestmentPaymentRequest $p) => [
@@ -273,6 +276,8 @@ class InvestmentSheetConsolidatedController extends Controller
                 'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
                 'concept_folio' => $p->investmentRequest?->folio_number,
                 'branch' => $p->branch?->name ?? '—',
+                'department_id' => $p->department_id,
+                'department_name' => $p->department?->name ?? '—',
                 'payment_type' => $p->payment_type,
                 'payment_provision_date' => $p->payment_provision_date?->toDateString(),
                 'week_number' => $p->payment_provision_date ? (int) $p->payment_provision_date->isoWeek : null,
@@ -419,6 +424,10 @@ class InvestmentSheetConsolidatedController extends Controller
             'userDepartmentId' => $user->department_id,
             'userDepartmentName' => $user->department?->name,
             'isSuperAdmin' => $isSuperAdmin,
+            'canSeeAllDepartments' => $canSeeAllDepartments,
+            'departments' => $canSeeAllDepartments
+                ? Department::query()->orderBy('name')->get(['id', 'name'])
+                : collect(),
             'currencies' => Currency::all(['id', 'name', 'prefix', 'exchange_rate']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'availableConcepts' => InvestmentExpenseConcept::active()
