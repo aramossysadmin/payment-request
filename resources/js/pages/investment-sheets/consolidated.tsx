@@ -8,6 +8,7 @@ import { Pagination } from '@/components/pagination';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { WeekNavigator } from '@/components/week-navigator';
 import { useCurrencyFormatters, useDisplayCurrency } from '@/contexts/display-currency';
+import { useTimeRemaining } from '@/hooks/use-payment-policy';
 import { investmentPaymentTypeLabel } from '@/lib/payment-type-labels';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -184,6 +185,7 @@ type HistoryPayment = {
 };
 
 type PageProps = {
+    paymentPolicy: import('@/types/payment-policy').PaymentPolicyPayload;
     project: {
         id: number;
         name: string;
@@ -303,6 +305,7 @@ export default function Consolidated() {
     const showProvider = false;
 
     const {
+        paymentPolicy,
         project, totals, projectDashboard, departmentBreakdown, investmentRequests, filters,
         userDepartmentId, userDepartmentName, currencies, branches, availableConcepts, conceptDepartmentMap, canEditRequestConcept, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
     } = usePage<PageProps>().props;
@@ -1331,15 +1334,29 @@ export default function Consolidated() {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center justify-end gap-1">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
-                                                            onClick={() => openEditDraftPayment(payment)}
-                                                            title="Editar pago"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </Button>
+                                                        <TooltipProvider delayDuration={200}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <span className="inline-block">
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
+                                                                            onClick={() => openEditDraftPayment(payment)}
+                                                                            disabled={!paymentPolicy.capture.canAct}
+                                                                            title={paymentPolicy.capture.canAct ? 'Editar pago' : undefined}
+                                                                        >
+                                                                            <Pencil className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </span>
+                                                                </TooltipTrigger>
+                                                                {!paymentPolicy.capture.canAct && (
+                                                                    <TooltipContent side="top" className="max-w-sm text-xs">
+                                                                        Ventana de captura cerrada. Próxima apertura: <span className="font-semibold">{paymentPolicy.capture.opensAtLabel}</span>.
+                                                                    </TooltipContent>
+                                                                )}
+                                                            </Tooltip>
+                                                        </TooltipProvider>
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
@@ -1369,13 +1386,26 @@ export default function Consolidated() {
                             </div>
 
                             <div className="mt-4 flex justify-end">
-                                <Button
-                                    disabled={selectedDraftIds.size === 0 || submittingBatch}
-                                    onClick={handleSubmitBatch}
-                                >
-                                    <Send className="mr-2 h-4 w-4" />
-                                    {submittingBatch ? 'Enviando...' : 'Enviar a Autorización'}
-                                </Button>
+                                <TooltipProvider delayDuration={200}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span className="inline-block">
+                                                <Button
+                                                    disabled={selectedDraftIds.size === 0 || submittingBatch || !paymentPolicy.submit.canAct}
+                                                    onClick={handleSubmitBatch}
+                                                >
+                                                    <Send className="mr-2 h-4 w-4" />
+                                                    {submittingBatch ? 'Enviando...' : 'Enviar a Autorización'}
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        {!paymentPolicy.submit.canAct && (
+                                            <TooltipContent side="top" className="max-w-sm text-xs">
+                                                Ventana de envío cerrada. Próxima apertura: <span className="font-semibold">{paymentPolicy.submit.opensAtLabel}</span>.
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                </TooltipProvider>
                             </div>
                         </CardContent>
                     </Card>
@@ -2242,6 +2272,7 @@ export default function Consolidated() {
                 loading={loadingPayments}
                 userDepartmentId={userDepartmentId}
                 onRequestPayment={(ir) => openPaymentModal(ir)}
+                paymentPolicy={paymentPolicy}
             />
 
             {/* Payment Request Modal */}
@@ -2254,6 +2285,7 @@ export default function Consolidated() {
                     branches={branches}
                     errors={errors}
                     editingPayment={editingDraftPayment}
+                    paymentPolicy={paymentPolicy}
                 />
             )}
         </AppLayout>
@@ -2278,10 +2310,11 @@ type PaymentsDrawerProps = {
     loading: boolean;
     userDepartmentId: number;
     onRequestPayment: (ir: InvestmentRequest) => void;
+    paymentPolicy: import('@/types/payment-policy').PaymentPolicyPayload;
 };
 
 function PaymentsDrawer({
-    open, onClose, investmentRequest: ir, payments, summary, loading, userDepartmentId, onRequestPayment,
+    open, onClose, investmentRequest: ir, payments, summary, loading, userDepartmentId, onRequestPayment, paymentPolicy,
 }: PaymentsDrawerProps) {
     const { formatCurrency, formatNative, nativeNoteOf } = useCurrencyFormatters();
 
@@ -2368,10 +2401,27 @@ function PaymentsDrawer({
 
                     {/* Action button */}
                     {canRequestPayment && (
-                        <Button className="w-full" onClick={() => onRequestPayment(ir)}>
-                            <Banknote className="mr-2 h-4 w-4" />
-                            Solicitar Pago
-                        </Button>
+                        <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span className="block w-full">
+                                        <Button
+                                            className="w-full"
+                                            onClick={() => onRequestPayment(ir)}
+                                            disabled={!paymentPolicy.capture.canAct}
+                                        >
+                                            <Banknote className="mr-2 h-4 w-4" />
+                                            Solicitar Pago
+                                        </Button>
+                                    </span>
+                                </TooltipTrigger>
+                                {!paymentPolicy.capture.canAct && (
+                                    <TooltipContent side="bottom" className="max-w-sm text-xs">
+                                        Ventana de captura cerrada. Próxima apertura: <span className="font-semibold">{paymentPolicy.capture.opensAtLabel}</span>.
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
                     )}
 
                     {/* Payments List */}
@@ -2449,12 +2499,14 @@ type PaymentRequestModalProps = {
     branches: Branch[];
     errors: Record<string, string>;
     editingPayment?: DraftPayment | null;
+    paymentPolicy: import('@/types/payment-policy').PaymentPolicyPayload;
 };
 
 function PaymentRequestModal({
     open, onClose, investmentRequest: ir,
     currencies, branches, errors,
     editingPayment,
+    paymentPolicy,
 }: PaymentRequestModalProps) {
     const { formatCurrency } = useCurrencyFormatters();
     const isEditMode = !!editingPayment;
@@ -2481,7 +2533,7 @@ function PaymentRequestModal({
             provider: ir.provider ?? '',
             rfc: ir.rfc ?? '',
             invoice_folio: '',
-            payment_provision_date: '',
+            payment_provision_date: paymentPolicy.provision.nextDate,
             currency_id: ir.currency?.id ? String(ir.currency.id) : '',
             branch_id: ir.branch?.id ? String(ir.branch.id) : '',
             payment_type: 'factura' as 'factura' | 'reembolso' | 'estrategia' | 'anticipo',
@@ -2501,6 +2553,22 @@ function PaymentRequestModal({
     const [existingDocuments, setExistingDocuments] = useState<string[]>(
         () => editingPayment ? [...editingPayment.advance_documents] : []
     );
+
+    // Contador regresivo hasta el cierre de la ventana (solo si está activa y el user NO tiene override)
+    const remaining = useTimeRemaining(
+        paymentPolicy.capture.isWindowActive && !paymentPolicy.isOverride
+            ? paymentPolicy.capture.closesAt
+            : null
+    );
+    const warningMin = paymentPolicy.warningMinutesBeforeClose;
+    const inWarningZone = remaining !== null && remaining.totalSeconds > 0 && remaining.totalSeconds <= warningMin * 60;
+
+    // Auto-cerrar el modal cuando llega el cierre.
+    useEffect(() => {
+        if (remaining && remaining.hasPassed && open) {
+            onClose();
+        }
+    }, [remaining?.hasPassed, open, onClose]);
 
     const remainingBalance = Number(ir.group_remaining ?? ir.remaining_balance);
 
@@ -2584,6 +2652,25 @@ function PaymentRequestModal({
                             : <>Concepto #{String(ir.folio_number).padStart(5, '0')} — {ir.provider}{' · '}Saldo disponible: <span className="font-semibold">{formatCurrency(remainingBalance)}</span></>
                         }
                     </DialogDescription>
+                    {remaining !== null && !remaining.hasPassed && (
+                        <div className={cn(
+                            'mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs',
+                            inWarningZone
+                                ? 'border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/30 dark:text-red-100 animate-pulse'
+                                : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100'
+                        )}>
+                            <Clock className="size-3.5 shrink-0" />
+                            {inWarningZone ? (
+                                <span>
+                                    <strong>¡Atención!</strong> La ventana cierra en <span className="font-mono font-semibold">{remaining.formatted}</span>. Guarda antes de que se cierre — el modal se cerrará automáticamente al pasar el tiempo.
+                                </span>
+                            ) : (
+                                <span>
+                                    Ventana de captura cierra en <span className="font-mono font-semibold">{remaining.formatted}</span> ({paymentPolicy.capture.closesAtLabel}).
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -2691,7 +2778,12 @@ function PaymentRequestModal({
                                         type="date"
                                         value={values.payment_provision_date}
                                         onChange={(e) => handleChange('payment_provision_date', e.target.value)}
+                                        min={paymentPolicy.provision.nextDate}
+                                        max={paymentPolicy.provision.nextDate}
                                     />
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Política operativa: <span className="font-medium">{paymentPolicy.provision.label}</span> (hora CDMX).
+                                    </p>
                                     <InputError message={errors.payment_provision_date} />
                                 </div>
                                 <div className="space-y-2">

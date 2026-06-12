@@ -11,6 +11,7 @@ use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Models\Project;
+use App\Services\PaymentRequestPolicyService;
 use App\States\InvestmentRequest\Completed;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -369,7 +370,10 @@ class InvestmentSheetConsolidatedController extends Controller
 
         $remainingBudget = $updatedBudget - $paidProjectTotal;
 
+        $paymentPolicy = PaymentRequestPolicyService::fromCurrent()->buildFrontendPayload($user);
+
         return Inertia::render('investment-sheets/consolidated', [
+            'paymentPolicy' => $paymentPolicy,
             'project' => [
                 'id' => $project->id,
                 'name' => $project->name,
