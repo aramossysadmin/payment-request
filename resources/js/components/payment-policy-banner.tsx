@@ -1,57 +1,26 @@
-import { Clock, Info, Lock, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Clock, Info, Lock } from 'lucide-react';
 
 import { usePaymentPolicy } from '@/hooks/use-payment-policy';
 import { formatPolicyTime } from '@/lib/format-policy-time';
 
-const DISMISS_KEY_PREFIX = 'payment-policy-banner-dismissed:';
-const DISMISS_TTL_MS = 60 * 60 * 1000; // 1 hora
-
-function getStateKey(payload: ReturnType<typeof usePaymentPolicy>): string | null {
-    if (!payload) return null;
-
-    return `${payload.capture.canAct}:${payload.capture.closesAt}:${payload.submit.isWindowActive}:${payload.submit.canAct}`;
-}
-
 export function PaymentPolicyBanner() {
     const policy = usePaymentPolicy();
-    const stateKey = getStateKey(policy);
-    const [dismissed, setDismissed] = useState(false);
 
-    useEffect(() => {
-        if (!stateKey) {
-            setDismissed(false);
-
-            return;
-        }
-        const storedAt = localStorage.getItem(`${DISMISS_KEY_PREFIX}${stateKey}`);
-        if (!storedAt) {
-            setDismissed(false);
-
-            return;
-        }
-        const elapsed = Date.now() - Number(storedAt);
-        setDismissed(elapsed < DISMISS_TTL_MS);
-    }, [stateKey]);
-
-    if (!policy || !stateKey || dismissed) {
+    if (!policy) {
         return null;
     }
 
-    const handleDismiss = () => {
-        localStorage.setItem(`${DISMISS_KEY_PREFIX}${stateKey}`, String(Date.now()));
-        setDismissed(true);
-    };
-
-    // 3 estados visuales
-    const captureOpen = policy.capture.canAct;
-    let variant: 'open' | 'closed' | 'override' = captureOpen ? 'open' : 'closed';
+    // Si la ventana está inactiva y el user tiene override, no mostrar (no aporta información).
     if (policy.isOverride && !policy.capture.isWindowActive) {
-        return null; // ventana inactiva y user con override: no mostrar
+        return null;
     }
-    if (policy.isOverride) {
-        variant = 'override';
-    }
+
+    const captureOpen = policy.capture.canAct;
+    const variant: 'open' | 'closed' | 'override' = policy.isOverride
+        ? 'override'
+        : captureOpen
+            ? 'open'
+            : 'closed';
 
     const palette = {
         open: {
@@ -91,14 +60,6 @@ export function PaymentPolicyBanner() {
         <div className={`flex items-center gap-3 border-b px-4 py-2 text-sm ${palette.bg} ${palette.border} ${palette.text}`}>
             {palette.icon}
             <div className="flex-1">{message}</div>
-            <button
-                type="button"
-                onClick={handleDismiss}
-                className="rounded p-1 opacity-60 hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
-                title="Ocultar (1h)"
-            >
-                <X className="size-3.5" />
-            </button>
         </div>
     );
 }
