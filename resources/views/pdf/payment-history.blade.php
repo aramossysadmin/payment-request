@@ -21,9 +21,9 @@
         .filters .row { margin-bottom: 2px; }
 
         /* Table */
-        table.history { width: 100%; border-collapse: collapse; }
-        table.history th { background: #191731; color: #fff; padding: 6px 5px; text-align: left; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        table.history td { padding: 5px; border-bottom: 1px solid #e5e5e5; font-size: 9px; vertical-align: top; }
+        table.history { width: 100%; border-collapse: collapse; table-layout: fixed; word-wrap: break-word; overflow-wrap: anywhere; }
+        table.history th { background: #191731; color: #fff; padding: 6px 5px; text-align: left; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; overflow: hidden; }
+        table.history td { padding: 5px; border-bottom: 1px solid #e5e5e5; font-size: 9px; vertical-align: top; overflow: hidden; word-wrap: break-word; overflow-wrap: anywhere; }
         table.history tr:nth-child(even) td { background: #fafafa; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
@@ -78,20 +78,20 @@
         <table class="history">
             <thead>
             <tr>
-                <th>Folio</th>
-                <th>Estatus</th>
-                <th>F. Programación Pago</th>
-                <th>Concepto</th>
-                <th>Descripción</th>
-                <th>Categoría del Concepto</th>
-                <th>Proveedor</th>
+                <th style="width: 5%">Folio</th>
+                <th style="width: {{ $showDepartmentColumn ? '7%' : '8%' }}">Estatus</th>
+                <th style="width: {{ $showDepartmentColumn ? '7%' : '8%' }}">F. Programación Pago</th>
+                <th style="width: {{ $showDepartmentColumn ? '11%' : '12%' }}">Concepto</th>
+                <th style="width: {{ $showDepartmentColumn ? '14%' : '15%' }}">Descripción</th>
+                <th style="width: {{ $showDepartmentColumn ? '9%' : '10%' }}">Categoría del Concepto</th>
+                <th style="width: {{ $showDepartmentColumn ? '11%' : '12%' }}">Proveedor</th>
                 @if ($showDepartmentColumn)
-                    <th>Depto</th>
+                    <th style="width: 6%">Depto</th>
                 @endif
-                <th class="text-right">Monto Solicitado</th>
-                <th class="text-right">Monto Aprobado</th>
-                <th>Solicitante</th>
-                <th>F. Solicitud</th>
+                <th class="text-right" style="width: 8%">Monto Solicitado</th>
+                <th class="text-right" style="width: 8%">Monto Aprobado</th>
+                <th style="width: 8%">Solicitante</th>
+                <th style="width: 6%">F. Solicitud</th>
             </tr>
             </thead>
             <tbody>

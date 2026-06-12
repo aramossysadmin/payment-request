@@ -126,7 +126,7 @@ class InvestmentPaymentHistoryPdfController extends Controller
             'statusLabels' => $statusLabels,
             'generatedAt' => Carbon::now(),
             'generatedBy' => $user->name,
-        ])->setPaper('letter', 'landscape');
+        ])->setPaper('legal', 'landscape');
 
         $slug = Str::slug($project->name);
         $stamp = Carbon::now()->format('Ymd');
