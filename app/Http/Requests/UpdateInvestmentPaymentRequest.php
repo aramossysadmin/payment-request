@@ -114,7 +114,7 @@ class UpdateInvestmentPaymentRequest extends FormRequest
                 $groupBudget = (float) InvestmentRequest::whereIn('id', $groupIds)->sum('total');
                 $groupPaid = (float) InvestmentPaymentRequest::query()
                     ->whereIn('investment_request_id', $groupIds)
-                    ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected'])
+                    ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'auto_cancelled'])
                     ->where('id', '!=', $payment->id)
                     ->sum('total');
 

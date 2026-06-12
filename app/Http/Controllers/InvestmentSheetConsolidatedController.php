@@ -182,7 +182,7 @@ class InvestmentSheetConsolidatedController extends Controller
                         $groupPaidExcludingThis = $this->sumTotalMxn(
                             InvestmentPaymentRequest::query()
                                 ->whereIn('investment_request_id', $groupIds)
-                                ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected'])
+                                ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'auto_cancelled'])
                                 ->where('id', '!=', $p->id)
                         );
 
