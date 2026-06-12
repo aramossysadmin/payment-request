@@ -12,9 +12,11 @@ type ColumnFilterPopoverProps = {
     placeholder?: string;
     /** Si se pasa, se renderiza un select con estas opciones en lugar de input text. */
     options?: { value: string; label: string }[];
+    /** Tipo de input: 'text' (default) o 'date' (renderiza <input type="date">). */
+    type?: 'text' | 'date';
 };
 
-export function ColumnFilterPopover({ value, onChange, placeholder, options }: ColumnFilterPopoverProps) {
+export function ColumnFilterPopover({ value, onChange, placeholder, options, type = 'text' }: ColumnFilterPopoverProps) {
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState(value);
     const isActive = value !== '';
@@ -69,6 +71,18 @@ export function ColumnFilterPopover({ value, onChange, placeholder, options }: C
                                 </option>
                             ))}
                         </select>
+                    ) : type === 'date' ? (
+                        <Input
+                            type="date"
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') apply();
+                                if (e.key === 'Escape') setOpen(false);
+                            }}
+                            autoFocus
+                            className="h-8 text-sm"
+                        />
                     ) : (
                         <Input
                             value={draft}

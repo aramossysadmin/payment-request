@@ -616,12 +616,17 @@ export default function Consolidated() {
                     case 'category': return p.category_name.toLowerCase();
                     case 'provider': return p.provider.toLowerCase();
                     case 'user': return p.user_name.toLowerCase();
+                    case 'description': return (p.description ?? '').toLowerCase();
+                    case 'department': return p.department_name;
+                    case 'payment_provision_date': return p.payment_provision_date ?? '';
+                    case 'created_at': return p.created_at?.slice(0, 10) ?? '';
                     case 'status': return p.status;
                     default: return '';
                 }
             })();
-            if (column === 'status') {
-                if (field !== q) return false;
+            // Exact match para selects y fechas; substring para texto libre
+            if (column === 'status' || column === 'department' || column === 'payment_provision_date' || column === 'created_at') {
+                if (field !== value) return false;
             } else {
                 if (!field.includes(q)) return false;
             }
@@ -1730,14 +1735,29 @@ export default function Consolidated() {
                                                     </SortableHeader>
                                                 </th>
                                                 <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700 align-middle leading-tight">
-                                                    <SortableHeader label="Fecha Programación Pago" column="payment_provision_date" sortBy={historySortBy} onSort={handleHistorySort} />
+                                                    <SortableHeader label="Fecha Programación Pago" column="payment_provision_date" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                        <ColumnFilterPopover
+                                                            value={historyColumnFilters.payment_provision_date ?? ''}
+                                                            onChange={(v) => setColumnFilter('payment_provision_date', v)}
+                                                            type="date"
+                                                        />
+                                                    </SortableHeader>
                                                 </th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
                                                     <SortableHeader label="Concepto" column="concept" sortBy={historySortBy} onSort={handleHistorySort}>
                                                         <ColumnFilterPopover value={historyColumnFilters.concept ?? ''} onChange={(v) => setColumnFilter('concept', v)} placeholder="Concepto..." />
                                                     </SortableHeader>
                                                 </th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Descripción</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <span className="inline-flex items-center">
+                                                        Descripción
+                                                        <ColumnFilterPopover
+                                                            value={historyColumnFilters.description ?? ''}
+                                                            onChange={(v) => setColumnFilter('description', v)}
+                                                            placeholder="Descripción..."
+                                                        />
+                                                    </span>
+                                                </th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
                                                     <SortableHeader label="Categoría del Concepto" column="category" sortBy={historySortBy} onSort={handleHistorySort}>
                                                         <ColumnFilterPopover value={historyColumnFilters.category ?? ''} onChange={(v) => setColumnFilter('category', v)} placeholder="Categoría..." />
@@ -1749,7 +1769,16 @@ export default function Consolidated() {
                                                     </SortableHeader>
                                                 </th>
                                                 {canSeeAllDepartments && historyDepartmentFilter === 'all' && (
-                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Depto</th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                        <span className="inline-flex items-center">
+                                                            Depto
+                                                            <ColumnFilterPopover
+                                                                value={historyColumnFilters.department ?? ''}
+                                                                onChange={(v) => setColumnFilter('department', v)}
+                                                                options={Array.from(new Set(userPaymentHistory.map(p => p.department_name))).sort().map(d => ({ value: d, label: d }))}
+                                                            />
+                                                        </span>
+                                                    </th>
                                                 )}
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">
                                                     <SortableHeader label="Monto Solicitado" column="total" sortBy={historySortBy} onSort={handleHistorySort} align="right" />
@@ -1764,7 +1793,13 @@ export default function Consolidated() {
                                                     </SortableHeader>
                                                 </th>
                                                 <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700 align-middle leading-tight">
-                                                    <SortableHeader label="Fecha Solicitud" column="created_at" sortBy={historySortBy} onSort={handleHistorySort} />
+                                                    <SortableHeader label="Fecha Solicitud" column="created_at" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                        <ColumnFilterPopover
+                                                            value={historyColumnFilters.created_at ?? ''}
+                                                            onChange={(v) => setColumnFilter('created_at', v)}
+                                                            type="date"
+                                                        />
+                                                    </SortableHeader>
                                                 </th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap text-right align-middle">Acciones</th>
                                             </tr>
