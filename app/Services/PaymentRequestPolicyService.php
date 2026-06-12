@@ -305,18 +305,15 @@ class PaymentRequestPolicyService
 
     private function formatHuman(CarbonInterface $dt): string
     {
-        return $dt->locale('es_MX')
-            ->translatedFormat('l j M H:i').' hora CDMX';
+        // Sin sufijo de TZ — el frontend agrega la conversión a hora local del navegador.
+        return $dt->locale('es_MX')->translatedFormat('l j M H:i');
     }
 
     private function formatWindowLabel(CarbonInterface $opens, CarbonInterface $closes): string
     {
-        $sameWeek = $opens->isoWeek === $closes->isoWeek;
         $opensText = $opens->locale('es_MX')->translatedFormat('l j M H:i');
-        $closesText = $sameWeek
-            ? $closes->locale('es_MX')->translatedFormat('l j M H:i')
-            : $closes->locale('es_MX')->translatedFormat('l j M H:i');
+        $closesText = $closes->locale('es_MX')->translatedFormat('l j M H:i');
 
-        return "{$opensText} — {$closesText} hora CDMX";
+        return "{$opensText} — {$closesText}";
     }
 }

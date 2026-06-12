@@ -9,6 +9,7 @@ import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { WeekNavigator } from '@/components/week-navigator';
 import { useCurrencyFormatters, useDisplayCurrency } from '@/contexts/display-currency';
 import { useTimeRemaining } from '@/hooks/use-payment-policy';
+import { formatPolicyTime } from '@/lib/format-policy-time';
 import { investmentPaymentTypeLabel } from '@/lib/payment-type-labels';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1352,7 +1353,7 @@ export default function Consolidated() {
                                                                 </TooltipTrigger>
                                                                 {!paymentPolicy.capture.canAct && (
                                                                     <TooltipContent side="top" className="max-w-sm text-xs">
-                                                                        Ventana de captura cerrada. Próxima apertura: <span className="font-semibold">{paymentPolicy.capture.opensAtLabel}</span>.
+                                                                        Ventana de captura cerrada. Próxima apertura: <span className="font-semibold">{formatPolicyTime(paymentPolicy.capture.opensAt)}</span>.
                                                                     </TooltipContent>
                                                                 )}
                                                             </Tooltip>
@@ -1401,7 +1402,7 @@ export default function Consolidated() {
                                         </TooltipTrigger>
                                         {!paymentPolicy.submit.canAct && (
                                             <TooltipContent side="top" className="max-w-sm text-xs">
-                                                Ventana de envío cerrada. Próxima apertura: <span className="font-semibold">{paymentPolicy.submit.opensAtLabel}</span>.
+                                                Ventana de envío cerrada. Próxima apertura: <span className="font-semibold">{formatPolicyTime(paymentPolicy.submit.opensAt)}</span>.
                                             </TooltipContent>
                                         )}
                                     </Tooltip>
@@ -2417,7 +2418,7 @@ function PaymentsDrawer({
                                 </TooltipTrigger>
                                 {!paymentPolicy.capture.canAct && (
                                     <TooltipContent side="bottom" className="max-w-sm text-xs">
-                                        Ventana de captura cerrada. Próxima apertura: <span className="font-semibold">{paymentPolicy.capture.opensAtLabel}</span>.
+                                        Ventana de captura cerrada. Próxima apertura: <span className="font-semibold">{formatPolicyTime(paymentPolicy.capture.opensAt)}</span>.
                                     </TooltipContent>
                                 )}
                             </Tooltip>
@@ -2666,7 +2667,7 @@ function PaymentRequestModal({
                                 </span>
                             ) : (
                                 <span>
-                                    Ventana de captura cierra en <span className="font-mono font-semibold">{remaining.formatted}</span> ({paymentPolicy.capture.closesAtLabel}).
+                                    Ventana de captura cierra en <span className="font-mono font-semibold">{remaining.formatted}</span> ({formatPolicyTime(paymentPolicy.capture.closesAt)}).
                                 </span>
                             )}
                         </div>
@@ -2782,7 +2783,7 @@ function PaymentRequestModal({
                                         max={paymentPolicy.provision.nextDate}
                                     />
                                     <p className="text-[11px] text-muted-foreground">
-                                        Política operativa: <span className="font-medium">{paymentPolicy.provision.label}</span> (hora CDMX).
+                                        Política operativa: pago el <span className="font-medium">{paymentPolicy.provision.label}</span>.
                                     </p>
                                     <InputError message={errors.payment_provision_date} />
                                 </div>

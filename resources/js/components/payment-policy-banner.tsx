@@ -2,6 +2,7 @@ import { Clock, Info, Lock, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { usePaymentPolicy } from '@/hooks/use-payment-policy';
+import { formatPolicyTime } from '@/lib/format-policy-time';
 
 const DISMISS_KEY_PREFIX = 'payment-policy-banner-dismissed:';
 const DISMISS_TTL_MS = 60 * 60 * 1000; // 1 hora
@@ -76,13 +77,13 @@ export function PaymentPolicyBanner() {
     const message =
         variant === 'open' ? (
             <>
-                Ventana de captura abierta hasta <span className="font-semibold">{policy.capture.closesAtLabel}</span>
+                Ventana de captura abierta hasta <span className="font-semibold">{formatPolicyTime(policy.capture.closesAt)}</span>
             </>
         ) : variant === 'override' ? (
             <>Tienes <span className="font-semibold">override activo</span> — puedes capturar/enviar fuera de ventana.</>
         ) : (
             <>
-                Captura cerrada. Próxima apertura: <span className="font-semibold">{policy.capture.opensAtLabel}</span>
+                Captura cerrada. Próxima apertura: <span className="font-semibold">{formatPolicyTime(policy.capture.opensAt)}</span>
             </>
         );
 
