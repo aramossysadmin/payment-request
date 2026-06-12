@@ -6,6 +6,8 @@ use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\User;
 use App\Notifications\InvestmentBatchSubmittedNotification;
+use App\Services\PaymentPolicyAuditService;
+use App\Services\PaymentRequestPolicyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -31,6 +33,17 @@ class InvestmentPaymentBatchController extends Controller
 
         abort_unless($batch->user_id === $user->id || $batch->department_id === $user->department_id, Response::HTTP_FORBIDDEN);
         abort_unless($batch->status === 'draft', Response::HTTP_CONFLICT, 'El lote ya fue enviado.');
+
+        // Política de ventana: bloquear ENVIAR a Autorización fuera de horario (si la ventana está activa).
+        $policy = PaymentRequestPolicyService::fromCurrent();
+        if (! $policy->canSubmitNow($user)) {
+            app(PaymentPolicyAuditService::class)->logBlockedAttempt($user, 'submit', $request);
+
+            return back()->withErrors([
+                'payment_policy' => 'La ventana de envío a autorización está cerrada. Próxima apertura: '
+                    .$policy->getNextSubmitOpensAt()->locale('es_MX')->translatedFormat('l j M H:i').' hora CDMX.',
+            ]);
+        }
 
         $validated = $request->validate([
             'payment_uuids' => ['required', 'array', 'min:1'],

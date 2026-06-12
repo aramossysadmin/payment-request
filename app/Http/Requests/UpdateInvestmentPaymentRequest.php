@@ -6,6 +6,8 @@ use App\Enums\InvestmentPaymentType;
 use App\Enums\IvaRate;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
+use App\Services\PaymentPolicyAuditService;
+use App\Services\PaymentRequestPolicyService;
 use App\States\InvestmentRequest\Completed;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -56,6 +58,21 @@ class UpdateInvestmentPaymentRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            // Política de ventana: bloquear EDITAR draft fuera de horario.
+            $policy = PaymentRequestPolicyService::fromCurrent();
+            $user = $this->user();
+
+            if (! $policy->canCaptureNow($user)) {
+                app(PaymentPolicyAuditService::class)->logBlockedAttempt($user, 'edit', $this);
+                $validator->errors()->add(
+                    'payment_policy',
+                    'La ventana de captura está cerrada. Próxima apertura: '
+                    .$policy->getNextCaptureOpensAt()->locale('es_MX')->translatedFormat('l j M H:i').' hora CDMX.'
+                );
+
+                return;
+            }
+
             $paymentType = $this->input('payment_type');
 
             if ($paymentType === 'factura') {
