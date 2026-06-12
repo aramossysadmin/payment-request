@@ -41,6 +41,7 @@ class InvestmentRequest extends Model
         'currency_id',
         'branch_id',
         'expense_concept_id',
+        'investment_expense_concept_id',
         'description',
         'payment_type_id',
         'advance_documents',
