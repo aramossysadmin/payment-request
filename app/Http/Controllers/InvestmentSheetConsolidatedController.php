@@ -266,7 +266,7 @@ class InvestmentSheetConsolidatedController extends Controller
             ->when(! $canSeeAllDepartments, fn ($q) => $q->where('department_id', $user->department_id))
             ->where('status', '!=', 'draft')
             ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
-            ->with(['currency', 'investmentRequest.investmentExpenseConcept', 'branch', 'department'])
+            ->with(['user', 'currency', 'investmentRequest.investmentExpenseConcept.category', 'branch', 'department'])
             ->latest('created_at')
             ->get()
             ->map(fn (InvestmentPaymentRequest $p) => [
@@ -275,8 +275,11 @@ class InvestmentSheetConsolidatedController extends Controller
                 'folio_number' => $p->folio_number,
                 'provider' => $p->provider,
                 'rfc' => $p->rfc,
+                'invoice_folio' => $p->invoice_folio,
                 'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
                 'concept_folio' => $p->investmentRequest?->folio_number,
+                'category_name' => $p->investmentRequest?->investmentExpenseConcept?->category?->name ?? '—',
+                'user_name' => $p->user?->name ?? '—',
                 'branch' => $p->branch?->name ?? '—',
                 'department_id' => $p->department_id,
                 'department_name' => $p->department?->name ?? '—',
@@ -290,6 +293,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'subtotal' => (string) $p->subtotal,
                 'iva' => (string) $p->iva,
                 'total' => (string) $p->total,
+                'documents_count' => is_array($p->advance_documents) ? count(array_filter($p->advance_documents, fn ($d) => is_string($d) && $d !== '')) : 0,
                 'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : null,
                 'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
                 'status' => $p->status,

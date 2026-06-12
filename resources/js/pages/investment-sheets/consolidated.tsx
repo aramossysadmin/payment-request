@@ -39,6 +39,8 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ColumnFilterPopover } from '@/components/column-filter-popover';
+import { SortableHeader } from '@/components/sortable-header';
 import {
     Select,
     SelectContent,
@@ -155,8 +157,11 @@ type HistoryPayment = {
     folio_number: number;
     provider: string;
     rfc: string | null;
+    invoice_folio: string | null;
     concept_name: string;
     concept_folio: number | null;
+    category_name: string;
+    user_name: string;
     branch: string;
     department_id: number;
     department_name: string;
@@ -170,6 +175,7 @@ type HistoryPayment = {
     subtotal: string;
     iva: string;
     total: string;
+    documents_count: number;
     approved_amount: string | null;
     was_adjusted: boolean;
     status: string;
@@ -511,6 +517,23 @@ export default function Consolidated() {
     // Historial de pagos — estado de filtros + paginación + drawer
     const [historySearch, setHistorySearch] = useState('');
     const [historyStatus, setHistoryStatus] = useState<string>('all');
+    const [historyColumnFilters, setHistoryColumnFilters] = useState<Record<string, string>>({});
+    const [historySortBy, setHistorySortBy] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(null);
+    const handleHistorySort = useCallback((column: string) => {
+        setHistorySortBy((prev) => {
+            if (!prev || prev.column !== column) return { column, direction: 'asc' };
+            if (prev.direction === 'asc') return { column, direction: 'desc' };
+            return null;
+        });
+    }, []);
+    const setColumnFilter = useCallback((column: string, value: string) => {
+        setHistoryColumnFilters((prev) => {
+            const next = { ...prev };
+            if (value === '') delete next[column];
+            else next[column] = value;
+            return next;
+        });
+    }, []);
     const [selectedWeek, setSelectedWeek] = useState(projectDashboard.current_week);
     const [selectedYear, setSelectedYear] = useState(projectDashboard.current_year);
     const [historyDepartmentFilter, setHistoryDepartmentFilter] = useState<'mine' | 'all'>('mine');
@@ -549,8 +572,7 @@ export default function Consolidated() {
     };
 
     const filteredHistory = userPaymentHistory.filter((p) => {
-        // Filtro de departamento (solo aplica si el usuario puede ver todos):
-        // 'mine' → solo su dpto; 'all' → todos. Usuarios normales reciben solo los suyos del backend.
+        // Filtro de departamento (solo aplica si el usuario puede ver todos)
         if (canSeeAllDepartments && historyDepartmentFilter === 'mine' && p.department_id !== userDepartmentId) {
             return false;
         }
@@ -566,7 +588,7 @@ export default function Consolidated() {
         if (weekFilterEnabled && (p.week_number !== selectedWeek || p.week_year !== selectedYear)) {
             return false;
         }
-        // Free search (folio, provider, concept)
+        // Búsqueda global expandida (folio, proveedor, concepto, categoría, descripción, RFC, folio factura, solicitante)
         if (historySearch) {
             const q = historySearch.toLowerCase();
             const folioStr = String(p.folio_number).padStart(5, '0');
@@ -574,11 +596,59 @@ export default function Consolidated() {
                 !folioStr.includes(q)
                 && !p.provider.toLowerCase().includes(q)
                 && !p.concept_name.toLowerCase().includes(q)
+                && !p.category_name.toLowerCase().includes(q)
+                && !(p.description ?? '').toLowerCase().includes(q)
+                && !(p.rfc ?? '').toLowerCase().includes(q)
+                && !(p.invoice_folio ?? '').toLowerCase().includes(q)
+                && !p.user_name.toLowerCase().includes(q)
             ) {
                 return false;
             }
         }
+        // Filtros por columna (popover)
+        for (const [column, value] of Object.entries(historyColumnFilters)) {
+            if (!value) continue;
+            const q = value.toLowerCase();
+            const field = (() => {
+                switch (column) {
+                    case 'folio': return String(p.folio_number).padStart(5, '0');
+                    case 'concept': return p.concept_name.toLowerCase();
+                    case 'category': return p.category_name.toLowerCase();
+                    case 'provider': return p.provider.toLowerCase();
+                    case 'user': return p.user_name.toLowerCase();
+                    case 'status': return p.status;
+                    default: return '';
+                }
+            })();
+            if (column === 'status') {
+                if (field !== q) return false;
+            } else {
+                if (!field.includes(q)) return false;
+            }
+        }
         return true;
+    }).slice().sort((a, b) => {
+        if (!historySortBy) return 0;
+        const dir = historySortBy.direction === 'asc' ? 1 : -1;
+        const get = (p: HistoryPayment): string | number => {
+            switch (historySortBy.column) {
+                case 'folio': return p.folio_number;
+                case 'status': return p.status;
+                case 'payment_provision_date': return p.payment_provision_date ?? '';
+                case 'concept': return p.concept_name;
+                case 'category': return p.category_name;
+                case 'provider': return p.provider;
+                case 'total': return parseFloat(p.total);
+                case 'approved_amount': return p.approved_amount ? parseFloat(p.approved_amount) : -1;
+                case 'user': return p.user_name;
+                case 'created_at': return p.created_at ?? '';
+                default: return 0;
+            }
+        };
+        const va = get(a);
+        const vb = get(b);
+        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+        return String(va).localeCompare(String(vb)) * dir;
     });
 
     const historyTotalPages = Math.max(1, Math.ceil(filteredHistory.length / HISTORY_PER_PAGE));
@@ -596,10 +666,12 @@ export default function Consolidated() {
         setHistoryQuickFilter('all');
         setHistoryDepartmentFilter('mine');
         setWeekFilterEnabled(true);
+        setHistoryColumnFilters({});
+        setHistorySortBy(null);
         setHistoryPage(1);
     };
 
-    const hasActiveHistoryFilters = historySearch !== '' || historyStatus !== 'all' || selectedWeek !== projectDashboard.current_week || selectedYear !== projectDashboard.current_year || historyQuickFilter !== 'all' || historyDepartmentFilter !== 'mine' || ! weekFilterEnabled;
+    const hasActiveHistoryFilters = historySearch !== '' || historyStatus !== 'all' || selectedWeek !== projectDashboard.current_week || selectedYear !== projectDashboard.current_year || historyQuickFilter !== 'all' || historyDepartmentFilter !== 'mine' || ! weekFilterEnabled || Object.keys(historyColumnFilters).length > 0;
 
     // URL para el PDF del historial respetando todos los filtros.
     const buildPaymentHistoryPdfUrl = (): string => {
@@ -1498,12 +1570,26 @@ export default function Consolidated() {
                         {/* Filtros */}
                         <div className="flex flex-wrap items-end gap-3 mb-4">
                             <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Buscar</label>
+                                <div className="flex items-center gap-1">
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Buscar</label>
+                                    <TooltipProvider delayDuration={200}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button type="button" className="text-gray-400 hover:text-gray-600">
+                                                    <Info className="h-3 w-3" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="max-w-xs text-xs">
+                                                Busca en: folio, proveedor, concepto, categoría, descripción, RFC, folio de factura y solicitante.
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
                                 <div className="relative">
                                     <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                                     <Input
                                         className="pl-8 w-64"
-                                        placeholder="Folio, proveedor o concepto..."
+                                        placeholder="Buscar en toda la tabla..."
                                         value={historySearch}
                                         onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }}
                                     />
@@ -1629,39 +1715,93 @@ export default function Consolidated() {
                                     <table className="w-full text-sm">
                                         <thead className="bg-gray-50 dark:bg-gray-800">
                                             <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Folio</th>
-                                                <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700 align-middle leading-tight">Fecha<br />Solicitud</th>
-                                                <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700 align-middle leading-tight">Fecha Programación<br />Pago</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Concepto</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <SortableHeader label="Folio" column="folio" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                        <ColumnFilterPopover value={historyColumnFilters.folio ?? ''} onChange={(v) => setColumnFilter('folio', v)} placeholder="Folio..." />
+                                                    </SortableHeader>
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <SortableHeader label="Estatus" column="status" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                        <ColumnFilterPopover
+                                                            value={historyColumnFilters.status ?? ''}
+                                                            onChange={(v) => setColumnFilter('status', v)}
+                                                            options={Array.from(new Set(userPaymentHistory.map(p => p.status))).sort().map(s => ({ value: s, label: historyStatusLabel(s) }))}
+                                                        />
+                                                    </SortableHeader>
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700 align-middle leading-tight">
+                                                    <SortableHeader label="Fecha Programación Pago" column="payment_provision_date" sortBy={historySortBy} onSort={handleHistorySort} />
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <SortableHeader label="Concepto" column="concept" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                        <ColumnFilterPopover value={historyColumnFilters.concept ?? ''} onChange={(v) => setColumnFilter('concept', v)} placeholder="Concepto..." />
+                                                    </SortableHeader>
+                                                </th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Descripción</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Proveedor</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <SortableHeader label="Categoría del Concepto" column="category" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                        <ColumnFilterPopover value={historyColumnFilters.category ?? ''} onChange={(v) => setColumnFilter('category', v)} placeholder="Categoría..." />
+                                                    </SortableHeader>
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <SortableHeader label="Proveedor" column="provider" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                        <ColumnFilterPopover value={historyColumnFilters.provider ?? ''} onChange={(v) => setColumnFilter('provider', v)} placeholder="Proveedor..." />
+                                                    </SortableHeader>
+                                                </th>
                                                 {canSeeAllDepartments && historyDepartmentFilter === 'all' && (
                                                     <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Depto</th>
                                                 )}
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">Solicitado</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">Aprobado</th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Status</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <SortableHeader label="Monto Solicitado" column="total" sortBy={historySortBy} onSort={handleHistorySort} align="right" />
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <SortableHeader label="Monto Aprobado" column="approved_amount" sortBy={historySortBy} onSort={handleHistorySort} align="right" />
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">Documentos</th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <SortableHeader label="Solicitante" column="user" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                        <ColumnFilterPopover value={historyColumnFilters.user ?? ''} onChange={(v) => setColumnFilter('user', v)} placeholder="Solicitante..." />
+                                                    </SortableHeader>
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700 align-middle leading-tight">
+                                                    <SortableHeader label="Fecha Solicitud" column="created_at" sortBy={historySortBy} onSort={handleHistorySort} />
+                                                </th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap text-right align-middle">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                             {paginatedHistory.map((payment) => (
                                                 <tr key={payment.uuid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                                    {/* 1. Folio */}
                                                     <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
                                                         #{String(payment.folio_number).padStart(5, '0')}
                                                     </td>
-                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 whitespace-nowrap">
-                                                        {payment.created_at ? payment.created_at.slice(0, 10) : '—'}
+                                                    {/* 2. Estatus */}
+                                                    <td className="px-4 py-3 border-r border-gray-100 dark:border-gray-800">
+                                                        <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium', historyStatusColorClass(payment.status))}>
+                                                            {historyStatusLabel(payment.status)}
+                                                        </span>
+                                                        {payment.is_legacy && (
+                                                            <div className="mt-0.5 text-[10px] text-gray-400">Flujo anterior</div>
+                                                        )}
                                                     </td>
+                                                    {/* 3. Fecha Programación Pago */}
                                                     <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 whitespace-nowrap">
                                                         {payment.payment_provision_date ?? <span className="text-gray-400">—</span>}
                                                     </td>
+                                                    {/* 4. Concepto */}
                                                     <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.concept_name}>
                                                         {payment.concept_name}
                                                     </td>
+                                                    {/* 5. Descripción */}
                                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
                                                         {payment.description ? payment.description : <span className="text-gray-400">—</span>}
                                                     </td>
+                                                    {/* 6. Categoría del Concepto */}
+                                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[160px] truncate" title={payment.category_name}>
+                                                        {payment.category_name}
+                                                    </td>
+                                                    {/* 7. Proveedor */}
                                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[180px] truncate" title={payment.provider}>
                                                         {payment.provider}
                                                     </td>
@@ -1670,12 +1810,14 @@ export default function Consolidated() {
                                                             {payment.department_name}
                                                         </td>
                                                     )}
+                                                    {/* 8. Monto Solicitado */}
                                                     <td className="px-4 py-3 text-right font-mono text-sm border-r border-gray-100 dark:border-gray-800">
                                                         {formatNative(payment.total, payment.currency_id)}
                                                         {nativeNoteOf(payment.total, payment.currency_id) && (
                                                             <div className="text-[10px] text-gray-400">orig. {nativeNoteOf(payment.total, payment.currency_id)}</div>
                                                         )}
                                                     </td>
+                                                    {/* 9. Monto Aprobado */}
                                                     <td className="px-4 py-3 text-right font-mono text-sm border-r border-gray-100 dark:border-gray-800">
                                                         {payment.approved_amount !== null ? (
                                                             <>
@@ -1693,14 +1835,26 @@ export default function Consolidated() {
                                                             <span className="text-gray-400">—</span>
                                                         )}
                                                     </td>
-                                                    <td className="px-4 py-3 border-r border-gray-100 dark:border-gray-800">
-                                                        <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium', historyStatusColorClass(payment.status))}>
-                                                            {historyStatusLabel(payment.status)}
-                                                        </span>
-                                                        {payment.is_legacy && (
-                                                            <div className="mt-0.5 text-[10px] text-gray-400">Flujo anterior</div>
+                                                    {/* 10. Documentos */}
+                                                    <td className="px-4 py-3 text-center border-r border-gray-100 dark:border-gray-800">
+                                                        {payment.documents_count > 0 ? (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300" title={`${payment.documents_count} documento(s)`}>
+                                                                <FileText className="h-3 w-3" />
+                                                                {payment.documents_count}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-300">—</span>
                                                         )}
                                                     </td>
+                                                    {/* 11. Solicitante */}
+                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[140px] truncate" title={payment.user_name}>
+                                                        {payment.user_name}
+                                                    </td>
+                                                    {/* 12. Fecha Solicitud */}
+                                                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 whitespace-nowrap">
+                                                        {payment.created_at ? payment.created_at.slice(0, 10) : '—'}
+                                                    </td>
+                                                    {/* Acciones */}
                                                     <td className="px-4 py-3 text-right">
                                                         <Button
                                                             size="sm"

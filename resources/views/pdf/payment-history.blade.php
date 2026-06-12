@@ -79,16 +79,19 @@
             <thead>
             <tr>
                 <th>Folio</th>
-                <th>F. Solicitud</th>
-                <th>F. Provisión</th>
+                <th>Estatus</th>
+                <th>F. Programación Pago</th>
                 <th>Concepto</th>
+                <th>Descripción</th>
+                <th>Categoría del Concepto</th>
                 <th>Proveedor</th>
                 @if ($showDepartmentColumn)
                     <th>Depto</th>
                 @endif
-                <th class="text-right">Solicitado</th>
-                <th class="text-right">Aprobado</th>
-                <th>Status</th>
+                <th class="text-right">Monto Solicitado</th>
+                <th class="text-right">Monto Aprobado</th>
+                <th>Solicitante</th>
+                <th>F. Solicitud</th>
             </tr>
             </thead>
             <tbody>
@@ -105,9 +108,11 @@
                 @endphp
                 <tr>
                     <td class="nowrap">#{{ str_pad($p->folio_number, 5, '0', STR_PAD_LEFT) }}</td>
-                    <td class="nowrap">{{ $p->created_at?->format('Y-m-d') ?? '—' }}</td>
+                    <td class="nowrap"><span class="status {{ $statusClass }}">{{ $statusLabels[$p->status] ?? $p->status }}</span></td>
                     <td class="nowrap">{{ $p->payment_provision_date?->format('Y-m-d') ?? '—' }}</td>
                     <td>{{ $p->investmentRequest?->investmentExpenseConcept?->name ?? '—' }}</td>
+                    <td class="small">{{ $p->description ?? '—' }}</td>
+                    <td class="small">{{ $p->investmentRequest?->investmentExpenseConcept?->category?->name ?? '—' }}</td>
                     <td>{{ $p->provider }}</td>
                     @if ($showDepartmentColumn)
                         <td class="small">{{ $p->department?->name ?? '—' }}</td>
@@ -122,7 +127,8 @@
                             <span class="muted">—</span>
                         @endif
                     </td>
-                    <td class="nowrap"><span class="status {{ $statusClass }}">{{ $statusLabels[$p->status] ?? $p->status }}</span></td>
+                    <td class="small">{{ $p->user?->name ?? '—' }}</td>
+                    <td class="nowrap">{{ $p->created_at?->format('Y-m-d') ?? '—' }}</td>
                 </tr>
             @endforeach
             </tbody>

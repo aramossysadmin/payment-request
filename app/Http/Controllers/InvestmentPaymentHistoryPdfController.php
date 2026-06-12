@@ -62,10 +62,15 @@ class InvestmentPaymentHistoryPdfController extends Controller
                 $q->where(function ($q) use ($search) {
                     $q->where('provider', 'like', "%{$search}%")
                         ->orWhere('folio_number', 'like', "%{$search}%")
-                        ->orWhereHas('investmentRequest.investmentExpenseConcept', fn ($qq) => $qq->where('name', 'like', "%{$search}%"));
+                        ->orWhere('rfc', 'like', "%{$search}%")
+                        ->orWhere('invoice_folio', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($qq) => $qq->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('investmentRequest.investmentExpenseConcept', fn ($qq) => $qq->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('investmentRequest.investmentExpenseConcept.category', fn ($qq) => $qq->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->with(['currency', 'investmentRequest.investmentExpenseConcept', 'department', 'branch'])
+            ->with(['user', 'currency', 'investmentRequest.investmentExpenseConcept.category', 'department', 'branch'])
             ->latest('created_at');
 
         $payments = $query->get();
