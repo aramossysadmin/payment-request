@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ColumnFilterPopover } from '@/components/column-filter-popover';
+import { NumberedPagination } from '@/components/numbered-pagination';
 import { SortableHeader } from '@/components/sortable-header';
 import {
     Select,
@@ -1723,29 +1724,11 @@ export default function Consolidated() {
                                                 Mostrando {(authorizedCurrentPage - 1) * authorizedPerPage + 1}-{Math.min(authorizedCurrentPage * authorizedPerPage, filteredAuthorized.length)} de {filteredAuthorized.length} pagos pendientes
                                             </div>
                                         </div>
-                                        {authorizedTotalPages > 1 && (
-                                            <div className="flex items-center gap-1">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    disabled={authorizedCurrentPage === 1}
-                                                    onClick={() => setAuthorizedPage((p) => Math.max(1, p - 1))}
-                                                >
-                                                    Anterior
-                                                </Button>
-                                                <span className="px-2">
-                                                    Página {authorizedCurrentPage} de {authorizedTotalPages}
-                                                </span>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    disabled={authorizedCurrentPage === authorizedTotalPages}
-                                                    onClick={() => setAuthorizedPage((p) => Math.min(authorizedTotalPages, p + 1))}
-                                                >
-                                                    Siguiente
-                                                </Button>
-                                            </div>
-                                        )}
+                                        <NumberedPagination
+                                            currentPage={authorizedCurrentPage}
+                                            totalPages={authorizedTotalPages}
+                                            onPageChange={setAuthorizedPage}
+                                        />
                                     </div>
                                 </>
                             )}
@@ -2122,29 +2105,11 @@ export default function Consolidated() {
                                             Mostrando {(historyCurrentPage - 1) * historyPerPage + 1}-{Math.min(historyCurrentPage * historyPerPage, filteredHistory.length)} de {filteredHistory.length} pagos
                                         </div>
                                     </div>
-                                    {historyTotalPages > 1 && (
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={historyCurrentPage === 1}
-                                                onClick={() => setHistoryPage(historyCurrentPage - 1)}
-                                            >
-                                                «
-                                            </Button>
-                                            <span className="text-xs text-muted-foreground">
-                                                Página {historyCurrentPage} de {historyTotalPages}
-                                            </span>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={historyCurrentPage === historyTotalPages}
-                                                onClick={() => setHistoryPage(historyCurrentPage + 1)}
-                                            >
-                                                »
-                                            </Button>
-                                        </div>
-                                    )}
+                                    <NumberedPagination
+                                        currentPage={historyCurrentPage}
+                                        totalPages={historyTotalPages}
+                                        onPageChange={setHistoryPage}
+                                    />
                                 </div>
                             </>
                         )}
