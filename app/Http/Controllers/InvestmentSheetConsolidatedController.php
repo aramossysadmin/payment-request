@@ -226,7 +226,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 }),
                 fn ($q) => $q->where('status', 'final_approved')->where('user_id', $user->id),
             )
-            ->with(['currency', 'investmentRequest.investmentExpenseConcept'])
+            ->with(['currency', 'investmentRequest.investmentExpenseConcept.category', 'user', 'department'])
             ->latest()
             ->get()
             ->map(fn (InvestmentPaymentRequest $p) => [
@@ -235,6 +235,9 @@ class InvestmentSheetConsolidatedController extends Controller
                 'folio_number' => $p->folio_number,
                 'provider' => $p->provider,
                 'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '—',
+                'category_name' => $p->investmentRequest?->investmentExpenseConcept?->category?->name ?? '—',
+                'department_name' => $p->department?->name ?? '—',
+                'user_name' => $p->user?->name ?? '—',
                 'description' => $p->description,
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                 'currency_id' => $p->currency_id,

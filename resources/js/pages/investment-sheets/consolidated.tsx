@@ -134,6 +134,9 @@ type AuthorizedPayment = {
     folio_number: number;
     provider: string;
     concept_name: string;
+    category_name: string;
+    department_name: string;
+    user_name: string;
     description: string | null;
     currency_prefix: string;
     currency_id: number;
@@ -541,7 +544,27 @@ export default function Consolidated() {
     const [historyQuickFilter, setHistoryQuickFilter] = useState<'all' | 'in_process' | 'completed' | 'rejected'>('all');
     const [historyPage, setHistoryPage] = useState(1);
     const [historyDetailUuid, setHistoryDetailUuid] = useState<string | null>(null);
-    const HISTORY_PER_PAGE = 20;
+    const [historyPerPage, setHistoryPerPage] = useState(10);
+
+    // "Pagos Pendientes de Documentos" — paginación, ordenamiento y filtros (mismo patrón que Historial)
+    const [authorizedPage, setAuthorizedPage] = useState(1);
+    const [authorizedSortBy, setAuthorizedSortBy] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(null);
+    const [authorizedColumnFilters, setAuthorizedColumnFilters] = useState<Record<string, string>>({});
+    const [authorizedPerPage, setAuthorizedPerPage] = useState(10);
+
+    const handleAuthorizedSort = (column: string) => {
+        setAuthorizedPage(1);
+        setAuthorizedSortBy((prev) => {
+            if (!prev || prev.column !== column) return { column, direction: 'asc' };
+            if (prev.direction === 'asc') return { column, direction: 'desc' };
+            return null;
+        });
+    };
+
+    const setAuthorizedColumnFilter = (column: string, value: string) => {
+        setAuthorizedPage(1);
+        setAuthorizedColumnFilters((prev) => ({ ...prev, [column]: value }));
+    };
 
     const navigateWeek = (direction: number) => {
         let newWeek = selectedWeek + direction;
@@ -656,12 +679,74 @@ export default function Consolidated() {
         return String(va).localeCompare(String(vb)) * dir;
     });
 
-    const historyTotalPages = Math.max(1, Math.ceil(filteredHistory.length / HISTORY_PER_PAGE));
+    const historyTotalPages = Math.max(1, Math.ceil(filteredHistory.length / historyPerPage));
     const historyCurrentPage = Math.min(historyPage, historyTotalPages);
     const paginatedHistory = filteredHistory.slice(
-        (historyCurrentPage - 1) * HISTORY_PER_PAGE,
-        historyCurrentPage * HISTORY_PER_PAGE,
+        (historyCurrentPage - 1) * historyPerPage,
+        historyCurrentPage * historyPerPage,
     );
+
+    // "Pagos Pendientes de Documentos" — filtrado + ordenamiento + paginación
+    const filteredAuthorized = (authorizedPayments?.payments ?? []).filter((p) => {
+        for (const [column, value] of Object.entries(authorizedColumnFilters)) {
+            if (!value) continue;
+            const q = value.toLowerCase();
+            const field = (() => {
+                switch (column) {
+                    case 'folio': return String(p.folio_number).padStart(5, '0');
+                    case 'concept': return p.concept_name.toLowerCase();
+                    case 'description': return (p.description ?? '').toLowerCase();
+                    case 'category': return p.category_name.toLowerCase();
+                    case 'provider': return p.provider.toLowerCase();
+                    case 'department': return p.department_name;
+                    case 'user': return p.user_name.toLowerCase();
+                    default: return '';
+                }
+            })();
+            if (column === 'department') {
+                if (field !== value) return false;
+            } else {
+                if (!field.includes(q)) return false;
+            }
+        }
+        return true;
+    }).slice().sort((a, b) => {
+        if (!authorizedSortBy) return 0;
+        const dir = authorizedSortBy.direction === 'asc' ? 1 : -1;
+        const get = (p: AuthorizedPayment): string | number => {
+            switch (authorizedSortBy.column) {
+                case 'folio': return p.folio_number;
+                case 'concept': return p.concept_name;
+                case 'category': return p.category_name;
+                case 'provider': return p.provider;
+                case 'department': return p.department_name;
+                case 'user': return p.user_name;
+                case 'approved_amount': return parseFloat(p.approved_amount);
+                default: return 0;
+            }
+        };
+        const va = get(a);
+        const vb = get(b);
+        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+        return String(va).localeCompare(String(vb)) * dir;
+    });
+
+    const authorizedTotalPages = Math.max(1, Math.ceil(filteredAuthorized.length / authorizedPerPage));
+    const authorizedCurrentPage = Math.min(authorizedPage, authorizedTotalPages);
+    const paginatedAuthorized = filteredAuthorized.slice(
+        (authorizedCurrentPage - 1) * authorizedPerPage,
+        authorizedCurrentPage * authorizedPerPage,
+    );
+
+    const clearAuthorizedFilters = () => {
+        setAuthorizedColumnFilters({});
+        setAuthorizedSortBy(null);
+        setAuthorizedPage(1);
+    };
+
+    const authorizedDepartmentOptions = Array.from(
+        new Set((authorizedPayments?.payments ?? []).map((p) => p.department_name).filter((d) => d && d !== '—'))
+    ).sort().map((d) => ({ value: d, label: d }));
 
     const clearHistoryFilters = () => {
         setHistorySearch('');
@@ -1499,58 +1584,171 @@ export default function Consolidated() {
                             </p>
                         </CardHeader>
                         <CardContent>
-                            <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-50 dark:bg-gray-800">
-                                        <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
-                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Folio</th>
-                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Concepto</th>
-                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Descripción</th>
-                                            <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
-                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Monto a pagar</th>
-                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Documentos</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                        {authorizedPayments.payments.map((payment) => (
-                                            <tr key={payment.uuid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                                <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
-                                                    #{String(payment.folio_number).padStart(5, '0')}
-                                                    {payment.is_legacy && (
-                                                        <Badge variant="secondary" className="ml-1.5 align-middle text-[10px]">Histórico</Badge>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
-                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
-                                                    {payment.description ? payment.description : <span className="text-gray-400">—</span>}
-                                                </td>
-                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
-                                                <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
-                                                    {formatNative(payment.approved_amount, payment.currency_id)}
-                                                    {nativeNoteOf(payment.approved_amount, payment.currency_id) && (
-                                                        <div className="text-[10px] font-normal text-gray-400">orig. {nativeNoteOf(payment.approved_amount, payment.currency_id)}</div>
-                                                    )}
-                                                    {payment.was_adjusted && (
-                                                        <div className="mt-0.5 text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400">
-                                                            ajustado por PM
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => openUploadDialog(payment.uuid, payment.payment_type)}
-                                                    >
-                                                        <Upload className="mr-1.5 h-3.5 w-3.5" />
-                                                        Subir documentos
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            {filteredAuthorized.length === 0 ? (
+                                <div className="rounded-md border border-dashed border-gray-300 dark:border-gray-700 py-10 text-center text-sm text-muted-foreground">
+                                    No hay pagos pendientes de documentos que coincidan con los filtros aplicados.
+                                    <div className="mt-2">
+                                        <Button variant="outline" size="sm" onClick={clearAuthorizedFilters}>Limpiar filtros</Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-gray-50 dark:bg-gray-800">
+                                                <tr className="border-b-2 border-gray-200 text-left text-gray-600 dark:border-gray-700 dark:text-gray-300">
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                        <SortableHeader label="Folio" column="folio" sortBy={authorizedSortBy} onSort={handleAuthorizedSort}>
+                                                            <ColumnFilterPopover
+                                                                value={authorizedColumnFilters.folio ?? ''}
+                                                                onChange={(v) => setAuthorizedColumnFilter('folio', v)}
+                                                            />
+                                                        </SortableHeader>
+                                                    </th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                        <SortableHeader label="Concepto" column="concept" sortBy={authorizedSortBy} onSort={handleAuthorizedSort}>
+                                                            <ColumnFilterPopover
+                                                                value={authorizedColumnFilters.concept ?? ''}
+                                                                onChange={(v) => setAuthorizedColumnFilter('concept', v)}
+                                                            />
+                                                        </SortableHeader>
+                                                    </th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                        <span className="inline-flex items-center">
+                                                            Descripción
+                                                            <ColumnFilterPopover
+                                                                value={authorizedColumnFilters.description ?? ''}
+                                                                onChange={(v) => setAuthorizedColumnFilter('description', v)}
+                                                            />
+                                                        </span>
+                                                    </th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                        <SortableHeader label="Categoría del Concepto" column="category" sortBy={authorizedSortBy} onSort={handleAuthorizedSort}>
+                                                            <ColumnFilterPopover
+                                                                value={authorizedColumnFilters.category ?? ''}
+                                                                onChange={(v) => setAuthorizedColumnFilter('category', v)}
+                                                            />
+                                                        </SortableHeader>
+                                                    </th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                        <SortableHeader label="Proveedor" column="provider" sortBy={authorizedSortBy} onSort={handleAuthorizedSort}>
+                                                            <ColumnFilterPopover
+                                                                value={authorizedColumnFilters.provider ?? ''}
+                                                                onChange={(v) => setAuthorizedColumnFilter('provider', v)}
+                                                            />
+                                                        </SortableHeader>
+                                                    </th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                        <SortableHeader label="Departamento" column="department" sortBy={authorizedSortBy} onSort={handleAuthorizedSort}>
+                                                            <ColumnFilterPopover
+                                                                value={authorizedColumnFilters.department ?? ''}
+                                                                onChange={(v) => setAuthorizedColumnFilter('department', v)}
+                                                                options={authorizedDepartmentOptions}
+                                                            />
+                                                        </SortableHeader>
+                                                    </th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                        <SortableHeader label="Solicitante" column="user" sortBy={authorizedSortBy} onSort={handleAuthorizedSort}>
+                                                            <ColumnFilterPopover
+                                                                value={authorizedColumnFilters.user ?? ''}
+                                                                onChange={(v) => setAuthorizedColumnFilter('user', v)}
+                                                            />
+                                                        </SortableHeader>
+                                                    </th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                        <SortableHeader label="Monto a pagar" column="approved_amount" sortBy={authorizedSortBy} onSort={handleAuthorizedSort} align="right" />
+                                                    </th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Documentos</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                                {paginatedAuthorized.map((payment) => (
+                                                    <tr key={payment.uuid} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                                        <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
+                                                            #{String(payment.folio_number).padStart(5, '0')}
+                                                            {payment.is_legacy && (
+                                                                <Badge variant="secondary" className="ml-1.5 align-middle text-[10px]">Histórico</Badge>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
+                                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
+                                                            {payment.description ? payment.description : <span className="text-gray-400">—</span>}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.category_name}</td>
+                                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.provider}</td>
+                                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.department_name}</td>
+                                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">{payment.user_name}</td>
+                                                        <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">
+                                                            {formatNative(payment.approved_amount, payment.currency_id)}
+                                                            {nativeNoteOf(payment.approved_amount, payment.currency_id) && (
+                                                                <div className="text-[10px] font-normal text-gray-400">orig. {nativeNoteOf(payment.approved_amount, payment.currency_id)}</div>
+                                                            )}
+                                                            {payment.was_adjusted && (
+                                                                <div className="mt-0.5 text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                                                                    ajustado por PM
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => openUploadDialog(payment.uuid, payment.payment_type)}
+                                                            >
+                                                                <Upload className="mr-1.5 h-3.5 w-3.5" />
+                                                                Subir documentos
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Footer: selector + contador + paginación */}
+                                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-1.5">
+                                                <Select value={String(authorizedPerPage)} onValueChange={(v) => { setAuthorizedPerPage(Number(v)); setAuthorizedPage(1); }}>
+                                                    <SelectTrigger className="h-7 w-[70px] text-xs"><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="10">10</SelectItem>
+                                                        <SelectItem value="25">25</SelectItem>
+                                                        <SelectItem value="50">50</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <span>por página</span>
+                                            </div>
+                                            <div>
+                                                Mostrando {(authorizedCurrentPage - 1) * authorizedPerPage + 1}-{Math.min(authorizedCurrentPage * authorizedPerPage, filteredAuthorized.length)} de {filteredAuthorized.length} pagos pendientes
+                                            </div>
+                                        </div>
+                                        {authorizedTotalPages > 1 && (
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={authorizedCurrentPage === 1}
+                                                    onClick={() => setAuthorizedPage((p) => Math.max(1, p - 1))}
+                                                >
+                                                    Anterior
+                                                </Button>
+                                                <span className="px-2">
+                                                    Página {authorizedCurrentPage} de {authorizedTotalPages}
+                                                </span>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={authorizedCurrentPage === authorizedTotalPages}
+                                                    onClick={() => setAuthorizedPage((p) => Math.min(authorizedTotalPages, p + 1))}
+                                                >
+                                                    Siguiente
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </CardContent>
                     </Card>
                 )}
@@ -1906,10 +2104,23 @@ export default function Consolidated() {
                                     </table>
                                 </div>
 
-                                {/* Paginación */}
-                                <div className="mt-4 flex items-center justify-between">
-                                    <div className="text-xs text-muted-foreground">
-                                        Mostrando {(historyCurrentPage - 1) * HISTORY_PER_PAGE + 1}-{Math.min(historyCurrentPage * HISTORY_PER_PAGE, filteredHistory.length)} de {filteredHistory.length} pagos
+                                {/* Selector por página + Paginación */}
+                                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                        <div className="flex items-center gap-1.5">
+                                            <Select value={String(historyPerPage)} onValueChange={(v) => { setHistoryPerPage(Number(v)); setHistoryPage(1); }}>
+                                                <SelectTrigger className="h-7 w-[70px] text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="10">10</SelectItem>
+                                                    <SelectItem value="25">25</SelectItem>
+                                                    <SelectItem value="50">50</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <span>por página</span>
+                                        </div>
+                                        <div>
+                                            Mostrando {(historyCurrentPage - 1) * historyPerPage + 1}-{Math.min(historyCurrentPage * historyPerPage, filteredHistory.length)} de {filteredHistory.length} pagos
+                                        </div>
                                     </div>
                                     {historyTotalPages > 1 && (
                                         <div className="flex items-center gap-2">
