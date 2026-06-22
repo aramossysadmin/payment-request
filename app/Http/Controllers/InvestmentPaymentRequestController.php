@@ -82,7 +82,7 @@ class InvestmentPaymentRequestController extends Controller
 
         $paymentRequest = new InvestmentPaymentRequest(Arr::except($validated, ['invoice_documents', 'advance_documents']));
         $paymentRequest->user_id = $user->id;
-        $paymentRequest->department_id = $user->department_id;
+        $paymentRequest->department_id = $investmentRequest->department_id;
         $paymentRequest->batch_id = $batch->id;
         $paymentRequest->status = 'draft';
         $paymentRequest->payment_type = $validated['payment_type'];
@@ -176,14 +176,16 @@ class InvestmentPaymentRequestController extends Controller
         $weekNumber = $now->isoWeek;
         $year = $now->isoWeekYear;
 
+        // El batch hereda el department del InvestmentRequest, no del user.
+        // Esto soporta users multi-dpto y corrige el bug de super_admins/multi-rol.
         return InvestmentPaymentBatch::query()
-            ->where('department_id', $user->department_id)
+            ->where('department_id', $investmentRequest->department_id)
             ->where('project_id', $investmentRequest->project_id)
             ->where('week_number', $weekNumber)
             ->where('year', $year)
             ->where('status', 'draft')
             ->firstOrCreate([
-                'department_id' => $user->department_id,
+                'department_id' => $investmentRequest->department_id,
                 'project_id' => $investmentRequest->project_id,
                 'week_number' => $weekNumber,
                 'year' => $year,

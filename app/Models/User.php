@@ -9,6 +9,7 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -82,6 +83,24 @@ class User extends Authenticatable implements FilamentUser
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Todos los departamentos a los que pertenece el usuario (principal + adicionales).
+     * La pivot `department_user` contiene tanto el principal (por backfill inicial)
+     * como los adicionales (asignados desde el admin Filament).
+     */
+    public function departments(): BelongsToMany
+    {
+        return $this->belongsToMany(Department::class, 'department_user')->withTimestamps();
+    }
+
+    /**
+     * True si el usuario pertenece al departamento dado (principal o adicional).
+     */
+    public function belongsToDepartment(int $departmentId): bool
+    {
+        return $this->departments()->where('departments.id', $departmentId)->exists();
     }
 
     public function position(): BelongsTo

@@ -34,9 +34,11 @@ class CreatePaymentRequest extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        $user = auth()->user();
+
         $record = new PaymentRequest($data);
-        $record->user_id = auth()->id();
-        $record->department_id = auth()->user()->department_id;
+        $record->user_id = $user->id;
+        $record->department_id = ($data['department_id'] ?? null) ?: $user->department_id;
         $record->save();
 
         return $record;

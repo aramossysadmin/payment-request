@@ -18,12 +18,23 @@ class InvestmentPaymentHistoryPdfController extends Controller
         $user = $request->user();
         $canSeeAllDepartments = $user->hasAnyRole(['super_admin', 'ceo', 'project_manager']);
 
-        // Filtro de departamento: si no es privilegiado, fuerza al propio dpto.
+        // Filtro de departamento: si no es privilegiado, restringir a los dptos del user.
+        // Si especifica un departamento, debe ser uno al que el user pertenece.
         $departmentParam = $request->input('department_id');
         $departmentId = null;
+        $departmentIds = null; // array de IDs cuando user multi-dpto y no filtra específicamente
         $departmentAll = false;
+        $userDepartmentIds = $user->departments()->pluck('departments.id')->all();
+
         if (! $canSeeAllDepartments) {
-            $departmentId = $user->department_id;
+            if ($departmentParam !== null && $departmentParam !== '' && $departmentParam !== 'all') {
+                $requestedId = (int) $departmentParam;
+                abort_unless(in_array($requestedId, $userDepartmentIds, true), 403, 'No tienes acceso a ese departamento.');
+                $departmentId = $requestedId;
+            } else {
+                // Sin filtro: ve TODOS sus dptos
+                $departmentIds = $userDepartmentIds;
+            }
         } elseif ($departmentParam === 'all' || $departmentParam === null || $departmentParam === '') {
             $departmentAll = true;
         } else {
@@ -56,6 +67,7 @@ class InvestmentPaymentHistoryPdfController extends Controller
             ->where('status', '!=', 'draft')
             ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
             ->when($departmentId !== null, fn ($q) => $q->where('department_id', $departmentId))
+            ->when($departmentIds !== null, fn ($q) => $q->whereIn('department_id', $departmentIds))
             ->when($statusFilter !== 'all' && $statusFilter !== null, fn ($q) => $q->where('status', $statusFilter))
             ->when(isset($statusGroups[$quickFilter]), fn ($q) => $q->whereIn('status', $statusGroups[$quickFilter]))
             ->when($search !== '', function ($q) use ($search) {
@@ -110,7 +122,13 @@ class InvestmentPaymentHistoryPdfController extends Controller
         ];
 
         $filtersApplied = [
-            'department' => $departmentAll ? 'Todos los departamentos' : ($departmentId === $user->department_id ? ($user->department?->name ?? '—') : (Department::find($departmentId)?->name ?? '—')),
+            'department' => $departmentAll
+                ? 'Todos los departamentos'
+                : ($departmentId !== null
+                    ? (Department::find($departmentId)?->name ?? '—')
+                    : ($departmentIds !== null
+                        ? 'Mis departamentos ('.Department::whereIn('id', $departmentIds)->pluck('name')->implode(', ').')'
+                        : '—')),
             'week' => ($weekNumber !== null && $weekYear !== null) ? "Semana {$weekNumber} / {$weekYear}" : 'Todas las semanas',
             'status' => $statusFilter !== 'all' && $statusFilter !== null ? ($statusLabels[$statusFilter] ?? $statusFilter) : 'Todos',
             'quick_filter' => $quickFilter !== 'all' ? $quickFilter : null,

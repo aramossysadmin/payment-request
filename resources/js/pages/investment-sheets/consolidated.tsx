@@ -232,6 +232,7 @@ type PageProps = {
     filters: { search?: string; status?: string; department_id?: string };
     userDepartmentId: number;
     userDepartmentName: string | null;
+    userDepartments: { id: number; name: string }[];
     currencies: Currency[];
     branches: Branch[];
     availableConcepts: { id: number; name: string; investment_expense_category_id: number; category: { id: number; name: string } | null }[];
@@ -318,7 +319,7 @@ export default function Consolidated() {
     const {
         paymentPolicy,
         project, totals, projectDashboard, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, userDepartmentName, currencies, branches, availableConcepts, conceptDepartmentMap, canEditRequestConcept, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
+        userDepartmentId, userDepartmentName, userDepartments, currencies, branches, availableConcepts, conceptDepartmentMap, canEditRequestConcept, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
     } = usePage<PageProps>().props;
 
     // Moneda de visualización: los agregados llegan en MXN (normalizados en backend) → formatMxn;
@@ -540,7 +541,9 @@ export default function Consolidated() {
     }, []);
     const [selectedWeek, setSelectedWeek] = useState(projectDashboard.current_week);
     const [selectedYear, setSelectedYear] = useState(projectDashboard.current_year);
-    const [historyDepartmentFilter, setHistoryDepartmentFilter] = useState<'mine' | 'all'>('mine');
+    // 'mine' = mi(s) departamento(s); 'all' = todos los del sistema (privilegiados);
+    // string numérico = ID de un departamento específico
+    const [historyDepartmentFilter, setHistoryDepartmentFilter] = useState<string>('mine');
     const [weekFilterEnabled, setWeekFilterEnabled] = useState<boolean>(true);
     const [historyQuickFilter, setHistoryQuickFilter] = useState<'all' | 'in_process' | 'completed' | 'rejected'>('all');
     const [historyPage, setHistoryPage] = useState(1);
@@ -595,10 +598,24 @@ export default function Consolidated() {
         rejected: userPaymentHistory.filter((p) => historyStatusGroups.rejected.includes(p.status)).length,
     };
 
+    const userDepartmentIds = (userDepartments ?? []).map((d) => d.id);
+
     const filteredHistory = userPaymentHistory.filter((p) => {
-        // Filtro de departamento (solo aplica si el usuario puede ver todos)
-        if (canSeeAllDepartments && historyDepartmentFilter === 'mine' && p.department_id !== userDepartmentId) {
-            return false;
+        // Filtro de departamento (3 variantes):
+        // - 'all': muestra todo lo que el backend trae (privilegiados: todo el sistema; otros: ya filtrado a sus dptos)
+        // - 'mine': para privilegiados = solo su principal. Para multi-dpto no privilegiado = todos sus dptos (ya filtrado por backend, no aplica filtro adicional).
+        // - string ID: filtra a ese dpto específico (válido para privilegiados o multi-dpto).
+        if (historyDepartmentFilter === 'mine') {
+            // Privilegiados restringen a su principal; multi-dpto ya ve sus dptos por backend.
+            if (canSeeAllDepartments && p.department_id !== userDepartmentId) {
+                return false;
+            }
+        } else if (historyDepartmentFilter !== 'all') {
+            // ID específico de departamento
+            const targetId = parseInt(historyDepartmentFilter, 10);
+            if (!Number.isNaN(targetId) && p.department_id !== targetId) {
+                return false;
+            }
         }
         // Quick filter chip
         if (historyQuickFilter !== 'all' && ! historyStatusGroups[historyQuickFilter].includes(p.status)) {
@@ -1274,7 +1291,7 @@ export default function Consolidated() {
                                                 const isExpanded = expandedGroups.has(group.key);
                                                 const isSingle = group.items.length === 1;
                                                 const firstItem = group.items[0];
-                                                const isUserDept = firstItem.department?.id === userDepartmentId;
+                                                const isUserDept = !!firstItem.department?.id && userDepartmentIds.includes(firstItem.department.id);
                                                 const hasBalance = Number(group.groupRemaining) > 0;
 
                                                 return (
@@ -1740,16 +1757,49 @@ export default function Consolidated() {
                 <Card>
                     <CardHeader>
                         <CardTitle>
-                            {canSeeAllDepartments && historyDepartmentFilter === 'all'
-                                ? 'Historial de Pagos — TODOS LOS DEPARTAMENTOS'
-                                : userDepartmentName
+                            {(() => {
+                                // Caso: filtro a 'all' (solo privilegiados pueden tener ese estado)
+                                if (canSeeAllDepartments && historyDepartmentFilter === 'all') {
+                                    return 'Historial de Pagos — TODOS LOS DEPARTAMENTOS';
+                                }
+                                // Caso: filtro a un dpto específico (ID)
+                                if (historyDepartmentFilter !== 'mine' && historyDepartmentFilter !== 'all') {
+                                    const targetId = parseInt(historyDepartmentFilter, 10);
+                                    const target = (canSeeAllDepartments ? (departments ?? []) : (userDepartments ?? []))
+                                        .find((d) => d.id === targetId);
+                                    if (target) {
+                                        return `Historial de Pagos — ${target.name}`;
+                                    }
+                                }
+                                // Caso: filtro 'mine' con multi-dpto no privilegiado
+                                if (!canSeeAllDepartments && userDepartments && userDepartments.length > 1) {
+                                    return 'Historial de Pagos — Mis Departamentos';
+                                }
+                                // Caso: privilegiado en 'mine' o mono-dpto user
+                                return userDepartmentName
                                     ? `Historial de Pagos — ${userDepartmentName}`
-                                    : 'Historial de Pagos'}
+                                    : 'Historial de Pagos';
+                            })()}
                         </CardTitle>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            {canSeeAllDepartments && historyDepartmentFilter === 'all'
-                                ? 'Todos los pagos del proyecto, de todos los departamentos. Los borradores aparecen en la tarjeta "Pagos en Borrador".'
-                                : <>Todos los pagos solicitados en {userDepartmentName ? <span className="font-medium">{userDepartmentName}</span> : 'tu departamento'} para este proyecto, en cualquier etapa del flujo. Los borradores aparecen en la tarjeta "Pagos en Borrador".</>}
+                            {(() => {
+                                if (canSeeAllDepartments && historyDepartmentFilter === 'all') {
+                                    return 'Todos los pagos del proyecto, de todos los departamentos. Los borradores aparecen en la tarjeta "Pagos en Borrador".';
+                                }
+                                if (historyDepartmentFilter !== 'mine' && historyDepartmentFilter !== 'all') {
+                                    const targetId = parseInt(historyDepartmentFilter, 10);
+                                    const target = (canSeeAllDepartments ? (departments ?? []) : (userDepartments ?? []))
+                                        .find((d) => d.id === targetId);
+                                    if (target) {
+                                        return <>Todos los pagos solicitados en <span className="font-medium">{target.name}</span> para este proyecto, en cualquier etapa del flujo. Los borradores aparecen en la tarjeta "Pagos en Borrador".</>;
+                                    }
+                                }
+                                if (!canSeeAllDepartments && userDepartments && userDepartments.length > 1) {
+                                    const names = userDepartments.map((d) => d.name).join(', ');
+                                    return <>Todos los pagos solicitados en tus departamentos (<span className="font-medium">{names}</span>) para este proyecto, en cualquier etapa del flujo. Los borradores aparecen en la tarjeta "Pagos en Borrador".</>;
+                                }
+                                return <>Todos los pagos solicitados en {userDepartmentName ? <span className="font-medium">{userDepartmentName}</span> : 'tu departamento'} para este proyecto, en cualquier etapa del flujo. Los borradores aparecen en la tarjeta "Pagos en Borrador".</>;
+                            })()}
                         </p>
                     </CardHeader>
                     <CardContent>
@@ -1825,16 +1875,30 @@ export default function Consolidated() {
                                     </Button>
                                 </div>
                             )}
-                            {canSeeAllDepartments && (
+                            {(canSeeAllDepartments || (userDepartments && userDepartments.length > 1)) && (
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Departamento</label>
-                                    <Select value={historyDepartmentFilter} onValueChange={(v) => { setHistoryDepartmentFilter(v as 'mine' | 'all'); setHistoryPage(1); }}>
+                                    <Select value={historyDepartmentFilter} onValueChange={(v) => { setHistoryDepartmentFilter(v); setHistoryPage(1); }}>
                                         <SelectTrigger className="w-56">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="mine">Mi departamento{userDepartmentName ? ` (${userDepartmentName})` : ''}</SelectItem>
-                                            <SelectItem value="all">Todos los departamentos</SelectItem>
+                                            {canSeeAllDepartments ? (
+                                                <>
+                                                    <SelectItem value="mine">Mi departamento{userDepartmentName ? ` (${userDepartmentName})` : ''}</SelectItem>
+                                                    <SelectItem value="all">Todos los departamentos</SelectItem>
+                                                    {(departments ?? []).map((d) => (
+                                                        <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                                                    ))}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <SelectItem value="mine">Mis departamentos</SelectItem>
+                                                    {(userDepartments ?? []).map((d) => (
+                                                        <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                                                    ))}
+                                                </>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -2636,7 +2700,7 @@ export default function Consolidated() {
                 payments={payments}
                 summary={paymentsSummary}
                 loading={loadingPayments}
-                userDepartmentId={userDepartmentId}
+                userDepartmentIds={userDepartmentIds}
                 onRequestPayment={(ir) => openPaymentModal(ir)}
                 paymentPolicy={paymentPolicy}
             />
@@ -2674,19 +2738,19 @@ type PaymentsDrawerProps = {
     payments: InvestmentPayment[];
     summary: PaymentsSummary | null;
     loading: boolean;
-    userDepartmentId: number;
+    userDepartmentIds: number[];
     onRequestPayment: (ir: InvestmentRequest) => void;
     paymentPolicy: import('@/types/payment-policy').PaymentPolicyPayload;
 };
 
 function PaymentsDrawer({
-    open, onClose, investmentRequest: ir, payments, summary, loading, userDepartmentId, onRequestPayment, paymentPolicy,
+    open, onClose, investmentRequest: ir, payments, summary, loading, userDepartmentIds, onRequestPayment, paymentPolicy,
 }: PaymentsDrawerProps) {
     const { formatCurrency, formatNative, nativeNoteOf } = useCurrencyFormatters();
 
     if (!ir) return null;
 
-    const isUserDept = ir.department?.id === userDepartmentId;
+    const isUserDept = !!ir.department?.id && userDepartmentIds.includes(ir.department.id);
     const groupRemaining = Number(ir.group_remaining ?? ir.remaining_balance);
     const canRequestPayment = isUserDept && groupRemaining > 0;
 

@@ -183,6 +183,18 @@ export default function Edit() {
                                     <InputError message={errors.branch_id} />
                                 </div>
                                 <div className="space-y-2">
+                                    <Label>Departamento</Label>
+                                    <Input
+                                        value={pr.department?.name ?? '—'}
+                                        readOnly
+                                        disabled
+                                        className="bg-gray-50 dark:bg-gray-800"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        El departamento de una solicitud no se puede cambiar después de la creación. Si necesitas cambiarlo, elimina esta solicitud y crea una nueva.
+                                    </p>
+                                </div>
+                                <div className="space-y-2">
                                     <Label>Gasto de Inversión</Label>
                                     <Popover open={expenseConceptOpen} onOpenChange={setExpenseConceptOpen}>
                                         <PopoverTrigger asChild>

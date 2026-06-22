@@ -45,6 +45,12 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'avatar' => $request->user()->avatar ?? null,
                     'department_id' => $request->user()->department_id,
+                    'department_ids' => $request->user()->departments()->pluck('departments.id')->all(),
+                    'departments' => $request->user()->departments()
+                        ->orderBy('name')
+                        ->get(['departments.id', 'departments.name'])
+                        ->map(fn ($d) => ['id' => $d->id, 'name' => $d->name])
+                        ->all(),
                     'two_factor_confirmed_at' => $request->user()->two_factor_confirmed_at,
                     'roles' => $request->user()->getRoleNames()->toArray(),
                 ] : null,

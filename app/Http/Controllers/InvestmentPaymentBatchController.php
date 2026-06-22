@@ -31,7 +31,7 @@ class InvestmentPaymentBatchController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($batch->user_id === $user->id || $batch->department_id === $user->department_id, Response::HTTP_FORBIDDEN);
+        abort_unless($batch->user_id === $user->id || $user->belongsToDepartment($batch->department_id), Response::HTTP_FORBIDDEN);
         abort_unless($batch->status === 'draft', Response::HTTP_CONFLICT, 'El lote ya fue enviado.');
 
         // Política de ventana: bloquear ENVIAR a Autorización fuera de horario (si la ventana está activa).

@@ -34,9 +34,13 @@ class CreateInvestmentRequest extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        $user = auth()->user();
+
         $record = new InvestmentRequest($data);
-        $record->user_id = auth()->id();
-        $record->department_id = auth()->user()->department_id;
+        $record->user_id = $user->id;
+
+        // department_id viene del form si existe (multi-dpto), si no se autoasigna al principal.
+        $record->department_id = ($data['department_id'] ?? null) ?: $user->department_id;
         $record->save();
 
         return $record;

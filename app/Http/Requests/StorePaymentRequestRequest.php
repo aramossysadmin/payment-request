@@ -33,6 +33,7 @@ class StorePaymentRequestRequest extends FormRequest
             'provider' => ['required', 'string', 'max:255'],
             'rfc' => ['nullable', 'string', 'alpha_num', 'min:12', 'max:13'],
             'invoice_folio' => ['required', 'string', 'max:255'],
+            'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')],
             'currency_id' => ['required', 'integer', Rule::exists('currencies', 'id')],
             'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')],
             'expense_concept_id' => ['required', 'integer', Rule::exists('expense_concepts', 'id')],
@@ -52,6 +53,21 @@ class StorePaymentRequestRequest extends FormRequest
 
     public function withValidator(Validator $validator): void
     {
+        $validator->after(function (Validator $validator) {
+            // Multi-dpto: validar department_id contra los del user
+            $user = $this->user();
+            $userDepartmentIds = $user->departments()->pluck('departments.id')->all();
+            $departmentIdFromForm = $this->input('department_id');
+
+            if (count($userDepartmentIds) > 1) {
+                if (! $departmentIdFromForm) {
+                    $validator->errors()->add('department_id', 'Debes seleccionar un departamento.');
+                } elseif (! in_array((int) $departmentIdFromForm, $userDepartmentIds, true)) {
+                    $validator->errors()->add('department_id', 'No tienes acceso a ese departamento.');
+                }
+            }
+        });
+
         $validator->after(function (Validator $validator) {
             $paymentType = PaymentType::find($this->input('payment_type_id'));
             $invoiceMode = $paymentType?->invoice_documents_mode ?? DocumentMode::Disabled;

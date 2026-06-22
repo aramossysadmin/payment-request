@@ -85,15 +85,19 @@ class InvestmentRequestController extends Controller
 
     public function create(): Response
     {
+        $user = auth()->user();
+        $userDepartmentIds = $user->departments()->pluck('departments.id')->all();
+
         return Inertia::render('investment-sheets/create', [
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'investmentExpenseConcepts' => InvestmentExpenseConcept::active()
-                ->whereHas('category.departments', fn ($q) => $q->where('departments.id', auth()->user()->department_id))
-                ->with('category:id,name')
+                ->whereHas('category.departments', fn ($q) => $q->whereIn('departments.id', $userDepartmentIds))
+                ->with(['category:id,name', 'category.departments:id,name'])
                 ->orderBy('name')
                 ->get(['id', 'name', 'investment_expense_category_id']),
             'projects' => Project::active()->orderBy('name')->get(['id', 'name', 'branch_id']),
+            'userDepartments' => $user->departments()->orderBy('name')->get(['departments.id', 'departments.name']),
         ]);
     }
 
@@ -104,7 +108,12 @@ class InvestmentRequestController extends Controller
 
         $investmentRequest = new InvestmentRequest($validated);
         $investmentRequest->user_id = $user->id;
-        $investmentRequest->department_id = $user->department_id;
+
+        // department_id viene del form (validado en StoreInvestmentRequestRequest para
+        // users multi-dpto) o se autoasigna al principal del user (mono-dpto).
+        $departmentIdFromForm = $validated['department_id'] ?? $request->input('department_id');
+        $investmentRequest->department_id = $departmentIdFromForm ?: $user->department_id;
+
         $investmentRequest->project_id = $request->input('project_id') ?: null;
         $investmentRequest->investment_expense_concept_id = $request->input('investment_expense_concept_id') ?: null;
 
@@ -175,16 +184,20 @@ class InvestmentRequestController extends Controller
 
         $investmentRequest->load(['currency', 'branch', 'project', 'expenseConcept', 'investmentExpenseConcept']);
 
+        $user = auth()->user();
+        $userDepartmentIds = $user->departments()->pluck('departments.id')->all();
+
         return Inertia::render('investment-sheets/edit', [
             'investmentRequest' => new InvestmentRequestResource($investmentRequest),
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'investmentExpenseConcepts' => InvestmentExpenseConcept::active()
-                ->whereHas('category.departments', fn ($q) => $q->where('departments.id', auth()->user()->department_id))
-                ->with('category:id,name')
+                ->whereHas('category.departments', fn ($q) => $q->whereIn('departments.id', $userDepartmentIds))
+                ->with(['category:id,name', 'category.departments:id,name'])
                 ->orderBy('name')
                 ->get(['id', 'name', 'investment_expense_category_id']),
             'projects' => Project::active()->orderBy('name')->get(['id', 'name', 'branch_id']),
+            'userDepartments' => $user->departments()->orderBy('name')->get(['departments.id', 'departments.name']),
         ]);
     }
 

@@ -45,13 +45,22 @@ const ivaRateOptions = [
     { value: '0.21', label: 'IVA 21%' },
 ];
 
-type InvestmentExpenseConceptOption = { id: number; name: string; category?: { id: number; name: string } | null };
+type DepartmentRef = { id: number; name: string };
+
+type InvestmentExpenseConceptOption = {
+    id: number;
+    name: string;
+    category?: { id: number; name: string; departments?: DepartmentRef[] } | null;
+};
+
+type UserDepartment = { id: number; name: string };
 
 type PageProps = {
     currencies: Currency[];
     branches: Branch[];
     investmentExpenseConcepts: InvestmentExpenseConceptOption[];
     projects: Project[];
+    userDepartments: UserDepartment[];
     errors: Record<string, string>;
 };
 
@@ -59,8 +68,13 @@ export default function Create() {
     const showProviderInfo = false;
     const showRetention = false;
 
-    const { currencies, branches, investmentExpenseConcepts, projects, errors } =
+    const { currencies, branches, investmentExpenseConcepts, projects, userDepartments, errors } =
         usePage<PageProps>().props;
+
+    const isMultiDept = (userDepartments?.length ?? 0) > 1;
+    const monoDeptId = !isMultiDept && (userDepartments?.length ?? 0) === 1
+        ? String(userDepartments[0].id)
+        : '';
 
     const [values, setValues] = useState({
         provider: '',
@@ -71,6 +85,7 @@ export default function Create() {
         invoice_folio: '',
         currency_id: '',
         branch_id: '',
+        department_id: monoDeptId,
         investment_expense_concept_id: '',
         description: '',
         subtotal: '',
@@ -84,6 +99,19 @@ export default function Create() {
     const [expenseConceptOpen, setExpenseConceptOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [files, setFiles] = useState<File[]>([]);
+
+    // Filtrar conceptos según el departamento elegido (si multi-dpto)
+    // o mostrar todos los del user (si mono-dpto, ya vienen filtrados del backend).
+    const filteredConcepts = isMultiDept && values.department_id
+        ? investmentExpenseConcepts.filter((ec) =>
+            ec.category?.departments?.some((d) => String(d.id) === values.department_id),
+          )
+        : investmentExpenseConcepts;
+
+    const handleDepartmentChange = (deptId: string) => {
+        // Cambiar dpto resetea el concepto (puede no aplicar al nuevo dpto).
+        setValues((prev) => ({ ...prev, department_id: deptId, investment_expense_concept_id: '' }));
+    };
 
     const handleProjectChange = (projectId: string) => {
         setSelectedProjectId(projectId);
@@ -180,6 +208,29 @@ export default function Create() {
                                     />
                                     <InputError message={errors.branch_id} />
                                 </div>
+                                {isMultiDept && (
+                                    <div className="space-y-2">
+                                        <Label>
+                                            Departamento <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Select value={values.department_id} onValueChange={handleDepartmentChange}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Seleccionar departamento..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {userDepartments.map((d) => (
+                                                    <SelectItem key={d.id} value={String(d.id)}>
+                                                        {d.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">
+                                            Eliges desde qué departamento capturas esta solicitud. Al cambiar el departamento se reinicia el concepto.
+                                        </p>
+                                        <InputError message={errors.department_id} />
+                                    </div>
+                                )}
                                 <div className="space-y-2">
                                     <Label>Concepto de Inversión</Label>
                                     <Popover open={expenseConceptOpen} onOpenChange={setExpenseConceptOpen}>
@@ -188,18 +239,21 @@ export default function Create() {
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={expenseConceptOpen}
+                                                disabled={isMultiDept && !values.department_id}
                                                 className="w-full justify-between font-normal"
                                             >
                                                 {values.investment_expense_concept_id
                                                     ? (() => {
-                                                        const selected = investmentExpenseConcepts.find(
+                                                        const selected = filteredConcepts.find(
                                                             (ec) => String(ec.id) === values.investment_expense_concept_id,
                                                         );
                                                         return selected
                                                             ? `${selected.category?.name ?? ''} - ${selected.name}`
                                                             : 'Seleccionar';
                                                     })()
-                                                    : 'Seleccionar'}
+                                                    : isMultiDept && !values.department_id
+                                                        ? 'Selecciona primero un departamento'
+                                                        : 'Seleccionar'}
                                                 <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
@@ -209,7 +263,7 @@ export default function Create() {
                                                 <CommandList>
                                                     <CommandEmpty>Sin resultados.</CommandEmpty>
                                                     <CommandGroup>
-                                                        {investmentExpenseConcepts.map((ec) => (
+                                                        {filteredConcepts.map((ec) => (
                                                             <CommandItem
                                                                 key={ec.id}
                                                                 value={`${ec.category?.name ?? ''} - ${ec.name}`}

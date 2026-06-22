@@ -151,18 +151,23 @@ class PaymentRequest extends Model
             return $query;
         }
 
-        if ($user->authorizedDepartments()->exists()) {
-            $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('id');
+        // Departamentos visibles = autorización (level 1/2) + pertenencia (pivot).
+        // Mismo patrón que InvestmentRequest::scopeVisibleTo para soportar multi-dpto
+        // incluso cuando el user también es autorizador de algún dpto.
+        $authorizedDepartmentIds = $user->authorizedDepartments()->pluck('id')->all();
+        $userDepartmentIds = $user->departments()->pluck('departments.id')->all();
+        $allVisibleDepartmentIds = array_values(array_unique(array_merge($authorizedDepartmentIds, $userDepartmentIds)));
 
-            return $query->where(function ($q) use ($user, $authorizedDepartmentIds) {
-                $q->whereIn('department_id', $authorizedDepartmentIds)
-                    ->orWhere('user_id', $user->id)
-                    ->orWhereHas('approvals', function ($approvalQuery) use ($user) {
-                        $approvalQuery->where('user_id', $user->id);
-                    });
+        return $query->where(function ($q) use ($user, $allVisibleDepartmentIds) {
+            $q->where('user_id', $user->id);
+
+            if (! empty($allVisibleDepartmentIds)) {
+                $q->orWhereIn('department_id', $allVisibleDepartmentIds);
+            }
+
+            $q->orWhereHas('approvals', function ($approvalQuery) use ($user) {
+                $approvalQuery->where('user_id', $user->id);
             });
-        }
-
-        return $query->where('user_id', $user->id);
+        });
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\IvaRate;
+use App\Models\InvestmentExpenseConcept;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -21,6 +22,7 @@ class StoreInvestmentRequestRequest extends FormRequest
     {
         return [
             'project_id' => ['nullable', 'integer', Rule::exists('projects', 'id')],
+            'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')],
             'investment_expense_concept_id' => ['nullable', 'integer', Rule::exists('investment_expense_concepts', 'id')],
             'provider' => ['nullable', 'string', 'max:255'],
             'rfc' => ['nullable', 'string', 'alpha_num', 'min:12', 'max:13'],
@@ -46,6 +48,35 @@ class StoreInvestmentRequestRequest extends FormRequest
 
     public function withValidator(Validator $validator): void
     {
+        $validator->after(function (Validator $validator) {
+            $user = $this->user();
+            $userDepartmentIds = $user->departments()->pluck('departments.id')->all();
+            $departmentIdFromForm = $this->input('department_id');
+
+            // Si el user es multi-dpto, debe enviar un department_id válido en el form.
+            if (count($userDepartmentIds) > 1) {
+                if (! $departmentIdFromForm) {
+                    $validator->errors()->add('department_id', 'Debes seleccionar un departamento.');
+                } elseif (! in_array((int) $departmentIdFromForm, $userDepartmentIds, true)) {
+                    $validator->errors()->add('department_id', 'No tienes acceso a ese departamento.');
+                }
+            }
+
+            // Si envía concept, debe pertenecer a una categoría con relación al dpto resuelto.
+            $conceptId = $this->input('investment_expense_concept_id');
+            $resolvedDepartmentId = $departmentIdFromForm ? (int) $departmentIdFromForm : $user->department_id;
+
+            if ($conceptId && $resolvedDepartmentId) {
+                $concept = InvestmentExpenseConcept::with('category.departments')->find($conceptId);
+                if ($concept) {
+                    $conceptDepartmentIds = $concept->category?->departments->pluck('id')->all() ?? [];
+                    if (! in_array($resolvedDepartmentId, $conceptDepartmentIds, true)) {
+                        $validator->errors()->add('investment_expense_concept_id', 'El concepto seleccionado no aplica al departamento elegido.');
+                    }
+                }
+            }
+        });
+
         $validator->after(function (Validator $validator) {
             $files = $this->file('invoice_documents', []);
             if (! is_array($files) || count($files) === 0) {

@@ -45,17 +45,25 @@ const ivaRateOptions = [
     { value: '0.21', label: 'IVA 21%' },
 ];
 
+type UserDepartment = { id: number; name: string };
+
 type PageProps = {
     currencies: Currency[];
     branches: Branch[];
     expenseConcepts: ExpenseConcept[];
     paymentTypes: PaymentTypeOption[];
+    userDepartments: UserDepartment[];
     errors: Record<string, string>;
 };
 
 export default function Create() {
-    const { currencies, branches, expenseConcepts, paymentTypes, errors } =
+    const { currencies, branches, expenseConcepts, paymentTypes, userDepartments, errors } =
         usePage<PageProps>().props;
+
+    const isMultiDept = (userDepartments?.length ?? 0) > 1;
+    const monoDeptId = !isMultiDept && (userDepartments?.length ?? 0) === 1
+        ? String(userDepartments[0].id)
+        : '';
 
     const [values, setValues] = useState({
         provider: '',
@@ -63,6 +71,7 @@ export default function Create() {
         invoice_folio: '',
         currency_id: '',
         branch_id: '',
+        department_id: monoDeptId,
         expense_concept_id: '',
         description: '',
         payment_type_id: '',
@@ -236,6 +245,33 @@ export default function Create() {
                                 />
                                 <InputError message={errors.branch_id} />
                             </div>
+
+                            {isMultiDept && (
+                                <div className="space-y-2">
+                                    <Label>
+                                        Departamento <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select
+                                        value={values.department_id}
+                                        onValueChange={(v) => handleChange('department_id', v)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seleccionar departamento..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {userDepartments.map((d) => (
+                                                <SelectItem key={d.id} value={String(d.id)}>
+                                                    {d.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Eliges desde qué departamento capturas esta solicitud de pago.
+                                    </p>
+                                    <InputError message={errors.department_id} />
+                                </div>
+                            )}
 
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">

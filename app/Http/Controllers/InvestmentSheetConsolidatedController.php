@@ -42,10 +42,14 @@ class InvestmentSheetConsolidatedController extends Controller
         $canSeeAllDepartments = $user->hasAnyRole(['super_admin', 'ceo', 'project_manager']);
         $canEditRequestConcept = $user->hasAnyRole(['super_admin', 'ceo', 'project_manager']);
 
-        // Default department filter to user's department on first load
+        // Default department filter:
+        // - User mono-dpto: default a su único dpto (comportamiento original).
+        // - User multi-dpto: default a "Todos" (null) para que vea todas sus solicitudes.
+        $isMultiDept = $user->departments()->count() > 1;
+
         $departmentId = $request->filled('department_id')
             ? ($request->input('department_id') ?: null)
-            : (string) $user->department_id;
+            : ($isMultiDept ? null : (string) $user->department_id);
 
         $query = InvestmentRequest::query()
             ->with(['user', 'department', 'currency', 'branch', 'expenseConcept', 'investmentExpenseConcept.category', 'approvals.user'])
@@ -150,13 +154,20 @@ class InvestmentSheetConsolidatedController extends Controller
         $currentWeek = $now->isoWeek;
         $currentYear = $now->isoWeekYear;
 
-        $draftBatch = InvestmentPaymentBatch::query()
-            ->where('department_id', $user->department_id)
-            ->where('project_id', $project->id)
-            ->where('week_number', $currentWeek)
-            ->where('year', $currentYear)
-            ->where('status', 'draft')
-            ->first();
+        // El draftBatch se asocia al departamento del filtro actual de la vista
+        // (que por default es el principal del user). Para users multi-dpto, al cambiar
+        // el filtro de dpto, se muestra el draft correspondiente a ese dpto.
+        $draftBatchDepartmentId = $departmentId ? (int) $departmentId : $user->department_id;
+
+        $draftBatch = $draftBatchDepartmentId
+            ? InvestmentPaymentBatch::query()
+                ->where('department_id', $draftBatchDepartmentId)
+                ->where('project_id', $project->id)
+                ->where('week_number', $currentWeek)
+                ->where('year', $currentYear)
+                ->where('status', 'draft')
+                ->first()
+            : null;
 
         $draftPayments = $draftBatch
             ? InvestmentPaymentRequest::query()
@@ -266,7 +277,7 @@ class InvestmentSheetConsolidatedController extends Controller
         // los roles super_admin/ceo/project_manager reciben TODOS los pagos (filtrado por dpto se hace
         // en cliente con un selector). Excluye drafts (esos ya aparecen en la tarjeta Pagos en Borrador).
         $userPaymentHistory = InvestmentPaymentRequest::query()
-            ->when(! $canSeeAllDepartments, fn ($q) => $q->where('department_id', $user->department_id))
+            ->when(! $canSeeAllDepartments, fn ($q) => $q->whereIn('department_id', $user->departments()->pluck('departments.id')))
             ->where('status', '!=', 'draft')
             ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
             ->with(['user', 'currency', 'investmentRequest.investmentExpenseConcept.category', 'branch', 'department'])
@@ -435,6 +446,7 @@ class InvestmentSheetConsolidatedController extends Controller
             ],
             'userDepartmentId' => $user->department_id,
             'userDepartmentName' => $user->department?->name,
+            'userDepartments' => $user->departments()->orderBy('name')->get(['departments.id', 'departments.name']),
             'isSuperAdmin' => $isSuperAdmin,
             'canSeeAllDepartments' => $canSeeAllDepartments,
             'departments' => $canSeeAllDepartments

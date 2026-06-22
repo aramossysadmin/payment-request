@@ -102,11 +102,14 @@ class PaymentRequestController extends Controller
 
     public function create(): Response
     {
+        $user = auth()->user();
+
         return Inertia::render('payment-requests/create', [
             'currencies' => Currency::all(['id', 'name', 'prefix']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'expenseConcepts' => ExpenseConcept::active()->get(['id', 'name']),
             'paymentTypes' => PaymentType::active()->forPayments()->get(['id', 'name', 'slug', 'invoice_documents_mode', 'additional_documents_mode']),
+            'userDepartments' => $user->departments()->orderBy('name')->get(['departments.id', 'departments.name']),
         ]);
     }
 
@@ -117,7 +120,11 @@ class PaymentRequestController extends Controller
 
         $paymentRequest = new PaymentRequest($validated);
         $paymentRequest->user_id = $user->id;
-        $paymentRequest->department_id = $user->department_id;
+
+        // department_id viene del form si existe (multi-dpto), si no se autoasigna al principal.
+        $departmentIdFromForm = $validated['department_id'] ?? $request->input('department_id');
+        $paymentRequest->department_id = $departmentIdFromForm ?: $user->department_id;
+
         $paymentRequest->save();
 
         $directory = 'advance-documents/'.now()->format('Y/m').'/'.$paymentRequest->folio_number;

@@ -55,6 +55,15 @@ class Department extends Model
         return $this->hasMany(User::class);
     }
 
+    /**
+     * Todos los usuarios que pertenecen a este departamento (principal o adicional)
+     * via la pivot `department_user`.
+     */
+    public function allUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'department_user')->withTimestamps();
+    }
+
     public function authorizerLevel1(): BelongsTo
     {
         return $this->belongsTo(User::class, 'authorizer_level_1_id');
