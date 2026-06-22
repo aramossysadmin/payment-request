@@ -33,6 +33,19 @@
 - Before running ANY command that could affect the database, verify that it is NOT pointing to the production database.
 - If Claude ever needs to suggest a command that could delete records, it MUST stop, warn the user, and propose a safe alternative instead.
 
+## ⚠️ APP_KEY y datos encriptados (CRITICAL — NEVER REGENERATE BLINDLY)
+- El portal almacena `sap_password` en la tabla `branches` con cifrado simétrico basado en `APP_KEY` (Laravel `encrypted` cast).
+- **Si `APP_KEY` cambia o se pierde, las contraseñas SAP se vuelven IRRECUPERABLES.** No hay forma matemática de descifrar sin la llave original.
+- **NUNCA ejecutar `php artisan key:generate` en producción** sin antes:
+  1. Respaldar BD completa.
+  2. Identificar tablas con datos encriptados (hoy: `branches.sap_password`).
+  3. Desencriptar (con la APP_KEY actual) y exportar a canal seguro, o planear re-captura manual.
+  4. Cambiar `APP_KEY`.
+  5. Re-encriptar / re-capturar los datos con la nueva llave.
+- Mantener un backup del `.env` de producción en un gestor de credenciales seguro.
+- En cualquier fresh deploy o cambio de servidor: SIEMPRE trasladar el `.env` existente. NUNCA reconstruir el `APP_KEY` desde cero si ya hay datos encriptados.
+- Si Claude detecta que el usuario está por regenerar `APP_KEY` (en cualquier entorno con datos), DEBE pausarse, advertir, y proponer el procedimiento de migración antes de proceder.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

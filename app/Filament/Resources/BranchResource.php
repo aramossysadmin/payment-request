@@ -30,10 +30,14 @@ class BranchResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make()
+                Forms\Components\Section::make('Información general')
+                    ->description('Nombre de la sucursal para identificación interna.')
+                    ->icon('heroicon-o-building-office')
+                    ->columns(2)
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->label('Nombre')
+                            ->prefixIcon('heroicon-o-building-office')
                             ->required()
                             ->maxLength(255),
                         Forms\Components\Select::make('society_id')
@@ -42,8 +46,44 @@ class BranchResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload(),
-                    ])
-                    ->columns(2),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Activa')
+                            ->helperText('Las sucursales inactivas no aparecen en los selectores ni pueden escribir a SAP. El histórico se mantiene visible.')
+                            ->default(true)
+                            ->inline(false),
+                    ]),
+
+                Forms\Components\Section::make('Conexión SAP')
+                    ->description('Credenciales y configuración para la conexión con SAP Business One.')
+                    ->icon('heroicon-o-circle-stack')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('sap_database')
+                            ->label('Base de datos SAP')
+                            ->helperText('Nombre de la base de datos en SAP.')
+                            ->prefixIcon('heroicon-o-circle-stack')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('sap_branch_id')
+                            ->label('Sucursal SAP')
+                            ->helperText('Identificador de la sucursal en SAP (BPLId).')
+                            ->required()
+                            ->maxLength(50),
+                        Forms\Components\TextInput::make('sap_user')
+                            ->label('Usuario SAP')
+                            ->helperText('Usuario de conexión al Service Layer.')
+                            ->prefixIcon('heroicon-o-user')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('sap_password')
+                            ->label('Contraseña SAP')
+                            ->password()
+                            ->revealable()
+                            ->helperText('Déjalo vacío para mantener la contraseña actual.')
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->required(fn (string $operation): bool => $operation === 'create')
+                            ->maxLength(255),
+                    ]),
             ]);
     }
 
@@ -60,6 +100,15 @@ class BranchResource extends Resource
                     ->label('Sociedad')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Activa')
+                    ->boolean()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('sap_configured')
+                    ->label('SAP')
+                    ->state(fn (Branch $record): string => $record->isSapConfigured() ? 'Configurado' : 'Sin SAP')
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Configurado' ? 'success' : 'warning'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()
