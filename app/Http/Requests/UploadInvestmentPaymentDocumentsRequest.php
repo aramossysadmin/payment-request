@@ -22,7 +22,10 @@ class UploadInvestmentPaymentDocumentsRequest extends FormRequest
         return [
             'payment_type' => ['required', Rule::enum(InvestmentPaymentType::class)],
             'pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
-            'xml' => ['nullable', 'file', 'mimes:xml', 'max:10240'],
+            // Los XML de CFDI suelen detectarse como text/plain por finfo (no traen
+            // declaracion XML ni BOM al inicio). La extension .xml sigue verificandose
+            // en withValidator() abajo.
+            'xml' => ['nullable', 'file', 'mimetypes:application/xml,text/xml,text/plain', 'max:10240'],
             'document' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ];
     }
@@ -72,7 +75,7 @@ class UploadInvestmentPaymentDocumentsRequest extends FormRequest
             'pdf.mimes' => 'El archivo PDF debe ser de tipo PDF.',
             'pdf.max' => 'El archivo PDF no puede exceder 10MB.',
             'xml.file' => 'El XML debe ser un archivo válido.',
-            'xml.mimes' => 'El archivo XML debe ser de tipo XML.',
+            'xml.mimetypes' => 'El archivo XML debe ser un XML válido.',
             'xml.max' => 'El archivo XML no puede exceder 10MB.',
             'document.file' => 'El documento debe ser un archivo válido.',
             'document.mimes' => 'El documento debe ser PDF o imagen (JPG, JPEG o PNG).',

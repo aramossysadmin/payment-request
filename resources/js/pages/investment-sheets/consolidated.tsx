@@ -462,12 +462,14 @@ export default function Consolidated() {
     const [uploadXml, setUploadXml] = useState<File | null>(null);
     const [uploadDocument, setUploadDocument] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
 
     const openUploadDialog = (uuid: string, currentPaymentType?: string | null) => {
         setUploadType(isValidUploadType(currentPaymentType) ? currentPaymentType : 'factura');
         setUploadPdf(null);
         setUploadXml(null);
         setUploadDocument(null);
+        setUploadErrors({});
         setUploadDialogUuid(uuid);
     };
 
@@ -476,6 +478,7 @@ export default function Consolidated() {
         setUploadPdf(null);
         setUploadXml(null);
         setUploadDocument(null);
+        setUploadErrors({});
     };
 
     const uploadCanSubmit = uploadType === 'factura'
@@ -485,6 +488,7 @@ export default function Consolidated() {
     const handleUploadDocuments = () => {
         if (!uploadDialogUuid || !uploadCanSubmit) return;
         setUploading(true);
+        setUploadErrors({});
 
         const formData = new FormData();
         formData.append('payment_type', uploadType);
@@ -506,7 +510,9 @@ export default function Consolidated() {
                     setUploadPdf(null);
                     setUploadXml(null);
                     setUploadDocument(null);
+                    setUploadErrors({});
                 },
+                onError: (errors) => setUploadErrors(errors as Record<string, string>),
                 onFinish: () => setUploading(false),
             },
         );
@@ -517,6 +523,7 @@ export default function Consolidated() {
         setUploadPdf(null);
         setUploadXml(null);
         setUploadDocument(null);
+        setUploadErrors({});
     };
 
     // Historial de pagos — estado de filtros + paginación + drawer
@@ -2627,6 +2634,7 @@ export default function Consolidated() {
                                     maxFiles={1}
                                     accept=".pdf"
                                 />
+                                <InputError message={uploadErrors.pdf} />
                             </div>
                             <div className="space-y-2">
                                 <Label>Factura XML <span className="text-red-500">*</span></Label>
@@ -2636,6 +2644,7 @@ export default function Consolidated() {
                                     maxFiles={1}
                                     accept=".xml"
                                 />
+                                <InputError message={uploadErrors.xml} />
                             </div>
                         </div>
                     ) : (
@@ -2647,6 +2656,12 @@ export default function Consolidated() {
                                 maxFiles={1}
                                 accept=".pdf,.jpg,.jpeg,.png"
                             />
+                            <InputError message={uploadErrors.document} />
+                        </div>
+                    )}
+                    {uploadErrors.payment_type && (
+                        <div className="pt-2">
+                            <InputError message={uploadErrors.payment_type} />
                         </div>
                     )}
                     <div className="flex justify-end gap-2 pt-4">
