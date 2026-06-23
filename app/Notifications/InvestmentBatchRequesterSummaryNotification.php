@@ -153,12 +153,24 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
      */
     private function mapPayment($payment): array
     {
+        // Respetar el monto ajustado por el PM si existe; si no, usar el original.
+        // El bug previo mostraba siempre `total` y confundía al solicitante cuando
+        // el PM ajustaba el pago (ej. pidió $5,000 y el PM aprobó $3,000).
+        $finalAmount = $payment->approved_amount !== null
+            ? (float) $payment->approved_amount
+            : (float) $payment->total;
+
+        $wasAdjusted = $payment->approved_amount !== null
+            && (float) $payment->approved_amount !== (float) $payment->total;
+
         return [
             'folio' => $payment->folio_number,
             'provider' => $payment->provider,
             'concept' => $payment->investmentRequest?->investmentExpenseConcept?->name ?? '-',
             'description' => $payment->description ?? '-',
-            'total' => number_format((float) $payment->total, 2),
+            'total' => number_format($finalAmount, 2),
+            'was_adjusted' => $wasAdjusted,
+            'original_total' => $wasAdjusted ? number_format((float) $payment->total, 2) : null,
             'currency' => $payment->currency?->prefix ?? 'MXN',
         ];
     }

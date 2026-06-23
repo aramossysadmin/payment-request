@@ -48,6 +48,9 @@
 <td style="padding: 10px 0; border-bottom: 1px solid #E5E7EB; text-align: right; vertical-align: top; white-space: nowrap;">
 <div style="font-size: 14px; font-weight: 700; color: #191731;">$ {{ $item['total'] }}</div>
 <div style="font-size: 12px; color: #6B7280;">{{ $item['currency'] }}</div>
+@if (!empty($item['was_adjusted']))
+<div style="font-size: 11px; color: #C5A059; margin-top: 4px; font-style: italic;">Ajustado de $ {{ $item['original_total'] }}</div>
+@endif
 </td>
 </tr>
 @endforeach
@@ -73,6 +76,9 @@
 <td style="padding: 10px 0; border-bottom: 1px solid #E5E7EB; text-align: right; vertical-align: top; white-space: nowrap;">
 <div style="font-size: 14px; font-weight: 700; color: #191731;">$ {{ $item['total'] }}</div>
 <div style="font-size: 12px; color: #6B7280;">{{ $item['currency'] }}</div>
+@if (!empty($item['was_adjusted']))
+<div style="font-size: 11px; color: #C5A059; margin-top: 4px; font-style: italic;">Ajustado de $ {{ $item['original_total'] }}</div>
+@endif
 </td>
 </tr>
 @endforeach
