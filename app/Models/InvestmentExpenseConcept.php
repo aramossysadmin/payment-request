@@ -28,12 +28,22 @@ class InvestmentExpenseConcept extends Model
     protected $fillable = [
         'name',
         'investment_expense_category_id',
+        'sap_item_code',
         'is_active',
     ];
 
     protected function setNameAttribute(string $value): void
     {
         $this->attributes['name'] = mb_strtoupper(trim($value));
+    }
+
+    /**
+     * ItemCode de SAP B1 — siempre uppercase + trim. NULL si vacío.
+     */
+    protected function setSapItemCodeAttribute(?string $value): void
+    {
+        $trimmed = $value !== null ? trim($value) : null;
+        $this->attributes['sap_item_code'] = filled($trimmed) ? mb_strtoupper($trimmed) : null;
     }
 
     protected function casts(): array
@@ -51,5 +61,14 @@ class InvestmentExpenseConcept extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * True si el concepto está mapeado a un ItemCode de SAP B1.
+     * Usar como verificación previa antes de enviar pagos relacionados a SAP.
+     */
+    public function isSapMapped(): bool
+    {
+        return filled($this->sap_item_code);
     }
 }

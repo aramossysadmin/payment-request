@@ -42,6 +42,13 @@ class InvestmentExpenseConceptResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
+                        Forms\Components\TextInput::make('sap_item_code')
+                            ->label('Número de artículo SAP')
+                            ->helperText('ItemCode del artículo en SAP B1. Identificador único.')
+                            ->prefixIcon('heroicon-o-hashtag')
+                            ->required()
+                            ->maxLength(50)
+                            ->unique(ignoreRecord: true),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Activo')
                             ->default(true)
@@ -63,6 +70,13 @@ class InvestmentExpenseConceptResource extends Resource
                     ->label('Categoría')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('sap_item_code')
+                    ->label('Cód. SAP')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color(fn (?string $state): string => $state ? 'success' : 'warning')
+                    ->formatStateUsing(fn (?string $state): string => $state ?? 'Sin SAP'),
                 Tables\Columns\ToggleColumn::make('is_active')
                     ->label('Estado')
                     ->sortable(),
@@ -76,6 +90,16 @@ class InvestmentExpenseConceptResource extends Resource
                 Tables\Filters\SelectFilter::make('investment_expense_category_id')
                     ->label('Categoría')
                     ->relationship('category', 'name'),
+                Tables\Filters\TernaryFilter::make('sap_item_code')
+                    ->label('Mapeado a SAP')
+                    ->trueLabel('Con código SAP')
+                    ->falseLabel('Sin código SAP')
+                    ->placeholder('Todos')
+                    ->queries(
+                        true: fn ($q) => $q->whereNotNull('sap_item_code'),
+                        false: fn ($q) => $q->whereNull('sap_item_code'),
+                        blank: fn ($q) => $q,
+                    ),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Estado')
                     ->trueLabel('Activos')
