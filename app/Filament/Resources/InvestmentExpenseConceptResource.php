@@ -46,7 +46,6 @@ class InvestmentExpenseConceptResource extends Resource
                             ->label('Número de artículo SAP')
                             ->helperText('ItemCode del artículo en SAP B1. Identificador único.')
                             ->prefixIcon('heroicon-o-hashtag')
-                            ->required()
                             ->maxLength(50)
                             ->unique(ignoreRecord: true),
                         Forms\Components\Toggle::make('is_active')

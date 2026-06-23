@@ -48,7 +48,7 @@ class BranchResource extends Resource
                             ->preload(),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Activa')
-                            ->helperText('Las sucursales inactivas no aparecen en los selectores ni pueden escribir a SAP. El histórico se mantiene visible.')
+                            ->helperText('Toggle de control reservado. El filtro en selectores del portal y la exclusión del envío a SAP se aplicarán cuando se active la integración SAP. Por ahora marca la sucursal como inactiva en el catálogo administrativo.')
                             ->default(true)
                             ->inline(false),
                     ]),
@@ -62,18 +62,15 @@ class BranchResource extends Resource
                             ->label('Base de datos SAP')
                             ->helperText('Nombre de la base de datos en SAP.')
                             ->prefixIcon('heroicon-o-circle-stack')
-                            ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('sap_branch_id')
                             ->label('Sucursal SAP')
                             ->helperText('Identificador de la sucursal en SAP (BPLId).')
-                            ->required()
                             ->maxLength(50),
                         Forms\Components\TextInput::make('sap_user')
                             ->label('Usuario SAP')
                             ->helperText('Usuario de conexión al Service Layer.')
                             ->prefixIcon('heroicon-o-user')
-                            ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('sap_password')
                             ->label('Contraseña SAP')
@@ -81,7 +78,6 @@ class BranchResource extends Resource
                             ->revealable()
                             ->helperText('Déjalo vacío para mantener la contraseña actual.')
                             ->dehydrated(fn ($state) => filled($state))
-                            ->required(fn (string $operation): bool => $operation === 'create')
                             ->maxLength(255),
                     ]),
             ]);
