@@ -2040,7 +2040,7 @@ export default function Consolidated() {
                                         <SelectContent>
                                             {canSeeAllDepartments ? (
                                                 <>
-                                                    <SelectItem value="mine">Mi departamento{userDepartmentName ? ` (${userDepartmentName})` : ''}</SelectItem>
+                                                    <SelectItem value="mine">{userDepartmentName ?? 'Mi departamento'}</SelectItem>
                                                     <SelectItem value="all">Todos los departamentos</SelectItem>
                                                     {(departments ?? []).map((d) => (
                                                         <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
@@ -2314,10 +2314,10 @@ export default function Consolidated() {
                                                             <Button
                                                                 size="sm"
                                                                 variant="ghost"
+                                                                title="Ver detalle"
                                                                 onClick={() => setHistoryDetailUuid(payment.uuid)}
                                                             >
-                                                                <Eye className="mr-1 h-3.5 w-3.5" />
-                                                                Ver
+                                                                <Eye className="h-3.5 w-3.5" />
                                                             </Button>
                                                         </div>
                                                     </td>
