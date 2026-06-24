@@ -1,11 +1,11 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { CheckIcon, ChevronsUpDownIcon, Info } from 'lucide-react';
+import { Building2, CheckIcon, ChevronsUpDownIcon, ClipboardList, FileText, Info, Paperclip, Wallet } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Command,
@@ -170,9 +170,15 @@ export default function Create() {
             <Head title="Nueva Solicitud De Inversión" />
 
             <div className="p-4 md:p-6">
-                <h1 className="mb-6 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-                    Nueva Solicitud De Inversión
-                </h1>
+                <div className="mb-6">
+                    <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                        <ClipboardList className="h-6 w-6 text-muted-foreground" />
+                        Nueva Solicitud De Inversión
+                    </h1>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Captura el concepto, el presupuesto y los documentos de una nueva solicitud de inversión.
+                    </p>
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Row 1: Datos Generales */}
@@ -180,7 +186,11 @@ export default function Create() {
                         {/* Section 1: Datos Generales del Concepto de Inversión */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Datos Generales de la Solicitud De Inversión</CardTitle>
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    Datos Generales de la Solicitud De Inversión
+                                </CardTitle>
+                                <CardDescription>Proyecto, sucursal, concepto de inversión y descripción.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -319,7 +329,11 @@ export default function Create() {
                         {showProviderInfo && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Información del Proveedor</CardTitle>
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                                    Información del Proveedor
+                                </CardTitle>
+                                <CardDescription>Datos fiscales y de contacto del proveedor.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid gap-4 sm:grid-cols-2">
@@ -404,7 +418,11 @@ export default function Create() {
                         {/* Section 3: Datos del Presupuesto */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Datos del Presupuesto</CardTitle>
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                                    Datos del Presupuesto
+                                </CardTitle>
+                                <CardDescription>Cotización, moneda y montos. El IVA y el total se calculan automáticamente.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
@@ -537,9 +555,11 @@ export default function Create() {
                         {/* Section 4: Documentos Adjuntos */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>
-                                    Documentos Adjuntos <span className="text-sm font-normal text-gray-400">(opcional)</span>
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                    Documentos Adjuntos <span className="text-sm font-normal text-muted-foreground">(opcional)</span>
                                 </CardTitle>
+                                <CardDescription>Adjunta archivos (PDF o imagen).</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="mb-3 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
@@ -549,9 +569,6 @@ export default function Create() {
                                         <span className="font-medium">cotización</span> es importante adjuntarla desde este paso.
                                     </p>
                                 </div>
-                                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                                    Adjunta archivos (PDF o imagen).
-                                </p>
                                 <FileUpload
                                     files={files}
                                     onChange={setFiles}
