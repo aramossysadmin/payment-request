@@ -63,27 +63,52 @@ class InvestmentPaymentReviewController extends Controller
             ->latest('id')
             ->get();
 
+        // Precalcular el desglose de presupuesto UNA vez por grupo de concepto (evita N+1:
+        // los pagos del mismo concepto comparten el mismo saldo disponible).
+        $keyFor = fn (InvestmentRequest $ir): string => ($ir->investment_expense_concept_id && $ir->project_id)
+            ? 'c:'.$ir->project_id.':'.$ir->investment_expense_concept_id
+            : 'r:'.$ir->id;
+
+        $budgetByKey = [];
+        foreach ($payments as $p) {
+            if ($ir = $p->investmentRequest) {
+                $budgetByKey[$keyFor($ir)] ??= $ir->budgetBreakdown();
+            }
+        }
+
         $grouped = $payments->groupBy(fn (InvestmentPaymentRequest $p) => $p->department?->name ?? 'Sin departamento')
-            ->map(fn ($departmentPayments, string $departmentName) => [
-                'department' => $departmentName,
-                'count' => $departmentPayments->count(),
-                'total' => number_format((float) $departmentPayments->sum(fn ($p) => (float) $p->total), 2, '.', ''),
-                'payments' => $departmentPayments->map(fn (InvestmentPaymentRequest $p) => [
-                    'uuid' => $p->uuid,
-                    'folio_number' => $p->folio_number,
-                    'concept' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
-                    'project' => $p->investmentRequest?->project?->name ?? '-',
-                    'provider' => $p->provider,
-                    'rfc' => $p->rfc,
-                    'requester' => $p->user?->name ?? '-',
-                    'currency_prefix' => $p->currency?->prefix ?? 'MXN',
-                    'branch' => $p->branch?->name ?? '-',
-                    'subtotal' => (string) $p->subtotal,
-                    'iva' => (string) $p->iva,
-                    'total' => (string) $p->total,
-                    'payment_provision_date' => $p->payment_provision_date?->toDateString(),
-                ])->values(),
-            ])
+            ->map(function ($departmentPayments, string $departmentName) use ($budgetByKey, $keyFor) {
+                return [
+                    'department' => $departmentName,
+                    'count' => $departmentPayments->count(),
+                    'total' => number_format((float) $departmentPayments->sum(fn ($p) => (float) $p->total), 2, '.', ''),
+                    'payments' => $departmentPayments->map(function (InvestmentPaymentRequest $p) use ($budgetByKey, $keyFor) {
+                        $bd = ($ir = $p->investmentRequest)
+                            ? $budgetByKey[$keyFor($ir)]
+                            : ['budget' => 0.0, 'paid' => 0.0, 'available' => 0.0];
+
+                        return [
+                            'uuid' => $p->uuid,
+                            'folio_number' => $p->folio_number,
+                            'concept' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
+                            'project' => $p->investmentRequest?->project?->name ?? '-',
+                            'provider' => $p->provider,
+                            'rfc' => $p->rfc,
+                            'requester' => $p->user?->name ?? '-',
+                            'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                            'branch' => $p->branch?->name ?? '-',
+                            'subtotal' => (string) $p->subtotal,
+                            'iva' => (string) $p->iva,
+                            'total' => (string) $p->total,
+                            'payment_provision_date' => $p->payment_provision_date?->toDateString(),
+                            'payment_week_number' => $p->payment_week_number,
+                            'budget_total' => number_format($bd['budget'], 2, '.', ''),
+                            'budget_paid' => number_format($bd['paid'], 2, '.', ''),
+                            'budget_available' => number_format($bd['available'], 2, '.', ''),
+                        ];
+                    })->values(),
+                ];
+            })
             ->values();
 
         return Inertia::render('investment-payment-review/index', [

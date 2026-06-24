@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\IvaRate;
+use App\States\InvestmentRequest\Completed;
 use App\States\InvestmentRequest\InvestmentRequestState;
 use Database\Factories\InvestmentRequestFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -171,6 +172,43 @@ class InvestmentRequest extends Model
             ->sum('total');
 
         return bcsub($this->total, (string) $paid, 2);
+    }
+
+    /**
+     * Desglose del presupuesto del concepto (project + investment_expense_concept):
+     * suma de los InvestmentRequest en estado Completed del mismo concepto, menos los
+     * pagos no rechazados. Si la solicitud no tiene concepto/proyecto, cae al saldo del
+     * propio request. Es la misma fórmula que valida la captura de pagos.
+     *
+     * @return array{budget: float, paid: float, available: float, scope: 'concept'|'request'}
+     */
+    public function budgetBreakdown(): array
+    {
+        if ($this->investment_expense_concept_id && $this->project_id) {
+            $groupIds = static::query()
+                ->where('project_id', $this->project_id)
+                ->where('investment_expense_concept_id', $this->investment_expense_concept_id)
+                ->whereState('status', Completed::class)
+                ->pluck('id');
+
+            $budget = (float) static::whereIn('id', $groupIds)->sum('total');
+            $paid = (float) InvestmentPaymentRequest::query()
+                ->whereIn('investment_request_id', $groupIds)
+                ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'auto_cancelled'])
+                ->sum('total');
+
+            return ['budget' => $budget, 'paid' => $paid, 'available' => $budget - $paid, 'scope' => 'concept'];
+        }
+
+        $budget = (float) $this->total;
+        $available = (float) $this->remaining_balance;
+
+        return ['budget' => $budget, 'paid' => $budget - $available, 'available' => $available, 'scope' => 'request'];
+    }
+
+    public function availableBudget(): float
+    {
+        return $this->budgetBreakdown()['available'];
     }
 
     public function scopeVisibleTo(Builder $query, User $user): Builder

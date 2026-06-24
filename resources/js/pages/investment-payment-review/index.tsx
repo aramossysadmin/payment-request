@@ -1,9 +1,10 @@
 import { Head, router } from '@inertiajs/react';
-import { Inbox, Send } from 'lucide-react';
+import { Eye, Inbox, Send } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProjectCombobox, type Project } from '@/components/project-combobox';
@@ -25,6 +26,10 @@ type Payment = {
     iva: string;
     total: string;
     payment_provision_date: string | null;
+    payment_week_number: number | null;
+    budget_total: string;
+    budget_paid: string;
+    budget_available: string;
 };
 
 type Group = {
@@ -45,6 +50,17 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Revisión de Pagos', href: '/investment-payment-review' },
 ];
 
+function formatPaymentDate(date: string | null): string {
+    if (!date) {
+        return '—';
+    }
+    const parsed = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+        return date;
+    }
+    return parsed.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
 export default function InvestmentPaymentReviewIndex({ groups, totalCount, projects, selectedProjectId }: Props) {
     const [decisions, setDecisions] = useState<Record<string, { approved: boolean; approved_amount: string }>>(
         () => {
@@ -60,6 +76,12 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
     const [rejectionReason, setRejectionReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [detailUuid, setDetailUuid] = useState<string | null>(null);
+
+    const detailPayment = useMemo(
+        () => groups.flatMap((g) => g.payments).find((p) => p.uuid === detailUuid) ?? null,
+        [groups, detailUuid],
+    );
 
     const toggleApproval = (uuid: string) => {
         setDecisions((prev) => ({
@@ -196,7 +218,8 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                                     <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Proveedor</th>
                                                     <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Solicitante</th>
                                                     <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Solicitado</th>
-                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">Aprobar Monto</th>
+                                                    <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Aprobar Monto</th>
+                                                    <th className="px-2 py-3 font-semibold whitespace-nowrap text-center w-12">Detalle</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -241,6 +264,18 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                                                     />
                                                                     {error && <p className="text-xs text-red-500">{error}</p>}
                                                                 </div>
+                                                            </td>
+                                                            <td className="px-2 py-3 text-center">
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    aria-label="Ver detalle del pago"
+                                                                    onClick={() => setDetailUuid(payment.uuid)}
+                                                                >
+                                                                    <Eye className="h-4 w-4" />
+                                                                </Button>
                                                             </td>
                                                         </tr>
                                                     );
@@ -288,6 +323,63 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                 </div>
                             </CardContent>
                         </Card>
+
+                        <Dialog open={detailUuid !== null} onOpenChange={(open) => !open && setDetailUuid(null)}>
+                            <DialogContent className="sm:max-w-md">
+                                {detailPayment && (
+                                    <>
+                                        <DialogHeader>
+                                            <DialogTitle>
+                                                Pago #{String(detailPayment.folio_number).padStart(5, '0')}
+                                            </DialogTitle>
+                                            <DialogDescription>{detailPayment.concept}</DialogDescription>
+                                        </DialogHeader>
+
+                                        <div className="space-y-5 text-sm">
+                                            <section className="space-y-2">
+                                                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                                    Semana del pago
+                                                </h4>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-muted-foreground">Semana</span>
+                                                    <span className="font-medium">
+                                                        {detailPayment.payment_week_number
+                                                            ? `Semana ${detailPayment.payment_week_number}`
+                                                            : '—'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-muted-foreground">Fecha de pago</span>
+                                                    <span className="font-medium">
+                                                        {formatPaymentDate(detailPayment.payment_provision_date)}
+                                                    </span>
+                                                </div>
+                                            </section>
+
+                                            <section className="space-y-2 border-t pt-4">
+                                                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                                    Presupuesto del concepto
+                                                </h4>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-muted-foreground">Presupuesto</span>
+                                                    <span className="font-mono">{formatCurrency(detailPayment.budget_total)}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-muted-foreground">Comprometido</span>
+                                                    <span className="font-mono">{formatCurrency(detailPayment.budget_paid)}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between border-t pt-2">
+                                                    <span className="font-semibold">Disponible</span>
+                                                    <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                                                        {formatCurrency(detailPayment.budget_available)}
+                                                    </span>
+                                                </div>
+                                            </section>
+                                        </div>
+                                    </>
+                                )}
+                            </DialogContent>
+                        </Dialog>
                     </>
                 )}
             </div>

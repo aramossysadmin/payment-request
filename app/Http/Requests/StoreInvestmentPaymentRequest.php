@@ -4,11 +4,9 @@ namespace App\Http\Requests;
 
 use App\Enums\InvestmentPaymentType;
 use App\Enums\IvaRate;
-use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Services\PaymentPolicyAuditService;
 use App\Services\PaymentRequestPolicyService;
-use App\States\InvestmentRequest\Completed;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -105,35 +103,16 @@ class StoreInvestmentPaymentRequest extends FormRequest
             }
 
             $investmentRequest = InvestmentRequest::find($this->input('investment_request_id'));
-            if ($investmentRequest && $investmentRequest->investment_expense_concept_id && $investmentRequest->project_id) {
-                $groupIds = InvestmentRequest::query()
-                    ->where('project_id', $investmentRequest->project_id)
-                    ->where('investment_expense_concept_id', $investmentRequest->investment_expense_concept_id)
-                    ->whereState('status', Completed::class)
-                    ->pluck('id');
-
-                $groupBudget = (float) InvestmentRequest::whereIn('id', $groupIds)->sum('total');
-                $groupPaid = (float) InvestmentPaymentRequest::query()
-                    ->whereIn('investment_request_id', $groupIds)
-                    ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'auto_cancelled'])
-                    ->sum('total');
-
-                $remaining = $groupBudget - $groupPaid;
+            if ($investmentRequest) {
+                $breakdown = $investmentRequest->budgetBreakdown();
+                $remaining = $breakdown['available'];
                 $total = (float) $this->input('total', 0);
 
                 if ($total > $remaining) {
+                    $label = $breakdown['scope'] === 'concept' ? 'presupuesto' : 'concepto';
                     $validator->errors()->add(
                         'total',
-                        'El total ($'.number_format($total, 2).') excede el saldo disponible del presupuesto ($'.number_format($remaining, 2).').',
-                    );
-                }
-            } elseif ($investmentRequest) {
-                $remaining = (float) $investmentRequest->remaining_balance;
-                $total = (float) $this->input('total', 0);
-                if ($total > $remaining) {
-                    $validator->errors()->add(
-                        'total',
-                        'El total ($'.number_format($total, 2).') excede el saldo disponible del concepto ($'.number_format($remaining, 2).').',
+                        'El total ($'.number_format($total, 2).') excede el saldo disponible del '.$label.' ($'.number_format($remaining, 2).').',
                     );
                 }
             }
