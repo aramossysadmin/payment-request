@@ -102,11 +102,15 @@ export default function Create() {
 
     // Filtrar conceptos según el departamento elegido (si multi-dpto)
     // o mostrar todos los del user (si mono-dpto, ya vienen filtrados del backend).
-    const filteredConcepts = isMultiDept && values.department_id
-        ? investmentExpenseConcepts.filter((ec) =>
-            ec.category?.departments?.some((d) => String(d.id) === values.department_id),
-          )
-        : investmentExpenseConcepts;
+    const filteredConcepts = (
+        isMultiDept && values.department_id
+            ? investmentExpenseConcepts.filter((ec) =>
+                ec.category?.departments?.some((d) => String(d.id) === values.department_id),
+              )
+            : investmentExpenseConcepts
+    )
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
 
     const handleDepartmentChange = (deptId: string) => {
         // Cambiar dpto resetea el concepto (puede no aplicar al nuevo dpto).
