@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { Building2, CheckIcon, ChevronsUpDownIcon, ClipboardList, FileText, Info, Paperclip, Wallet } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
@@ -100,17 +100,21 @@ export default function Create() {
     const [processing, setProcessing] = useState(false);
     const [files, setFiles] = useState<File[]>([]);
 
-    // Filtrar conceptos según el departamento elegido (si multi-dpto)
-    // o mostrar todos los del user (si mono-dpto, ya vienen filtrados del backend).
-    const filteredConcepts = (
-        isMultiDept && values.department_id
+    // Filtrar conceptos según el departamento elegido (si multi-dpto) o mostrar todos
+    // los del user (si mono-dpto, ya vienen filtrados del backend). Siempre ordenados
+    // A-Z (localeCompare es-MX). useMemo evita re-filtrar/ordenar en cada render del
+    // formulario (cada keystroke dispara setValues).
+    const filteredConcepts = useMemo(() => {
+        const base = isMultiDept && values.department_id
             ? investmentExpenseConcepts.filter((ec) =>
                 ec.category?.departments?.some((d) => String(d.id) === values.department_id),
               )
-            : investmentExpenseConcepts
-    )
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+            : investmentExpenseConcepts;
+
+        return [...base].sort((a, b) => a.name.localeCompare(b.name, 'es-MX', { sensitivity: 'base' }));
+    }, [isMultiDept, values.department_id, investmentExpenseConcepts]);
+
+    const selectedBranchName = branches.find((b) => String(b.id) === values.branch_id)?.name;
 
     const handleDepartmentChange = (deptId: string) => {
         // Cambiar dpto resetea el concepto (puede no aplicar al nuevo dpto).
@@ -213,12 +217,13 @@ export default function Create() {
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Sucursal</Label>
-                                        <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
-                                            {branches.find((b) => String(b.id) === values.branch_id)?.name ? (
-                                                <span className="font-medium text-foreground">
-                                                    {branches.find((b) => String(b.id) === values.branch_id)?.name}
-                                                </span>
+                                        <Label id="sucursal-label">Sucursal</Label>
+                                        <div
+                                            aria-labelledby="sucursal-label"
+                                            className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm"
+                                        >
+                                            {selectedBranchName ? (
+                                                <span className="font-medium text-foreground">{selectedBranchName}</span>
                                             ) : (
                                                 <span className="text-muted-foreground">Se asigna al seleccionar proyecto</span>
                                             )}
