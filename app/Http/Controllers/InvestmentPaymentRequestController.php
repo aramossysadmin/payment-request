@@ -57,14 +57,15 @@ class InvestmentPaymentRequestController extends Controller
                 'concept_folio' => $p->investmentRequest?->folio_number,
             ]);
 
-        // Fuente única: presupuesto/pagado/disponible del concepto, normalizado a MXN
-        // y con PAID_STATUSES (mismo número que el header del consolidado y la validación).
+        // Fuente única: presupuesto/comprometido/pagado/disponible del concepto, normalizado
+        // a MXN (mismo número que el header del consolidado y la validación de captura).
         $breakdown = $investmentRequest->budgetBreakdown();
 
         return response()->json([
             'payments' => $payments,
             'summary' => [
                 'total_concept' => number_format($breakdown['budget'], 2, '.', ''),
+                'committed' => $breakdown['committed'],
                 'total_paid' => $breakdown['paid'],
                 'remaining' => number_format($breakdown['available'], 2, '.', ''),
                 'count' => $payments->count(),

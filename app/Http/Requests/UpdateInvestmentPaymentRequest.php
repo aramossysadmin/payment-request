@@ -104,14 +104,9 @@ class UpdateInvestmentPaymentRequest extends FormRequest
             $investmentRequest = $payment?->investmentRequest;
 
             if ($investmentRequest) {
-                $breakdown = $investmentRequest->budgetBreakdown();
-
-                // Al EDITAR, el monto del propio pago no debe contar contra el disponible:
-                // si ya estaba en PAID_STATUSES, lo sumamos de vuelta (en MXN).
-                $thisPaymentMxn = in_array($payment->status, InvestmentPaymentRequest::PAID_STATUSES, true)
-                    ? (float) $payment->total * (float) ($payment->currency?->exchange_rate ?? 1)
-                    : 0.0;
-                $remaining = $breakdown['available'] + $thisPaymentMxn;
+                // Al EDITAR un borrador se excluye el propio pago del comprometido/pagado
+                // para no contarlo contra sí mismo (disponible = presupuesto − comprometido − pagado).
+                $remaining = $investmentRequest->budgetBreakdown(excludePaymentId: $payment->id)['available'];
 
                 // Normalizar el nuevo total (en su moneda) a MXN antes de comparar.
                 $rate = (float) (Currency::find((int) $this->input('currency_id'))?->exchange_rate ?? 1);
@@ -120,7 +115,7 @@ class UpdateInvestmentPaymentRequest extends FormRequest
                 if ($totalMxn > $remaining) {
                     $validator->errors()->add(
                         'total',
-                        'El total ($'.number_format($totalMxn, 2).' MXN) excede el saldo disponible del presupuesto ($'.number_format($remaining, 2).' MXN).',
+                        'El total ($'.number_format($totalMxn, 2).' MXN) excede el saldo disponible del presupuesto ($'.number_format($remaining, 2).' MXN, ya descontando lo comprometido y pagado).',
                     );
                 }
             }

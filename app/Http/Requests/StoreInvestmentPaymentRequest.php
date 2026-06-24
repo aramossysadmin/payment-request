@@ -117,7 +117,7 @@ class StoreInvestmentPaymentRequest extends FormRequest
                     $label = $breakdown['scope'] === 'concept' ? 'presupuesto' : 'concepto';
                     $validator->errors()->add(
                         'total',
-                        'El total ($'.number_format($totalMxn, 2).' MXN) excede el saldo disponible del '.$label.' ($'.number_format($remaining, 2).' MXN).',
+                        'El total ($'.number_format($totalMxn, 2).' MXN) excede el saldo disponible del '.$label.' ($'.number_format($remaining, 2).' MXN, ya descontando lo comprometido y pagado).',
                     );
                 }
             }

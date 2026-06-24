@@ -168,59 +168,86 @@ class InvestmentRequest extends Model
 
     public function getRemainingBalanceAttribute(): string
     {
-        $paid = $this->investmentPaymentRequests()
-            ->whereIn('status', ['pending_approval', 'approved'])
-            ->sum('total');
-
-        return bcsub($this->total, (string) $paid, 2);
+        return number_format($this->availableBudget(), 2, '.', '');
     }
 
     /**
      * Desglose del presupuesto del concepto (project + concept + department), TODO
-     * normalizado a MXN (× exchange_rate). Presupuesto = solicitudes Completed del
-     * grupo; pagado = pagos en InvestmentPaymentRequest::PAID_STATUSES. Si la solicitud
-     * no tiene concepto/proyecto, cae al saldo del propio request. Única fuente de verdad
-     * para el "saldo disponible del concepto" (header, panel y validación de captura).
+     * normalizado a MXN (× exchange_rate). Presupuesto = solicitudes Completed del grupo.
+     * Comprometido = pagos en COMMITTED_STATUSES (desde el borrador); Pagado = pagos en
+     * PAID_STATUSES. Ambos consumen presupuesto, así que Disponible = budget − comprometido
+     * − pagado. Si la solicitud no tiene concepto/proyecto, cae al saldo del propio request.
+     * Única fuente de verdad para el "saldo disponible del concepto" (header, panel,
+     * dashboard y validación de captura).
      *
-     * @return array{budget: float, paid: float, available: float, scope: 'concept'|'request'}
+     * @param  int|null  $excludePaymentId  Excluye este pago de comprometido y pagado (al
+     *                                      EDITAR un borrador, para no contarlo contra sí mismo).
+     * @return array{budget: float, committed: float, paid: float, available: float, scope: 'concept'|'request'}
      */
-    public function budgetBreakdown(): array
+    public function budgetBreakdown(?int $excludePaymentId = null): array
     {
-        $paidMxnSum = DB::raw(
-            'investment_payment_requests.total * (select exchange_rate from currencies where currencies.id = investment_payment_requests.currency_id)'
-        );
-
         if ($this->investment_expense_concept_id && $this->project_id) {
             $groupIds = static::query()
                 ->where('project_id', $this->project_id)
                 ->where('investment_expense_concept_id', $this->investment_expense_concept_id)
                 ->where('department_id', $this->department_id)
                 ->whereState('status', Completed::class)
-                ->pluck('id');
+                ->pluck('id')
+                ->all();
 
             $budget = (float) static::whereIn('id', $groupIds)->sum(DB::raw(
                 'investment_requests.total * (select exchange_rate from currencies where currencies.id = investment_requests.currency_id)'
             ));
-            $paid = (float) InvestmentPaymentRequest::query()
-                ->whereIn('investment_request_id', $groupIds)
-                ->whereIn('status', InvestmentPaymentRequest::PAID_STATUSES)
-                ->sum($paidMxnSum);
+            $committed = $this->sumPaymentsMxn($groupIds, InvestmentPaymentRequest::COMMITTED_STATUSES, $excludePaymentId);
+            $paid = $this->sumPaymentsMxn($groupIds, InvestmentPaymentRequest::PAID_STATUSES, $excludePaymentId);
 
-            return ['budget' => $budget, 'paid' => $paid, 'available' => $budget - $paid, 'scope' => 'concept'];
+            return [
+                'budget' => $budget,
+                'committed' => $committed,
+                'paid' => $paid,
+                'available' => $budget - $committed - $paid,
+                'scope' => 'concept',
+            ];
         }
 
         $budget = (float) $this->total * (float) ($this->currency?->exchange_rate ?? 1);
-        $paid = (float) InvestmentPaymentRequest::query()
-            ->where('investment_request_id', $this->id)
-            ->whereIn('status', InvestmentPaymentRequest::PAID_STATUSES)
-            ->sum($paidMxnSum);
+        $committed = $this->sumPaymentsMxn([$this->id], InvestmentPaymentRequest::COMMITTED_STATUSES, $excludePaymentId);
+        $paid = $this->sumPaymentsMxn([$this->id], InvestmentPaymentRequest::PAID_STATUSES, $excludePaymentId);
 
-        return ['budget' => $budget, 'paid' => $paid, 'available' => $budget - $paid, 'scope' => 'request'];
+        return [
+            'budget' => $budget,
+            'committed' => $committed,
+            'paid' => $paid,
+            'available' => $budget - $committed - $paid,
+            'scope' => 'request',
+        ];
     }
 
-    public function availableBudget(): float
+    /**
+     * Suma en MXN los totales de los pagos de las solicitudes dadas cuyo status esté en
+     * $statuses, excluyendo opcionalmente un pago concreto (edición de borrador).
+     *
+     * @param  array<int, int>  $investmentRequestIds
+     * @param  array<int, string>  $statuses
+     */
+    private function sumPaymentsMxn(array $investmentRequestIds, array $statuses, ?int $excludePaymentId = null): float
     {
-        return $this->budgetBreakdown()['available'];
+        if (empty($investmentRequestIds)) {
+            return 0.0;
+        }
+
+        return (float) InvestmentPaymentRequest::query()
+            ->whereIn('investment_request_id', $investmentRequestIds)
+            ->whereIn('status', $statuses)
+            ->when($excludePaymentId !== null, fn (Builder $q) => $q->where('id', '!=', $excludePaymentId))
+            ->sum(DB::raw(
+                'investment_payment_requests.total * (select exchange_rate from currencies where currencies.id = investment_payment_requests.currency_id)'
+            ));
+    }
+
+    public function availableBudget(?int $excludePaymentId = null): float
+    {
+        return $this->budgetBreakdown($excludePaymentId)['available'];
     }
 
     public function scopeVisibleTo(Builder $query, User $user): Builder

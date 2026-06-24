@@ -80,6 +80,7 @@ export type InvestmentRequest = {
     is_addendum: boolean;
     remaining_balance: string;
     group_budget: string | null;
+    group_committed: string | null;
     group_paid: string | null;
     group_remaining: string | null;
     approvals: InvestmentRequestApproval[];

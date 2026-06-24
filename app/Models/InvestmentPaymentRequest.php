@@ -19,14 +19,22 @@ class InvestmentPaymentRequest extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     /**
-     * Estados que cuentan como "consumido contra el presupuesto" (Pagado / saldo
-     * disponible del concepto): flujo nuevo desde la autorización final del CEO
-     * (final_approved -> scheduled_for_bank -> completed) más los estados legacy.
-     * Única definición usada por dashboard, desglose por concepto y validación de captura.
+     * Estados "Comprometido": el pago ya reserva presupuesto (desde el borrador) pero
+     * aún NO se considera pagado. Cubre todo el flujo de captura/aprobación previo a
+     * cargar documentos / programar el pago. Excluye rechazados y cancelados (liberan).
      *
      * @var array<int, string>
      */
-    public const PAID_STATUSES = ['pending_approval', 'approved', 'final_approved', 'scheduled_for_bank', 'completed'];
+    public const COMMITTED_STATUSES = ['draft', 'submitted', 'ceo_approved', 'projectmanager_review', 'projectmanager_approved', 'final_approved', 'documents_pending'];
+
+    /**
+     * Estados "Pagado": pago efectivo. Flujo nuevo desde que se cargan documentos
+     * (completed) y al programarse en banco (scheduled_for_bank), más los estados
+     * legacy del flujo anterior (approved, pending_approval).
+     *
+     * @var array<int, string>
+     */
+    public const PAID_STATUSES = ['pending_approval', 'approved', 'completed', 'scheduled_for_bank'];
 
     public function getActivitylogOptions(): LogOptions
     {

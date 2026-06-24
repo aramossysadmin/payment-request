@@ -65,6 +65,7 @@ type DepartmentBreakdown = {
     id: number;
     name: string;
     total: string;
+    committed: string;
     paid: string;
     pending: string;
     percent_paid: number;
@@ -91,6 +92,7 @@ type InvestmentPayment = {
 
 type PaymentsSummary = {
     total_concept: string;
+    committed: number;
     total_paid: number;
     remaining: string;
     count: number;
@@ -225,6 +227,7 @@ type PageProps = {
         pending_additional: string;
         pending_deductive: string;
         updated_budget: string;
+        committed_total: string;
         paid_total: string;
         remaining_budget: string;
     };
@@ -996,6 +999,7 @@ export default function Consolidated() {
                     const original = Number(projectDashboard.original_budget);
                     const aditivas = Number(projectDashboard.additional_budget);
                     const updated = Number(projectDashboard.updated_budget);
+                    const committed = Number(projectDashboard.committed_total);
                     const paid = Number(projectDashboard.paid_total);
                     const remaining = Number(projectDashboard.remaining_budget);
 
@@ -1004,6 +1008,7 @@ export default function Consolidated() {
                     const aditPct = origAditBase > 0 ? (aditivas / origAditBase) * 100 : 0;
                     const changePct = original > 0 ? (updated / original - 1) * 100 : 0;
                     const paidPct = updated > 0 ? Math.min(100, (paid / updated) * 100) : 0;
+                    const committedPct = updated > 0 ? Math.min(100 - paidPct, (committed / updated) * 100) : 0;
 
                     const durationDays = project.start_date && project.opening_date
                         ? Math.round(
@@ -1197,22 +1202,27 @@ export default function Consolidated() {
                                         </div>
                                     </div>
 
-                                    {/* Avance de Pago */}
+                                    {/* Avance del presupuesto: Comprometido + Pagado sobre el presupuesto actualizado */}
                                     <div className="rounded-xl border bg-muted/30 p-4">
                                         <div className="flex items-center justify-between">
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Avance de Pago</p>
-                                            <p className="text-xs font-semibold text-muted-foreground">{paidPct.toFixed(0)}% pagado</p>
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Avance del Presupuesto</p>
+                                            <p className="text-xs font-semibold text-muted-foreground">{Math.min(100, committedPct + paidPct).toFixed(0)}% consumido</p>
                                         </div>
-                                        <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                                            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${paidPct}%` }} />
+                                        <div className="mt-2 flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                                            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${paidPct}%` }} />
+                                            <div className="h-full bg-amber-400 transition-all" style={{ width: `${committedPct}%` }} />
                                         </div>
-                                        <div className="mt-3 grid grid-cols-2 gap-3">
+                                        <div className="mt-3 grid grid-cols-3 gap-2">
+                                            <div className="rounded-lg bg-background p-3">
+                                                <p className="text-xs text-muted-foreground">Comprometido</p>
+                                                <p className="text-base font-bold text-amber-600 dark:text-amber-400">{formatCurrencyPlain(projectDashboard.committed_total)}</p>
+                                            </div>
                                             <div className="rounded-lg bg-background p-3">
                                                 <p className="text-xs text-muted-foreground">Pagado</p>
                                                 <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{formatCurrencyPlain(projectDashboard.paid_total)}</p>
                                             </div>
                                             <div className="rounded-lg bg-background p-3">
-                                                <p className="text-xs text-muted-foreground">Por pagar</p>
+                                                <p className="text-xs text-muted-foreground">Disponible</p>
                                                 <p className={cn(
                                                     'text-base font-bold',
                                                     remaining < 0 ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400',
@@ -1236,7 +1246,11 @@ export default function Consolidated() {
                         </CardHeader>
                         <CardContent>
                             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                {departmentBreakdown.map((dept) => (
+                                {departmentBreakdown.map((dept) => {
+                                    const deptTotal = Math.max(1, Number(dept.total));
+                                    const paidW = Math.min(100, (Number(dept.paid) / deptTotal) * 100);
+                                    const committedW = Math.min(100 - paidW, (Number(dept.committed) / deptTotal) * 100);
+                                    return (
                                     <button
                                         key={dept.id}
                                         type="button"
@@ -1261,32 +1275,35 @@ export default function Consolidated() {
                                         {/* Separador */}
                                         <div className="border-t border-gray-200 dark:border-gray-700" />
 
-                                        {/* Barra de progreso + porcentaje */}
+                                        {/* Barra apilada: pagado + comprometido sobre el total */}
                                         <div className="flex items-center gap-2.5">
-                                            <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                                                <div
-                                                    className="h-full rounded-full bg-emerald-500 transition-all"
-                                                    style={{ width: `${Math.min(dept.percent_paid, 100)}%` }}
-                                                />
+                                            <div className="relative flex h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                                                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${paidW}%` }} />
+                                                <div className="h-full bg-amber-400 transition-all" style={{ width: `${committedW}%` }} />
                                             </div>
                                             <span className="whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400">
-                                                {dept.percent_paid.toFixed(0)}% pagado
+                                                {dept.percent_paid.toFixed(0)}% consumido
                                             </span>
                                         </div>
 
-                                        {/* Pagado / Pendiente */}
+                                        {/* Comprometido / Pagado / Disponible */}
                                         <div className="space-y-1">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-amber-700 dark:text-amber-400">Comprometido</span>
+                                                <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrency(dept.committed)}</span>
+                                            </div>
                                             <div className="flex items-center justify-between text-xs">
                                                 <span className="text-emerald-700 dark:text-emerald-400">Pagado</span>
                                                 <span className="font-medium text-emerald-700 dark:text-emerald-400">{formatCurrency(dept.paid)}</span>
                                             </div>
                                             <div className="flex items-center justify-between text-xs">
-                                                <span className="text-amber-700 dark:text-amber-400">Pendiente</span>
-                                                <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrency(dept.pending)}</span>
+                                                <span className="text-gray-600 dark:text-gray-300">Disponible</span>
+                                                <span className="font-medium text-gray-700 dark:text-gray-200">{formatCurrency(dept.pending)}</span>
                                             </div>
                                         </div>
                                     </button>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </CardContent>
                     </Card>
@@ -2938,7 +2955,10 @@ function PaymentsDrawer({
 
     const groupBudget = Number(ir.group_budget ?? (summary?.total_concept ?? ir.total));
     const groupPaid = Number(ir.group_paid ?? (summary?.total_paid ?? 0));
-    const progressPercent = groupBudget > 0 ? Math.min(100, (groupPaid / groupBudget) * 100) : 0;
+    const groupCommitted = Number(ir.group_committed ?? (summary?.committed ?? 0));
+    const paidPct = groupBudget > 0 ? Math.min(100, (groupPaid / groupBudget) * 100) : 0;
+    const committedPct = groupBudget > 0 ? Math.min(100 - paidPct, (groupCommitted / groupBudget) * 100) : 0;
+    const progressPercent = paidPct + committedPct;
 
     return (
         <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -2979,6 +2999,10 @@ function PaymentsDrawer({
                         {summary && (
                             <>
                                 <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Comprometido</span>
+                                    <span className="font-mono font-medium text-amber-600 dark:text-amber-400">{formatCurrency(summary.committed)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Pagado</span>
                                     <span className="font-mono font-medium text-blue-600 dark:text-blue-400">{formatCurrency(summary.total_paid)}</span>
                                 </div>
@@ -2988,26 +3012,17 @@ function PaymentsDrawer({
                                         {formatCurrency(ir.group_remaining ?? summary.remaining)}
                                     </span>
                                 </div>
-                                {/* Progress bar */}
+                                {/* Barra apilada: pagado + comprometido sobre el presupuesto */}
                                 <div className="space-y-1">
-                                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                                        <div
-                                            className={cn(
-                                                'h-full rounded-full transition-all',
-                                                progressPercent >= 100
-                                                    ? 'bg-red-500'
-                                                    : progressPercent >= 75
-                                                      ? 'bg-yellow-500'
-                                                      : 'bg-green-500',
-                                            )}
-                                            style={{ width: `${progressPercent}%` }}
-                                        />
+                                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                                        <div className="h-full bg-blue-500 transition-all" style={{ width: `${paidPct}%` }} />
+                                        <div className="h-full bg-amber-400 transition-all" style={{ width: `${committedPct}%` }} />
                                     </div>
                                     <p className="text-right text-xs text-muted-foreground">
                                         {progressPercent.toFixed(0)}% consumido · {summary.count} {summary.count === 1 ? 'pago' : 'pagos'}
                                     </p>
                                     <p className="text-right text-[10px] text-muted-foreground/80">
-                                        El saldo solo descuenta pagos pagados/aprobados (no borradores ni en revisión).
+                                        El saldo descuenta lo comprometido (incluye borradores) y lo pagado.
                                     </p>
                                 </div>
                             </>

@@ -34,7 +34,7 @@ class InvestmentDashboardController extends Controller
             : null;
 
         $data = [
-            'kpis' => ['budget' => '0', 'executed' => '0', 'remaining' => '0', 'percent' => 0],
+            'kpis' => ['budget' => '0', 'committed' => '0', 'paid' => '0', 'remaining' => '0', 'percent' => 0],
             'byDepartment' => [],
             'budgetComparison' => ['initial' => '0', 'addendum' => '0', 'total' => '0', 'growthPercent' => 0],
             'conceptTable' => [],
@@ -73,13 +73,11 @@ class InvestmentDashboardController extends Controller
 
         $totalBudget = (float) InvestmentRequest::whereIn('id', $completedIds)->sum('total');
 
-        $totalExecuted = (float) InvestmentPaymentRequest::query()
-            ->whereIn('investment_request_id', $completedIds)
-            ->whereIn('status', ['pending_approval', 'approved'])
-            ->sum('total');
+        $totalCommitted = $this->sumPayments($completedIds, InvestmentPaymentRequest::COMMITTED_STATUSES);
+        $totalPaid = $this->sumPayments($completedIds, InvestmentPaymentRequest::PAID_STATUSES);
 
-        $remaining = $totalBudget - $totalExecuted;
-        $percent = $totalBudget > 0 ? round(($totalExecuted / $totalBudget) * 100, 1) : 0;
+        $remaining = $totalBudget - $totalCommitted - $totalPaid;
+        $percent = $totalBudget > 0 ? round((($totalCommitted + $totalPaid) / $totalBudget) * 100, 1) : 0;
 
         // Departments for filter
         $departments = InvestmentRequest::query()
@@ -114,7 +112,8 @@ class InvestmentDashboardController extends Controller
         return [
             'kpis' => [
                 'budget' => number_format($totalBudget, 2, '.', ''),
-                'executed' => number_format($totalExecuted, 2, '.', ''),
+                'committed' => number_format($totalCommitted, 2, '.', ''),
+                'paid' => number_format($totalPaid, 2, '.', ''),
                 'remaining' => number_format($remaining, 2, '.', ''),
                 'percent' => $percent,
             ],
@@ -123,6 +122,20 @@ class InvestmentDashboardController extends Controller
             'conceptTable' => $conceptTable,
             'departments' => $departments,
         ];
+    }
+
+    /**
+     * Suma `total` (sin normalizar a MXN; el dashboard es de proyectos de moneda nacional)
+     * de los pagos de las solicitudes dadas cuyo status esté en $statuses.
+     *
+     * @param  array<int, string>  $statuses
+     */
+    private function sumPayments(Collection $investmentRequestIds, array $statuses): float
+    {
+        return (float) InvestmentPaymentRequest::query()
+            ->whereIn('investment_request_id', $investmentRequestIds)
+            ->whereIn('status', $statuses)
+            ->sum('total');
     }
 
     /**
@@ -142,18 +155,16 @@ class InvestmentDashboardController extends Controller
                 ->where('department_id', $row->dept_id)
                 ->pluck('id');
 
-            $paid = (float) InvestmentPaymentRequest::query()
-                ->whereIn('investment_request_id', $deptConceptIds)
-                ->whereIn('status', ['pending_approval', 'approved'])
-                ->sum('total');
-
+            $committed = $this->sumPayments($deptConceptIds, InvestmentPaymentRequest::COMMITTED_STATUSES);
+            $paid = $this->sumPayments($deptConceptIds, InvestmentPaymentRequest::PAID_STATUSES);
             $budget = (float) $row->budget;
 
             return [
                 'name' => $row->dept_name,
                 'budget' => number_format($budget, 2, '.', ''),
-                'executed' => number_format($paid, 2, '.', ''),
-                'percent' => $budget > 0 ? round(($paid / $budget) * 100, 1) : 0,
+                'committed' => number_format($committed, 2, '.', ''),
+                'paid' => number_format($paid, 2, '.', ''),
+                'percent' => $budget > 0 ? round((($committed + $paid) / $budget) * 100, 1) : 0,
             ];
         })->values()->all();
     }
@@ -186,13 +197,11 @@ class InvestmentDashboardController extends Controller
                     ->where('department_id', $row->department_id)
                     ->pluck('id');
 
-                $paid = (float) InvestmentPaymentRequest::query()
-                    ->whereIn('investment_request_id', $groupIds)
-                    ->whereIn('status', ['pending_approval', 'approved'])
-                    ->sum('total');
+                $committed = $this->sumPayments($groupIds, InvestmentPaymentRequest::COMMITTED_STATUSES);
+                $paid = $this->sumPayments($groupIds, InvestmentPaymentRequest::PAID_STATUSES);
 
                 $budget = (float) $row->total_budget;
-                $remaining = $budget - $paid;
+                $remaining = $budget - $committed - $paid;
 
                 return [
                     'concept' => $row->concept_name,
@@ -201,9 +210,10 @@ class InvestmentDashboardController extends Controller
                     'addendumTotal' => number_format((float) $row->addendum_total, 2, '.', ''),
                     'addendumCount' => (int) $row->addendum_count,
                     'totalBudget' => number_format($budget, 2, '.', ''),
+                    'committed' => number_format($committed, 2, '.', ''),
                     'paid' => number_format($paid, 2, '.', ''),
                     'remaining' => number_format($remaining, 2, '.', ''),
-                    'percent' => $budget > 0 ? round(($paid / $budget) * 100, 1) : 0,
+                    'percent' => $budget > 0 ? round((($committed + $paid) / $budget) * 100, 1) : 0,
                 ];
             })->values()->all();
     }

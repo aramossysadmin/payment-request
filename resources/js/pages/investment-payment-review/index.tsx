@@ -28,6 +28,7 @@ type Payment = {
     payment_provision_date: string | null;
     payment_week_number: number | null;
     budget_total: string;
+    budget_committed: string;
     budget_paid: string;
     budget_available: string;
 };
@@ -365,8 +366,12 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                                     <span className="font-mono">{formatCurrency(detailPayment.budget_total)}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-muted-foreground">Comprometido</span>
-                                                    <span className="font-mono">{formatCurrency(detailPayment.budget_paid)}</span>
+                                                    <span className="text-amber-700 dark:text-amber-400">Comprometido</span>
+                                                    <span className="font-mono text-amber-700 dark:text-amber-400">{formatCurrency(detailPayment.budget_committed)}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-blue-700 dark:text-blue-400">Pagado</span>
+                                                    <span className="font-mono text-blue-700 dark:text-blue-400">{formatCurrency(detailPayment.budget_paid)}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between border-t pt-2">
                                                     <span className="font-semibold">Disponible</span>

@@ -23,8 +23,11 @@ use Inertia\Response;
 
 class InvestmentSheetConsolidatedController extends Controller
 {
-    /** @var array<int, string> Alias local de la única definición de "consumido" (ver modelo). */
+    /** @var array<int, string> Alias locales de las definiciones de consumo de presupuesto (ver modelo). */
     private const PAID_STATUSES = InvestmentPaymentRequest::PAID_STATUSES;
+
+    /** @var array<int, string> */
+    private const COMMITTED_STATUSES = InvestmentPaymentRequest::COMMITTED_STATUSES;
 
     /**
      * Suma de `total` normalizada a MXN (cada fila × su tipo de cambio).
@@ -89,8 +92,13 @@ class InvestmentSheetConsolidatedController extends Controller
                     ->where('investment_request_id', $ir->id)
                     ->whereIn('status', self::PAID_STATUSES)
             );
+            $committedMxn = $this->sumTotalMxn(
+                InvestmentPaymentRequest::query()
+                    ->where('investment_request_id', $ir->id)
+                    ->whereIn('status', self::COMMITTED_STATUSES)
+            );
 
-            $ir->setAttribute('remaining_balance', number_format($irBudgetMxn - $paidMxn, 2, '.', ''));
+            $ir->setAttribute('remaining_balance', number_format($irBudgetMxn - $committedMxn - $paidMxn, 2, '.', ''));
 
             if ($ir->investment_expense_concept_id) {
                 $groupIds = InvestmentRequest::query()
@@ -109,14 +117,21 @@ class InvestmentSheetConsolidatedController extends Controller
                         ->whereIn('investment_request_id', $groupIds)
                         ->whereIn('status', self::PAID_STATUSES)
                 );
+                $groupCommitted = $this->sumTotalMxn(
+                    InvestmentPaymentRequest::query()
+                        ->whereIn('investment_request_id', $groupIds)
+                        ->whereIn('status', self::COMMITTED_STATUSES)
+                );
 
                 $ir->setAttribute('group_budget', number_format($groupBudget, 2, '.', ''));
+                $ir->setAttribute('group_committed', number_format($groupCommitted, 2, '.', ''));
                 $ir->setAttribute('group_paid', number_format($groupPaid, 2, '.', ''));
-                $ir->setAttribute('group_remaining', number_format($groupBudget - $groupPaid, 2, '.', ''));
+                $ir->setAttribute('group_remaining', number_format($groupBudget - $groupCommitted - $groupPaid, 2, '.', ''));
             } else {
                 $ir->setAttribute('group_budget', number_format($irBudgetMxn, 2, '.', ''));
-                $ir->setAttribute('group_paid', '0.00');
-                $ir->setAttribute('group_remaining', number_format($irBudgetMxn - $paidMxn, 2, '.', ''));
+                $ir->setAttribute('group_committed', number_format($committedMxn, 2, '.', ''));
+                $ir->setAttribute('group_paid', number_format($paidMxn, 2, '.', ''));
+                $ir->setAttribute('group_remaining', number_format($irBudgetMxn - $committedMxn - $paidMxn, 2, '.', ''));
             }
         });
 
@@ -151,6 +166,15 @@ class InvestmentSheetConsolidatedController extends Controller
             ->selectRaw('investment_requests.department_id, SUM(investment_payment_requests.total * currencies.exchange_rate) as paid_total')
             ->pluck('paid_total', 'department_id');
 
+        $committedByDepartment = InvestmentPaymentRequest::query()
+            ->join('investment_requests', 'investment_payment_requests.investment_request_id', '=', 'investment_requests.id')
+            ->join('currencies', 'investment_payment_requests.currency_id', '=', 'currencies.id')
+            ->whereIn('investment_payment_requests.investment_request_id', $visibleIrIds)
+            ->whereIn('investment_payment_requests.status', self::COMMITTED_STATUSES)
+            ->groupBy('investment_requests.department_id')
+            ->selectRaw('investment_requests.department_id, SUM(investment_payment_requests.total * currencies.exchange_rate) as committed_total')
+            ->pluck('committed_total', 'department_id');
+
         $project->load('branch', 'currency');
 
         $now = Carbon::now();
@@ -180,28 +204,10 @@ class InvestmentSheetConsolidatedController extends Controller
                 ->latest()
                 ->get()
                 ->map(function (InvestmentPaymentRequest $p) {
-                    $effectiveRemaining = null;
                     $ir = $p->investmentRequest;
-                    if ($ir && $ir->investment_expense_concept_id && $ir->project_id) {
-                        $groupIds = InvestmentRequest::query()
-                            ->where('project_id', $ir->project_id)
-                            ->where('investment_expense_concept_id', $ir->investment_expense_concept_id)
-                            ->where('department_id', $ir->department_id)
-                            ->whereState('status', Completed::class)
-                            ->pluck('id');
-
-                        $groupBudget = $this->sumTotalMxn(
-                            InvestmentRequest::query()->whereIn('id', $groupIds)
-                        );
-                        $groupPaidExcludingThis = $this->sumTotalMxn(
-                            InvestmentPaymentRequest::query()
-                                ->whereIn('investment_request_id', $groupIds)
-                                ->whereIn('status', self::PAID_STATUSES)
-                                ->where('id', '!=', $p->id)
-                        );
-
-                        $effectiveRemaining = $groupBudget - $groupPaidExcludingThis;
-                    }
+                    // Disponible del concepto excluyendo este mismo borrador
+                    // (presupuesto − comprometido − pagado).
+                    $effectiveRemaining = $ir ? $ir->budgetBreakdown(excludePaymentId: $p->id)['available'] : null;
 
                     return [
                         'id' => $p->id,
@@ -388,8 +394,13 @@ class InvestmentSheetConsolidatedController extends Controller
                 ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
                 ->whereIn('status', self::PAID_STATUSES)
         );
+        $committedProjectTotal = $this->sumTotalMxn(
+            InvestmentPaymentRequest::query()
+                ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
+                ->whereIn('status', self::COMMITTED_STATUSES)
+        );
 
-        $remainingBudget = $updatedBudget - $paidProjectTotal;
+        $remainingBudget = $updatedBudget - $committedProjectTotal - $paidProjectTotal;
 
         $paymentPolicy = PaymentRequestPolicyService::fromCurrent()->buildFrontendPayload($user);
 
@@ -415,6 +426,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'pending_additional' => number_format($pendingAdditional, 2, '.', ''),
                 'pending_deductive' => number_format($pendingDeductive, 2, '.', ''),
                 'updated_budget' => number_format($updatedBudget, 2, '.', ''),
+                'committed_total' => number_format($committedProjectTotal, 2, '.', ''),
                 'paid_total' => number_format($paidProjectTotal, 2, '.', ''),
                 'remaining_budget' => number_format($remainingBudget, 2, '.', ''),
             ],
@@ -425,19 +437,21 @@ class InvestmentSheetConsolidatedController extends Controller
                 'pending' => number_format((float) ($totals->pending_total ?? 0), 2, '.', ''),
                 'count' => (int) ($totals->total_count ?? 0),
             ],
-            'departmentBreakdown' => $departmentBreakdown->map(function ($d) use ($paidByDepartment) {
+            'departmentBreakdown' => $departmentBreakdown->map(function ($d) use ($paidByDepartment, $committedByDepartment) {
                 $total = (float) $d->department_total;
                 $paid = (float) ($paidByDepartment[$d->department_id] ?? 0);
-                $pending = max(0, $total - $paid);
-                $percentPaid = $total > 0 ? ($paid / $total) * 100 : 0;
+                $committed = (float) ($committedByDepartment[$d->department_id] ?? 0);
+                $pending = max(0, $total - $committed - $paid);
+                $percentConsumed = $total > 0 ? (($committed + $paid) / $total) * 100 : 0;
 
                 return [
                     'id' => $d->department_id,
                     'name' => $d->department_name,
                     'total' => number_format($total, 2, '.', ''),
+                    'committed' => number_format($committed, 2, '.', ''),
                     'paid' => number_format($paid, 2, '.', ''),
                     'pending' => number_format($pending, 2, '.', ''),
-                    'percent_paid' => round($percentPaid, 1),
+                    'percent_paid' => round($percentConsumed, 1),
                     'count' => (int) $d->department_count,
                 ];
             }),

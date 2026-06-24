@@ -98,6 +98,7 @@ class InvestmentRequestResource extends JsonResource
             'is_addendum' => (bool) $this->is_addendum,
             'remaining_balance' => $this->getAttribute('remaining_balance') ?? $this->remaining_balance,
             'group_budget' => $this->getAttribute('group_budget'),
+            'group_committed' => $this->getAttribute('group_committed'),
             'group_paid' => $this->getAttribute('group_paid'),
             'group_remaining' => $this->getAttribute('group_remaining'),
             'approvals' => InvestmentRequestApprovalResource::collection($this->whenLoaded('approvals')),

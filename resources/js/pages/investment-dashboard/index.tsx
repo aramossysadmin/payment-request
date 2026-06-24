@@ -18,7 +18,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 type ExecutionItem = {
     name: string;
     budget: string;
-    executed: string;
+    committed: string;
+    paid: string;
     percent: number;
 };
 
@@ -36,6 +37,7 @@ type ConceptRow = {
     addendumTotal: string;
     addendumCount: number;
     totalBudget: string;
+    committed: string;
     paid: string;
     remaining: string;
     percent: number;
@@ -44,7 +46,7 @@ type ConceptRow = {
 type PageProps = {
     projects: { id: number; name: string }[];
     filters: { project_id: string; department_id: string };
-    kpis: { budget: string; executed: string; remaining: string; percent: number };
+    kpis: { budget: string; committed: string; paid: string; remaining: string; percent: number };
     byDepartment: ExecutionItem[];
     budgetComparison: BudgetComparison;
     conceptTable: ConceptRow[];
@@ -240,7 +242,10 @@ export default function InvestmentDashboard() {
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="font-medium">{item.name}</span>
                                                 <span className="text-gray-500">
-                                                    {formatCurrency(item.executed)} / {formatCurrency(item.budget)}
+                                                    <span className="text-blue-600 dark:text-blue-400">{formatCurrency(item.paid)}</span>
+                                                    {' + '}
+                                                    <span className="text-amber-600 dark:text-amber-400">{formatCurrency(item.committed)}</span>
+                                                    {' / '}{formatCurrency(item.budget)}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3">
@@ -261,32 +266,41 @@ export default function InvestmentDashboard() {
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="grid flex-1 grid-cols-1 gap-6 sm:grid-cols-3">
-                                <div className="flex items-center gap-4">
-                                    <div className="rounded-xl bg-blue-50 p-3 dark:bg-blue-900/20">
-                                        <Wallet className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+                            <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-xl bg-blue-50 p-2.5 dark:bg-blue-900/20">
+                                        <Wallet className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                                     </div>
                                     <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Presupuesto Total</p>
-                                        <p className="text-2xl font-bold tracking-tight">{formatCurrency(kpis.budget)}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Presupuesto</p>
+                                        <p className="text-xl font-bold tracking-tight">{formatCurrency(kpis.budget)}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="rounded-xl bg-purple-50 p-3 dark:bg-purple-900/20">
-                                        <Banknote className="h-7 w-7 text-purple-600 dark:text-purple-400" />
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-xl bg-amber-50 p-2.5 dark:bg-amber-900/20">
+                                        <Banknote className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                                     </div>
                                     <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Total Ejecutado</p>
-                                        <p className="text-2xl font-bold tracking-tight">{formatCurrency(kpis.executed)}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Comprometido</p>
+                                        <p className="text-xl font-bold tracking-tight">{formatCurrency(kpis.committed)}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="rounded-xl bg-green-50 p-3 dark:bg-green-900/20">
-                                        <DollarSign className="h-7 w-7 text-green-600 dark:text-green-400" />
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-xl bg-purple-50 p-2.5 dark:bg-purple-900/20">
+                                        <Banknote className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                                     </div>
                                     <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Saldo Disponible</p>
-                                        <p className="text-2xl font-bold tracking-tight">{formatCurrency(kpis.remaining)}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Pagado</p>
+                                        <p className="text-xl font-bold tracking-tight">{formatCurrency(kpis.paid)}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-xl bg-green-50 p-2.5 dark:bg-green-900/20">
+                                        <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Saldo Disponible</p>
+                                        <p className="text-xl font-bold tracking-tight">{formatCurrency(kpis.remaining)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -297,7 +311,7 @@ export default function InvestmentDashboard() {
                         <div className="mt-5">
                             <ProgressBar percent={kpis.percent} className="h-3" />
                             <p className="mt-1.5 text-right text-xs text-gray-500 dark:text-gray-400">
-                                {kpis.percent}% ejecutado
+                                {kpis.percent}% consumido (comprometido + pagado)
                             </p>
                         </div>
                     </CardContent>
@@ -322,6 +336,7 @@ export default function InvestmentDashboard() {
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Presupuesto Base</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Aditivas</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Presupuesto Total</th>
+                                            <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Comprometido</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Pagado</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right border-r border-gray-200 dark:border-gray-700">Saldo</th>
                                             <th className="px-4 py-3 font-semibold whitespace-nowrap text-right">% Ejecución</th>
@@ -341,6 +356,7 @@ export default function InvestmentDashboard() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800">{formatCurrency(row.totalBudget)}</td>
+                                                <td className="px-4 py-3 text-right font-mono text-amber-600 dark:text-amber-400 border-r border-gray-100 dark:border-gray-800">{formatCurrency(row.committed)}</td>
                                                 <td className="px-4 py-3 text-right font-mono text-blue-600 dark:text-blue-400 border-r border-gray-100 dark:border-gray-800">{formatCurrency(row.paid)}</td>
                                                 <td className="px-4 py-3 text-right font-mono border-r border-gray-100 dark:border-gray-800">
                                                     <span className={Number(row.remaining) <= 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'}>

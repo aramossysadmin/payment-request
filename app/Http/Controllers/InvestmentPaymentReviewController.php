@@ -85,7 +85,7 @@ class InvestmentPaymentReviewController extends Controller
                     'payments' => $departmentPayments->map(function (InvestmentPaymentRequest $p) use ($budgetByKey, $keyFor) {
                         $bd = ($ir = $p->investmentRequest)
                             ? $budgetByKey[$keyFor($ir)]
-                            : ['budget' => 0.0, 'paid' => 0.0, 'available' => 0.0];
+                            : ['budget' => 0.0, 'committed' => 0.0, 'paid' => 0.0, 'available' => 0.0];
 
                         return [
                             'uuid' => $p->uuid,
@@ -103,6 +103,7 @@ class InvestmentPaymentReviewController extends Controller
                             'payment_provision_date' => $p->payment_provision_date?->toDateString(),
                             'payment_week_number' => $p->payment_week_number,
                             'budget_total' => number_format($bd['budget'], 2, '.', ''),
+                            'budget_committed' => number_format($bd['committed'], 2, '.', ''),
                             'budget_paid' => number_format($bd['paid'], 2, '.', ''),
                             'budget_available' => number_format($bd['available'], 2, '.', ''),
                         ];
