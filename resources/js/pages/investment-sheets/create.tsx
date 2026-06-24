@@ -538,8 +538,8 @@ export default function Create() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-200">
-                                    <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                                <div className="mb-3 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
+                                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                                     <p>
                                         Aunque adjuntar documentos es opcional, si ya cuentas con la{' '}
                                         <span className="font-medium">cotización</span> es importante adjuntarla desde este paso.
