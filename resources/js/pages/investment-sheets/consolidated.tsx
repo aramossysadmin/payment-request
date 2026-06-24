@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Banknote, Building2, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileDown, FileText, Inbox, Info, Pencil, Search, Send, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Banknote, Building2, Calendar, CalendarRange, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileDown, FileText, Inbox, Info, Pencil, Search, Send, Trash2, Upload, Wallet, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { DocumentPreview } from '@/components/document-preview';
 import { FileUpload } from '@/components/file-upload';
@@ -268,6 +268,24 @@ function formatDateEs(dateStr: string | null): string {
     if (!dateStr) return '';
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+function formatDateShort(dateStr: string | null): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatDayMonth(dateStr: string | null): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long' });
+}
+
+function formatWeekday(dateStr: string | null): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('es-MX', { weekday: 'long' });
 }
 
 type ConceptGroup = {
@@ -955,129 +973,241 @@ export default function Consolidated() {
                 </div>
 
                 {/* Project Dashboard — 2 columnas: izquierda apila Calendario+Fechas, derecha Presupuesto */}
-                <div className="grid gap-4 lg:grid-cols-2">
-                    {/* Columna izquierda: Calendario (arriba) + Fechas del Proyecto (abajo) */}
-                    <div className="flex flex-col gap-4">
-                        {/* Tarjeta 1 — Calendario */}
-                        <Card className="flex flex-1 flex-col">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Calendario</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex flex-1 flex-col justify-center space-y-2">
-                                <div className="flex items-baseline justify-between text-sm">
-                                    <span className="text-gray-500 dark:text-gray-400">Semana</span>
-                                    <span className="font-semibold">{projectDashboard.current_week} / {projectDashboard.current_year}</span>
-                                </div>
-                                <div className="flex items-baseline justify-between text-sm">
-                                    <span className="text-gray-500 dark:text-gray-400">Fecha</span>
-                                    <span className="font-medium">{formatDateEs(projectDashboard.today_date)}</span>
-                                </div>
-                            </CardContent>
-                        </Card>
+                {(() => {
+                    const original = Number(projectDashboard.original_budget);
+                    const aditivas = Number(projectDashboard.additional_budget);
+                    const updated = Number(projectDashboard.updated_budget);
+                    const paid = Number(projectDashboard.paid_total);
+                    const remaining = Number(projectDashboard.remaining_budget);
 
-                        {/* Tarjeta 2 — Fechas del Proyecto */}
-                        <Card className="flex flex-1 flex-col">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fechas del Proyecto</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex flex-1 flex-col justify-center space-y-2">
-                                <div className="flex items-baseline justify-between text-sm">
-                                    <span className="text-gray-500 dark:text-gray-400">Fecha Inicio</span>
-                                    {project.start_date ? (
-                                        <span className="font-medium">{formatDateEs(project.start_date)}</span>
-                                    ) : (
-                                        <span className="font-medium text-gray-400 italic">Sin definir</span>
-                                    )}
-                                </div>
-                                <div className="flex items-baseline justify-between text-sm">
-                                    <span className="text-gray-500 dark:text-gray-400">Fecha Apertura</span>
-                                    {project.opening_date ? (
-                                        <span className="font-medium">{formatDateEs(project.opening_date)}</span>
-                                    ) : (
-                                        <span className="font-medium text-gray-400 italic">Sin definir</span>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    const origAditBase = original + aditivas;
+                    const origPct = origAditBase > 0 ? (original / origAditBase) * 100 : 0;
+                    const aditPct = origAditBase > 0 ? (aditivas / origAditBase) * 100 : 0;
+                    const changePct = original > 0 ? (updated / original - 1) * 100 : 0;
+                    const paidPct = updated > 0 ? Math.min(100, (paid / updated) * 100) : 0;
 
-                    {/* Columna derecha — Tarjeta 3 Presupuesto */}
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Presupuesto</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-1.5">
-                            <div className="flex items-baseline justify-between text-sm">
-                                <span className="text-gray-500 dark:text-gray-400">Autorizado</span>
-                                {project.authorized_budget !== null ? (
-                                    <span className="font-medium">{formatCurrencyPlain(project.authorized_budget)}</span>
-                                ) : (
-                                    <span className="font-medium text-gray-400 italic">Sin definir</span>
-                                )}
+                    const durationDays = project.start_date && project.opening_date
+                        ? Math.round(
+                            (new Date(project.opening_date + 'T00:00:00').getTime() -
+                                new Date(project.start_date + 'T00:00:00').getTime()) / 86_400_000,
+                          )
+                        : null;
+
+                    const updatedFull = formatCurrencyPlain(projectDashboard.updated_budget);
+                    const updatedDot = updatedFull.lastIndexOf('.');
+
+                    return (
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            {/* Columna izquierda: Calendario (arriba) + Fechas del Proyecto (abajo) */}
+                            <div className="flex flex-col gap-4">
+                                {/* Tarjeta 1 — Calendario */}
+                                <Card className="flex flex-1 flex-col">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                            <Calendar className="h-4 w-4" />
+                                            Calendario
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-1 items-center">
+                                        <div className="grid w-full grid-cols-2 gap-3">
+                                            <div className="rounded-xl bg-muted/40 p-4">
+                                                <p className="text-xs text-muted-foreground">Semana</p>
+                                                <p className="text-3xl font-bold tracking-tight">{projectDashboard.current_week}</p>
+                                                <p className="text-xs text-muted-foreground">año {projectDashboard.current_year}</p>
+                                            </div>
+                                            <div className="rounded-xl bg-muted/40 p-4">
+                                                <p className="text-xs text-muted-foreground">Fecha</p>
+                                                <p className="text-xl font-bold tracking-tight">{formatDayMonth(projectDashboard.today_date)}</p>
+                                                <p className="text-xs capitalize text-muted-foreground">
+                                                    de {projectDashboard.current_year} · {formatWeekday(projectDashboard.today_date)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Tarjeta 2 — Fechas del Proyecto */}
+                                <Card className="flex flex-1 flex-col">
+                                    <CardHeader className="pb-3">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                                <CalendarRange className="h-4 w-4" />
+                                                Fechas del Proyecto
+                                            </CardTitle>
+                                            {durationDays !== null && <Badge variant="secondary">{durationDays} días</Badge>}
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-1 items-center">
+                                        {project.start_date && project.opening_date ? (
+                                            <div className="w-full">
+                                                <div className="relative mb-3">
+                                                    <div className="h-1.5 rounded-full bg-gradient-to-r from-primary to-emerald-500" />
+                                                    <span className="absolute left-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-background bg-primary" />
+                                                    <span className="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-background bg-emerald-500" />
+                                                </div>
+                                                <div className="flex items-end justify-between">
+                                                    <div>
+                                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Inicio</p>
+                                                        <p className="text-sm font-semibold">{formatDateShort(project.start_date)}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Apertura</p>
+                                                        <p className="text-sm font-semibold">{formatDateShort(project.opening_date)}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full space-y-2">
+                                                <div className="flex items-baseline justify-between text-sm">
+                                                    <span className="text-muted-foreground">Fecha Inicio</span>
+                                                    {project.start_date ? (
+                                                        <span className="font-medium">{formatDateEs(project.start_date)}</span>
+                                                    ) : (
+                                                        <span className="font-medium italic text-muted-foreground">Sin definir</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-baseline justify-between text-sm">
+                                                    <span className="text-muted-foreground">Fecha Apertura</span>
+                                                    {project.opening_date ? (
+                                                        <span className="font-medium">{formatDateEs(project.opening_date)}</span>
+                                                    ) : (
+                                                        <span className="font-medium italic text-muted-foreground">Sin definir</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </div>
-                            <div className="flex items-baseline justify-between text-sm">
-                                <span className="text-gray-500 dark:text-gray-400">Original</span>
-                                <span className="font-medium">{formatCurrencyPlain(projectDashboard.original_budget)}</span>
-                            </div>
-                            <div className="flex items-baseline justify-between text-sm">
-                                <span className="text-gray-500 dark:text-gray-400">Aditivas</span>
-                                <span className="font-medium">{formatCurrencyPlain(projectDashboard.additional_budget)}</span>
-                            </div>
-                            <div className="flex items-baseline justify-between text-sm">
-                                <span className="text-gray-500 dark:text-gray-400">Deductivas</span>
-                                <span className="font-medium">{formatCurrencyPlain(projectDashboard.deductive_budget)}</span>
-                            </div>
-                            <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
-                            <div className="flex items-baseline justify-between text-sm">
-                                <span className="font-semibold text-gray-700 dark:text-gray-300">Actualizado</span>
-                                <span className="font-bold">{formatCurrencyPlain(projectDashboard.updated_budget)}</span>
-                            </div>
-                            {(Number(projectDashboard.pending_additional) > 0 || Number(projectDashboard.pending_deductive) > 0) && (
-                                <>
-                                    <div className="my-1.5 flex items-center gap-2 text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                        <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-                                        <span>En proceso de autorización</span>
-                                        <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+
+                            {/* Columna derecha — Tarjeta 3 Presupuesto */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                            <Wallet className="h-4 w-4" />
+                                            Presupuesto
+                                        </CardTitle>
+                                        {project.authorized_budget !== null ? (
+                                            <Badge variant="outline">Autorizado: {formatCurrencyPlain(project.authorized_budget)}</Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-800 dark:text-amber-400">
+                                                Autorizado: sin definir
+                                            </Badge>
+                                        )}
                                     </div>
-                                    {Number(projectDashboard.pending_additional) > 0 && (
-                                        <div className="flex items-baseline justify-between text-sm">
-                                            <span className="text-amber-700 dark:text-amber-400">Aditivas en proceso</span>
-                                            <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrencyPlain(projectDashboard.pending_additional)}</span>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {/* Hero oscuro — Presupuesto actualizado */}
+                                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-white">
+                                        {original > 0 && (
+                                            <span className={cn(
+                                                'absolute right-4 top-4 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                                                changePct >= 0 ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/15 text-red-300',
+                                            )}>
+                                                {changePct >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                                                {changePct >= 0 ? '+' : ''}{changePct.toFixed(1)}%
+                                            </span>
+                                        )}
+                                        <p className="text-xs uppercase tracking-wide text-slate-400">Presupuesto Actualizado</p>
+                                        <p className="mt-1 text-3xl font-bold tracking-tight">
+                                            {updatedDot === -1 ? updatedFull : (
+                                                <>
+                                                    {updatedFull.slice(0, updatedDot)}
+                                                    <span className="text-xl text-slate-400">{updatedFull.slice(updatedDot)}</span>
+                                                </>
+                                            )}
+                                        </p>
+                                        <p className="mt-1 text-xs text-slate-400">{project.currency_prefix} · Original + aditivas</p>
+                                    </div>
+
+                                    {/* Barra Original / Aditivas */}
+                                    <div>
+                                        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                                            <div className="h-full bg-primary" style={{ width: `${origPct}%` }} />
+                                            <div className="h-full bg-emerald-500" style={{ width: `${aditPct}%` }} />
                                         </div>
-                                    )}
-                                    {Number(projectDashboard.pending_deductive) > 0 && (
-                                        <div className="flex items-baseline justify-between text-sm">
-                                            <span className="text-amber-700 dark:text-amber-400">Deductivas en proceso</span>
-                                            <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrencyPlain(projectDashboard.pending_deductive)}</span>
+                                        <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="h-2 w-2 rounded-full bg-primary" /> Original {origPct.toFixed(1)}%
+                                            </span>
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Aditivas {aditPct.toFixed(1)}%
+                                            </span>
                                         </div>
-                                    )}
-                                </>
-                            )}
-                            <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
-                            <div className="flex items-baseline justify-between text-sm">
-                                <span className="text-emerald-700 dark:text-emerald-400">Pagado</span>
-                                <span className="font-medium text-emerald-700 dark:text-emerald-400">{formatCurrencyPlain(projectDashboard.paid_total)}</span>
-                            </div>
-                            <div className="flex items-baseline justify-between text-sm">
-                                <span className={cn(
-                                    Number(projectDashboard.remaining_budget) < 0
-                                        ? 'text-red-600 dark:text-red-400'
-                                        : 'text-amber-700 dark:text-amber-400',
-                                )}>
-                                    Por Pagar
-                                </span>
-                                <span className={cn(
-                                    'font-semibold',
-                                    Number(projectDashboard.remaining_budget) < 0
-                                        ? 'text-red-600 dark:text-red-400'
-                                        : 'text-amber-700 dark:text-amber-400',
-                                )}>
-                                    {formatCurrencyPlain(projectDashboard.remaining_budget)}
-                                </span>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                                    </div>
+
+                                    {/* Filas */}
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-baseline justify-between text-sm">
+                                            <span className="text-muted-foreground">Original</span>
+                                            <span className="font-medium">{formatCurrencyPlain(projectDashboard.original_budget)}</span>
+                                        </div>
+                                        <div className="flex items-baseline justify-between text-sm">
+                                            <span className="text-emerald-700 dark:text-emerald-400">Aditivas</span>
+                                            <span className="font-medium text-emerald-700 dark:text-emerald-400">+ {formatCurrencyPlain(projectDashboard.additional_budget)}</span>
+                                        </div>
+                                        <div className="flex items-baseline justify-between text-sm">
+                                            <span className="text-muted-foreground">Deductivas</span>
+                                            <span className="font-medium text-muted-foreground">{formatCurrencyPlain(projectDashboard.deductive_budget)}</span>
+                                        </div>
+                                        {(Number(projectDashboard.pending_additional) > 0 || Number(projectDashboard.pending_deductive) > 0) && (
+                                            <>
+                                                <div className="my-1.5 flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                                                    <span className="h-px flex-1 bg-border" />
+                                                    <span>En proceso de autorización</span>
+                                                    <span className="h-px flex-1 bg-border" />
+                                                </div>
+                                                {Number(projectDashboard.pending_additional) > 0 && (
+                                                    <div className="flex items-baseline justify-between text-sm">
+                                                        <span className="text-amber-700 dark:text-amber-400">Aditivas en proceso</span>
+                                                        <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrencyPlain(projectDashboard.pending_additional)}</span>
+                                                    </div>
+                                                )}
+                                                {Number(projectDashboard.pending_deductive) > 0 && (
+                                                    <div className="flex items-baseline justify-between text-sm">
+                                                        <span className="text-amber-700 dark:text-amber-400">Deductivas en proceso</span>
+                                                        <span className="font-medium text-amber-700 dark:text-amber-400">{formatCurrencyPlain(projectDashboard.pending_deductive)}</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                        <div className="flex items-baseline justify-between border-t pt-2 text-sm">
+                                            <span className="font-semibold">Actualizado</span>
+                                            <span className="font-bold">{formatCurrencyPlain(projectDashboard.updated_budget)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Avance de Pago */}
+                                    <div className="rounded-xl border bg-muted/30 p-4">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Avance de Pago</p>
+                                            <p className="text-xs font-semibold text-muted-foreground">{paidPct.toFixed(0)}% pagado</p>
+                                        </div>
+                                        <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                                            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${paidPct}%` }} />
+                                        </div>
+                                        <div className="mt-3 grid grid-cols-2 gap-3">
+                                            <div className="rounded-lg bg-background p-3">
+                                                <p className="text-xs text-muted-foreground">Pagado</p>
+                                                <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{formatCurrencyPlain(projectDashboard.paid_total)}</p>
+                                            </div>
+                                            <div className="rounded-lg bg-background p-3">
+                                                <p className="text-xs text-muted-foreground">Por pagar</p>
+                                                <p className={cn(
+                                                    'text-base font-bold',
+                                                    remaining < 0 ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400',
+                                                )}>
+                                                    {formatCurrencyPlain(projectDashboard.remaining_budget)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    );
+                })()}
 
                 {/* Summary Cards */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
