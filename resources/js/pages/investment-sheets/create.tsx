@@ -179,34 +179,38 @@ export default function Create() {
                                 <CardTitle>Datos Generales de la Solicitud De Inversión</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label>Proyecto</Label>
-                                    <Select
-                                        value={selectedProjectId}
-                                        onValueChange={handleProjectChange}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seleccionar proyecto" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {projects.map((p) => (
-                                                <SelectItem key={p.id} value={String(p.id)}>
-                                                    {p.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Sucursal</Label>
-                                    <Input
-                                        value={branches.find((b) => String(b.id) === values.branch_id)?.name ?? ''}
-                                        readOnly
-                                        disabled
-                                        placeholder="Se asigna al seleccionar proyecto"
-                                        className="bg-gray-50 dark:bg-gray-800"
-                                    />
-                                    <InputError message={errors.branch_id} />
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label>Proyecto</Label>
+                                        <Select
+                                            value={selectedProjectId}
+                                            onValueChange={handleProjectChange}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Seleccionar proyecto" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {projects.map((p) => (
+                                                    <SelectItem key={p.id} value={String(p.id)}>
+                                                        {p.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Sucursal</Label>
+                                        <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
+                                            {branches.find((b) => String(b.id) === values.branch_id)?.name ? (
+                                                <span className="font-medium text-foreground">
+                                                    {branches.find((b) => String(b.id) === values.branch_id)?.name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted-foreground">Se asigna al seleccionar proyecto</span>
+                                            )}
+                                        </div>
+                                        <InputError message={errors.branch_id} />
+                                    </div>
                                 </div>
                                 {isMultiDept && (
                                     <div className="space-y-2">
