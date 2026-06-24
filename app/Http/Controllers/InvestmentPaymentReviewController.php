@@ -66,7 +66,7 @@ class InvestmentPaymentReviewController extends Controller
         // Precalcular el desglose de presupuesto UNA vez por grupo de concepto (evita N+1:
         // los pagos del mismo concepto comparten el mismo saldo disponible).
         $keyFor = fn (InvestmentRequest $ir): string => ($ir->investment_expense_concept_id && $ir->project_id)
-            ? 'c:'.$ir->project_id.':'.$ir->investment_expense_concept_id
+            ? 'c:'.$ir->project_id.':'.$ir->investment_expense_concept_id.':'.$ir->department_id
             : 'r:'.$ir->id;
 
         $budgetByKey = [];

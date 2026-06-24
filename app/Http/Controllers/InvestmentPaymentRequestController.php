@@ -56,17 +56,16 @@ class InvestmentPaymentRequestController extends Controller
                 'concept_folio' => $p->investmentRequest?->folio_number,
             ]);
 
-        $groupBudget = (float) InvestmentRequest::whereIn('id', $groupIds)->sum('total');
-        $groupPaid = (float) $payments
-            ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'auto_cancelled'])
-            ->sum(fn ($p) => (float) $p['total']);
+        // Fuente única: presupuesto/pagado/disponible del concepto, normalizado a MXN
+        // y con PAID_STATUSES (mismo número que el header del consolidado y la validación).
+        $breakdown = $investmentRequest->budgetBreakdown();
 
         return response()->json([
             'payments' => $payments,
             'summary' => [
-                'total_concept' => number_format($groupBudget, 2, '.', ''),
-                'total_paid' => $groupPaid,
-                'remaining' => number_format($groupBudget - $groupPaid, 2, '.', ''),
+                'total_concept' => number_format($breakdown['budget'], 2, '.', ''),
+                'total_paid' => $breakdown['paid'],
+                'remaining' => number_format($breakdown['available'], 2, '.', ''),
                 'count' => $payments->count(),
             ],
         ]);

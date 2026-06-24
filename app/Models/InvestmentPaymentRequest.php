@@ -18,6 +18,16 @@ class InvestmentPaymentRequest extends Model
     /** @use HasFactory<InvestmentPaymentRequestFactory> */
     use HasFactory, LogsActivity, SoftDeletes;
 
+    /**
+     * Estados que cuentan como "consumido contra el presupuesto" (Pagado / saldo
+     * disponible del concepto): flujo nuevo desde la autorización final del CEO
+     * (final_approved -> scheduled_for_bank -> completed) más los estados legacy.
+     * Única definición usada por dashboard, desglose por concepto y validación de captura.
+     *
+     * @var array<int, string>
+     */
+    public const PAID_STATUSES = ['pending_approval', 'approved', 'final_approved', 'scheduled_for_bank', 'completed'];
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

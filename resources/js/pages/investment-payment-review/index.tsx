@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Eye, Inbox, Info, Send, X } from 'lucide-react';
+import { Eye, Inbox, Send } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,28 +82,6 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
         () => groups.flatMap((g) => g.payments).find((p) => p.uuid === detailUuid) ?? null,
         [groups, detailUuid],
     );
-
-    const [committedNoteHidden, setCommittedNoteHidden] = useState<boolean>(() => {
-        if (typeof window === 'undefined') {
-            return false;
-        }
-        try {
-            return sessionStorage.getItem('pr-committed-note-dismissed') === '1';
-        } catch {
-            return false;
-        }
-    });
-
-    const dismissCommittedNote = () => {
-        setCommittedNoteHidden(true);
-        try {
-            // sessionStorage: el cierre dura solo la sesión del navegador (no reaparece
-            // al navegar/recargar), pero NO es permanente: en una sesión nueva vuelve a salir.
-            sessionStorage.setItem('pr-committed-note-dismissed', '1');
-        } catch {
-            // sessionStorage no disponible; el aviso queda oculto solo en memoria.
-        }
-    };
 
     const toggleApproval = (uuid: string) => {
         setDecisions((prev) => ({
@@ -390,24 +368,6 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                                     <span className="text-muted-foreground">Comprometido</span>
                                                     <span className="font-mono">{formatCurrency(detailPayment.budget_paid)}</span>
                                                 </div>
-                                                {!committedNoteHidden && (
-                                                    <div className="flex items-start gap-2 rounded-md border bg-muted/50 px-2.5 py-2 text-xs text-muted-foreground">
-                                                        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                                                        <p className="flex-1">
-                                                            El <span className="font-medium text-foreground">Comprometido</span> ya incluye este pago
-                                                            (<span className="font-mono">{formatCurrency(detailPayment.total)}</span>), por eso el
-                                                            Disponible no cambia al aprobarlo.
-                                                        </p>
-                                                        <button
-                                                            type="button"
-                                                            onClick={dismissCommittedNote}
-                                                            aria-label="Cerrar aviso"
-                                                            className="shrink-0 rounded-sm text-muted-foreground/70 hover:text-foreground"
-                                                        >
-                                                            <X className="h-3.5 w-3.5" />
-                                                        </button>
-                                                    </div>
-                                                )}
                                                 <div className="flex items-center justify-between border-t pt-2">
                                                     <span className="font-semibold">Disponible</span>
                                                     <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -175,35 +176,46 @@ class InvestmentRequest extends Model
     }
 
     /**
-     * Desglose del presupuesto del concepto (project + investment_expense_concept):
-     * suma de los InvestmentRequest en estado Completed del mismo concepto, menos los
-     * pagos no rechazados. Si la solicitud no tiene concepto/proyecto, cae al saldo del
-     * propio request. Es la misma fórmula que valida la captura de pagos.
+     * Desglose del presupuesto del concepto (project + concept + department), TODO
+     * normalizado a MXN (× exchange_rate). Presupuesto = solicitudes Completed del
+     * grupo; pagado = pagos en InvestmentPaymentRequest::PAID_STATUSES. Si la solicitud
+     * no tiene concepto/proyecto, cae al saldo del propio request. Única fuente de verdad
+     * para el "saldo disponible del concepto" (header, panel y validación de captura).
      *
      * @return array{budget: float, paid: float, available: float, scope: 'concept'|'request'}
      */
     public function budgetBreakdown(): array
     {
+        $paidMxnSum = DB::raw(
+            'investment_payment_requests.total * (select exchange_rate from currencies where currencies.id = investment_payment_requests.currency_id)'
+        );
+
         if ($this->investment_expense_concept_id && $this->project_id) {
             $groupIds = static::query()
                 ->where('project_id', $this->project_id)
                 ->where('investment_expense_concept_id', $this->investment_expense_concept_id)
+                ->where('department_id', $this->department_id)
                 ->whereState('status', Completed::class)
                 ->pluck('id');
 
-            $budget = (float) static::whereIn('id', $groupIds)->sum('total');
+            $budget = (float) static::whereIn('id', $groupIds)->sum(DB::raw(
+                'investment_requests.total * (select exchange_rate from currencies where currencies.id = investment_requests.currency_id)'
+            ));
             $paid = (float) InvestmentPaymentRequest::query()
                 ->whereIn('investment_request_id', $groupIds)
-                ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'auto_cancelled'])
-                ->sum('total');
+                ->whereIn('status', InvestmentPaymentRequest::PAID_STATUSES)
+                ->sum($paidMxnSum);
 
             return ['budget' => $budget, 'paid' => $paid, 'available' => $budget - $paid, 'scope' => 'concept'];
         }
 
-        $budget = (float) $this->total;
-        $available = (float) $this->remaining_balance;
+        $budget = (float) $this->total * (float) ($this->currency?->exchange_rate ?? 1);
+        $paid = (float) InvestmentPaymentRequest::query()
+            ->where('investment_request_id', $this->id)
+            ->whereIn('status', InvestmentPaymentRequest::PAID_STATUSES)
+            ->sum($paidMxnSum);
 
-        return ['budget' => $budget, 'paid' => $budget - $available, 'available' => $available, 'scope' => 'request'];
+        return ['budget' => $budget, 'paid' => $paid, 'available' => $budget - $paid, 'scope' => 'request'];
     }
 
     public function availableBudget(): float

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\InvestmentPaymentType;
 use App\Enums\IvaRate;
+use App\Models\Currency;
 use App\Models\InvestmentRequest;
 use App\Services\PaymentPolicyAuditService;
 use App\Services\PaymentRequestPolicyService;
@@ -106,13 +107,17 @@ class StoreInvestmentPaymentRequest extends FormRequest
             if ($investmentRequest) {
                 $breakdown = $investmentRequest->budgetBreakdown();
                 $remaining = $breakdown['available'];
-                $total = (float) $this->input('total', 0);
 
-                if ($total > $remaining) {
+                // El disponible está en MXN; normalizamos el total capturado (en su moneda)
+                // a MXN antes de comparar.
+                $rate = (float) (Currency::find((int) $this->input('currency_id'))?->exchange_rate ?? 1);
+                $totalMxn = (float) $this->input('total', 0) * $rate;
+
+                if ($totalMxn > $remaining) {
                     $label = $breakdown['scope'] === 'concept' ? 'presupuesto' : 'concepto';
                     $validator->errors()->add(
                         'total',
-                        'El total ($'.number_format($total, 2).') excede el saldo disponible del '.$label.' ($'.number_format($remaining, 2).').',
+                        'El total ($'.number_format($totalMxn, 2).' MXN) excede el saldo disponible del '.$label.' ($'.number_format($remaining, 2).' MXN).',
                     );
                 }
             }

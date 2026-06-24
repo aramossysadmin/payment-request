@@ -23,15 +23,8 @@ use Inertia\Response;
 
 class InvestmentSheetConsolidatedController extends Controller
 {
-    /**
-     * Estados de pago que cuentan como "Pagado" en el dashboard de Presupuesto
-     * (tarjeta del proyecto y desglose por departamento). Incluye el flujo nuevo
-     * desde la autorización final del CEO en adelante (`final_approved` →
-     * `scheduled_for_bank` → `completed`) más los estados legacy.
-     *
-     * @var array<int, string>
-     */
-    private const PAID_STATUSES = ['pending_approval', 'approved', 'final_approved', 'scheduled_for_bank', 'completed'];
+    /** @var array<int, string> Alias local de la única definición de "consumido" (ver modelo). */
+    private const PAID_STATUSES = InvestmentPaymentRequest::PAID_STATUSES;
 
     /**
      * Suma de `total` normalizada a MXN (cada fila × su tipo de cambio).
@@ -94,7 +87,7 @@ class InvestmentSheetConsolidatedController extends Controller
             $paidMxn = $this->sumTotalMxn(
                 InvestmentPaymentRequest::query()
                     ->where('investment_request_id', $ir->id)
-                    ->whereIn('status', ['pending_approval', 'approved'])
+                    ->whereIn('status', self::PAID_STATUSES)
             );
 
             $ir->setAttribute('remaining_balance', number_format($irBudgetMxn - $paidMxn, 2, '.', ''));
@@ -114,7 +107,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 $groupPaid = $this->sumTotalMxn(
                     InvestmentPaymentRequest::query()
                         ->whereIn('investment_request_id', $groupIds)
-                        ->whereIn('status', ['pending_approval', 'approved'])
+                        ->whereIn('status', self::PAID_STATUSES)
                 );
 
                 $ir->setAttribute('group_budget', number_format($groupBudget, 2, '.', ''));
@@ -203,7 +196,7 @@ class InvestmentSheetConsolidatedController extends Controller
                         $groupPaidExcludingThis = $this->sumTotalMxn(
                             InvestmentPaymentRequest::query()
                                 ->whereIn('investment_request_id', $groupIds)
-                                ->whereNotIn('status', ['rejected', 'ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'auto_cancelled'])
+                                ->whereIn('status', self::PAID_STATUSES)
                                 ->where('id', '!=', $p->id)
                         );
 
