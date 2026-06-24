@@ -24,6 +24,16 @@ use Inertia\Response;
 class InvestmentSheetConsolidatedController extends Controller
 {
     /**
+     * Estados de pago que cuentan como "Pagado" en el dashboard de Presupuesto
+     * (tarjeta del proyecto y desglose por departamento). Incluye el flujo nuevo
+     * desde la autorización final del CEO en adelante (`final_approved` →
+     * `scheduled_for_bank` → `completed`) más los estados legacy.
+     *
+     * @var array<int, string>
+     */
+    private const PAID_STATUSES = ['pending_approval', 'approved', 'final_approved', 'scheduled_for_bank', 'completed'];
+
+    /**
      * Suma de `total` normalizada a MXN (cada fila × su tipo de cambio).
      */
     private function sumTotalMxn(Builder $query): float
@@ -143,7 +153,7 @@ class InvestmentSheetConsolidatedController extends Controller
             ->join('investment_requests', 'investment_payment_requests.investment_request_id', '=', 'investment_requests.id')
             ->join('currencies', 'investment_payment_requests.currency_id', '=', 'currencies.id')
             ->whereIn('investment_payment_requests.investment_request_id', $visibleIrIds)
-            ->whereIn('investment_payment_requests.status', ['pending_approval', 'approved'])
+            ->whereIn('investment_payment_requests.status', self::PAID_STATUSES)
             ->groupBy('investment_requests.department_id')
             ->selectRaw('investment_requests.department_id, SUM(investment_payment_requests.total * currencies.exchange_rate) as paid_total')
             ->pluck('paid_total', 'department_id');
@@ -383,7 +393,7 @@ class InvestmentSheetConsolidatedController extends Controller
         $paidProjectTotal = $this->sumTotalMxn(
             InvestmentPaymentRequest::query()
                 ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $project->id))
-                ->whereIn('status', ['pending_approval', 'approved'])
+                ->whereIn('status', self::PAID_STATUSES)
         );
 
         $remainingBudget = $updatedBudget - $paidProjectTotal;
