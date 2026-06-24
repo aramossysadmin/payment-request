@@ -10,6 +10,7 @@ use App\Models\InvestmentRequest;
 use App\States\InvestmentRequest\Completed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -168,6 +169,27 @@ class InvestmentPaymentRequestController extends Controller
         $payment->save();
 
         return back()->with('success', 'Pago actualizado.');
+    }
+
+    /**
+     * Corrección administrativa (Super Admin): mueve la fecha de programación de un
+     * pago y recalcula la semana (payment_week_number) sin pasar por la validación
+     * de ventana de captura. No toca el batch.
+     */
+    public function correctProvisionDate(Request $request, InvestmentPaymentRequest $payment): RedirectResponse
+    {
+        abort_unless($request->user()->hasRole('super_admin'), 403);
+
+        $validated = $request->validate([
+            'payment_provision_date' => ['required', 'date'],
+        ]);
+
+        $payment->update([
+            'payment_provision_date' => $validated['payment_provision_date'],
+            'payment_week_number' => Carbon::parse($validated['payment_provision_date'])->isoWeek,
+        ]);
+
+        return back()->with('success', 'Fecha de programación actualizada; la semana se recalculó.');
     }
 
     private function findOrCreateActiveBatch($user, InvestmentRequest $investmentRequest): InvestmentPaymentBatch

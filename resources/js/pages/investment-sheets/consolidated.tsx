@@ -288,6 +288,22 @@ function formatWeekday(dateStr: string | null): string {
     return d.toLocaleDateString('es-MX', { weekday: 'long' });
 }
 
+/** Semana ISO 8601 (lunes inicio; semana 1 = la del primer jueves) y su año ISO. Igual que Carbon::isoWeek. */
+function isoWeekOf(dateStr: string): { week: number; year: number } | null {
+    if (!dateStr) return null;
+    const d = new Date(dateStr + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return null;
+    const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNr = (target.getUTCDay() + 6) % 7;
+    target.setUTCDate(target.getUTCDate() - dayNr + 3);
+    const year = target.getUTCFullYear();
+    const firstThursday = new Date(Date.UTC(year, 0, 4));
+    const firstDayNr = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNr + 3);
+    const week = 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 86_400_000));
+    return { week, year };
+}
+
 type ConceptGroup = {
     key: string;
     conceptName: string;
@@ -573,6 +589,8 @@ export default function Consolidated() {
     const [historyQuickFilter, setHistoryQuickFilter] = useState<'all' | 'in_process' | 'completed' | 'rejected'>('all');
     const [historyPage, setHistoryPage] = useState(1);
     const [historyDetailUuid, setHistoryDetailUuid] = useState<string | null>(null);
+    const [editDateState, setEditDateState] = useState<{ uuid: string; folio: number; date: string } | null>(null);
+    const [editDateSaving, setEditDateSaving] = useState(false);
     const [historyPerPage, setHistoryPerPage] = useState(10);
 
     // "Pagos Pendientes de Documentos" — paginación, ordenamiento y filtros (mismo patrón que Historial)
@@ -2117,12 +2135,26 @@ export default function Consolidated() {
                                                     </SortableHeader>
                                                 </th>
                                                 <th className="px-4 py-3 font-semibold border-r border-gray-200 dark:border-gray-700 align-middle leading-tight">
-                                                    <SortableHeader label="Fecha Programación Pago" column="payment_provision_date" sortBy={historySortBy} onSort={handleHistorySort}>
-                                                        <ColumnFilterPopover
-                                                            value={historyColumnFilters.payment_provision_date ?? ''}
-                                                            onChange={(v) => setColumnFilter('payment_provision_date', v)}
-                                                            type="date"
-                                                        />
+                                                    <TooltipProvider delayDuration={200}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <span className="inline-flex">
+                                                                    <SortableHeader label="Pro-Pago" column="payment_provision_date" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                                        <ColumnFilterPopover
+                                                                            value={historyColumnFilters.payment_provision_date ?? ''}
+                                                                            onChange={(v) => setColumnFilter('payment_provision_date', v)}
+                                                                            type="date"
+                                                                        />
+                                                                    </SortableHeader>
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="text-xs">Completo fecha programación de pago</TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                    <SortableHeader label="Categoría" column="category" sortBy={historySortBy} onSort={handleHistorySort}>
+                                                        <ColumnFilterPopover value={historyColumnFilters.category ?? ''} onChange={(v) => setColumnFilter('category', v)} placeholder="Categoría..." />
                                                     </SortableHeader>
                                                 </th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
@@ -2139,11 +2171,6 @@ export default function Consolidated() {
                                                             placeholder="Descripción..."
                                                         />
                                                     </span>
-                                                </th>
-                                                <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
-                                                    <SortableHeader label="Categoría del Concepto" column="category" sortBy={historySortBy} onSort={handleHistorySort}>
-                                                        <ColumnFilterPopover value={historyColumnFilters.category ?? ''} onChange={(v) => setColumnFilter('category', v)} placeholder="Categoría..." />
-                                                    </SortableHeader>
                                                 </th>
                                                 <th className="px-4 py-3 font-semibold whitespace-nowrap border-r border-gray-200 dark:border-gray-700 align-middle">
                                                     <SortableHeader label="Proveedor" column="provider" sortBy={historySortBy} onSort={handleHistorySort}>
@@ -2206,17 +2233,17 @@ export default function Consolidated() {
                                                     <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 whitespace-nowrap">
                                                         {payment.payment_provision_date ?? <span className="text-gray-400">—</span>}
                                                     </td>
-                                                    {/* 4. Concepto */}
+                                                    {/* Categoría */}
+                                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[160px] truncate" title={payment.category_name}>
+                                                        {payment.category_name}
+                                                    </td>
+                                                    {/* Concepto */}
                                                     <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.concept_name}>
                                                         {payment.concept_name}
                                                     </td>
-                                                    {/* 5. Descripción */}
+                                                    {/* Descripción */}
                                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
                                                         {payment.description ? payment.description : <span className="text-gray-400">—</span>}
-                                                    </td>
-                                                    {/* 6. Categoría del Concepto */}
-                                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[160px] truncate" title={payment.category_name}>
-                                                        {payment.category_name}
                                                     </td>
                                                     {/* 7. Proveedor */}
                                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[180px] truncate" title={payment.provider}>
@@ -2273,14 +2300,26 @@ export default function Consolidated() {
                                                     </td>
                                                     {/* Acciones */}
                                                     <td className="px-4 py-3 text-right">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => setHistoryDetailUuid(payment.uuid)}
-                                                        >
-                                                            <Eye className="mr-1 h-3.5 w-3.5" />
-                                                            Ver
-                                                        </Button>
+                                                        <div className="inline-flex items-center justify-end gap-1">
+                                                            {isSuperAdmin && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    title="Editar fecha de programación (Super Admin)"
+                                                                    onClick={() => setEditDateState({ uuid: payment.uuid, folio: payment.folio_number, date: payment.payment_provision_date ?? '' })}
+                                                                >
+                                                                    <Pencil className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() => setHistoryDetailUuid(payment.uuid)}
+                                                            >
+                                                                <Eye className="mr-1 h-3.5 w-3.5" />
+                                                                Ver
+                                                            </Button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -2531,6 +2570,66 @@ export default function Consolidated() {
             </Sheet>
 
             {/* Edit inline dialog (concepto + descripción) */}
+            {/* Editar fecha de programación (Super Admin) — recalcula la semana */}
+            <Dialog open={editDateState !== null} onOpenChange={(open) => { if (!open && !editDateSaving) setEditDateState(null); }}>
+                <DialogContent className="sm:max-w-md">
+                    {editDateState && (() => {
+                        const iso = isoWeekOf(editDateState.date);
+                        return (
+                            <>
+                                <DialogHeader>
+                                    <DialogTitle>Editar fecha de programación — #{String(editDateState.folio).padStart(5, '0')}</DialogTitle>
+                                    <DialogDescription>
+                                        Corrección de Super Admin. Al guardar, la semana de provisión se recalcula y el pago se mueve a esa semana.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-3 py-2">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="edit_provision_date">Fecha de programación de pago</Label>
+                                        <Input
+                                            id="edit_provision_date"
+                                            type="date"
+                                            value={editDateState.date}
+                                            onChange={(e) => setEditDateState((prev) => (prev ? { ...prev, date: e.target.value } : prev))}
+                                        />
+                                    </div>
+                                    <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                                        {iso ? (
+                                            <span>Quedará en <span className="font-semibold">Semana {iso.week} / {iso.year}</span></span>
+                                        ) : (
+                                            <span className="text-muted-foreground">Selecciona una fecha válida.</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button type="button" variant="outline" onClick={() => setEditDateState(null)} disabled={editDateSaving}>
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        disabled={editDateSaving || !editDateState.date}
+                                        onClick={() => {
+                                            setEditDateSaving(true);
+                                            router.patch(
+                                                `/investment-payment-requests/${editDateState.uuid}/provision-date`,
+                                                { payment_provision_date: editDateState.date },
+                                                {
+                                                    preserveScroll: true,
+                                                    onSuccess: () => setEditDateState(null),
+                                                    onFinish: () => setEditDateSaving(false),
+                                                },
+                                            );
+                                        }}
+                                    >
+                                        {editDateSaving ? 'Guardando...' : 'Guardar'}
+                                    </Button>
+                                </DialogFooter>
+                            </>
+                        );
+                    })()}
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={editDescState !== null} onOpenChange={(open) => { if (!open) closeEditDescription(); }}>
                 <DialogContent className="sm:max-w-lg">
                     <TooltipProvider delayDuration={300}>

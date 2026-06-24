@@ -65,6 +65,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('investment-payment-requests/{investmentRequestId}', [InvestmentPaymentRequestController::class, 'index'])->name('investment-payment-requests.index');
     Route::post('investment-payment-requests', [InvestmentPaymentRequestController::class, 'store'])->name('investment-payment-requests.store');
     Route::match(['patch', 'post'], 'investment-payment-requests/{payment:uuid}', [InvestmentPaymentRequestController::class, 'update'])->name('investment-payment-requests.update');
+    Route::patch('investment-payment-requests/{payment:uuid}/provision-date', [InvestmentPaymentRequestController::class, 'correctProvisionDate'])->middleware('role:super_admin')->name('investment-payment-requests.correct-provision-date');
     Route::delete('investment-payment-batches/payments/{payment:uuid}', [InvestmentPaymentBatchController::class, 'destroyPayment'])->name('investment-payment-batches.destroy-payment');
     Route::post('investment-payment-batches/{batch:uuid}/submit', [InvestmentPaymentBatchController::class, 'submit'])->name('investment-payment-batches.submit');
     Route::post('investment-payment-requests/{payment:uuid}/upload-documents', [InvestmentPaymentDocumentController::class, 'upload'])->name('investment-payment-requests.upload-documents');
