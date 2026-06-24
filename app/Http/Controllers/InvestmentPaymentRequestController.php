@@ -46,6 +46,7 @@ class InvestmentPaymentRequestController extends Controller
                 'rfc' => $p->rfc,
                 'payment_type' => $p->payment_type,
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
+                'currency_id' => $p->currency_id,
                 'subtotal' => (string) $p->subtotal,
                 'iva' => (string) $p->iva,
                 'total' => (string) $p->total,

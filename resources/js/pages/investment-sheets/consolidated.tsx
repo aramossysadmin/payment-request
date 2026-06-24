@@ -79,6 +79,7 @@ type InvestmentPayment = {
     rfc: string | null;
     payment_type: string;
     currency_prefix: string;
+    currency_id: number;
     subtotal: string;
     iva: string;
     total: string;
@@ -268,6 +269,46 @@ function formatDateEs(dateStr: string | null): string {
     if (!dateStr) return '';
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+const historyStatusGroups: Record<'in_process' | 'completed' | 'rejected', string[]> = {
+    in_process: ['submitted', 'ceo_approved', 'projectmanager_review', 'projectmanager_approved', 'final_pending', 'documents_pending', 'pending_approval'],
+    completed: ['final_approved', 'completed', 'approved'],
+    rejected: ['ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'rejected'],
+};
+
+function historyStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+        draft: 'Borrador',
+        submitted: 'Enviado',
+        ceo_approved: 'CEO Aprobó',
+        ceo_rejected: 'CEO Rechazó',
+        projectmanager_review: 'En revisión PM',
+        projectmanager_approved: 'PM Aprobó',
+        projectmanager_rejected: 'PM Rechazó',
+        final_pending: 'Pendiente Final',
+        final_approved: 'Aprobado Final',
+        final_rejected: 'Rechazado Final',
+        documents_pending: 'Esperando docs',
+        completed: 'Completado',
+        approved: 'Aprobado',
+        rejected: 'Rechazado',
+        pending_approval: 'Pendiente',
+    };
+    return labels[status] ?? status;
+}
+
+function historyStatusColorClass(status: string): string {
+    if (historyStatusGroups.completed.includes(status)) {
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    }
+    if (historyStatusGroups.rejected.includes(status)) {
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+    }
+    if (historyStatusGroups.in_process.includes(status)) {
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+    }
+    return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
 }
 
 function formatDateShort(dateStr: string | null): string {
@@ -628,12 +669,6 @@ export default function Consolidated() {
         setHistoryPage(1);
     };
 
-    const historyStatusGroups: Record<'in_process' | 'completed' | 'rejected', string[]> = {
-        in_process: ['submitted', 'ceo_approved', 'projectmanager_review', 'projectmanager_approved', 'final_pending', 'documents_pending', 'pending_approval'],
-        completed: ['final_approved', 'completed', 'approved'],
-        rejected: ['ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'rejected'],
-    };
-
     const historyCounts = {
         all: userPaymentHistory.length,
         in_process: userPaymentHistory.filter((p) => historyStatusGroups.in_process.includes(p.status)).length,
@@ -850,40 +885,6 @@ export default function Consolidated() {
     const selectedHistoryPayment = historyDetailUuid
         ? userPaymentHistory.find((p) => p.uuid === historyDetailUuid)
         : null;
-
-    const historyStatusLabel = (status: string): string => {
-        const labels: Record<string, string> = {
-            draft: 'Borrador',
-            submitted: 'Enviado',
-            ceo_approved: 'CEO Aprobó',
-            ceo_rejected: 'CEO Rechazó',
-            projectmanager_review: 'En revisión PM',
-            projectmanager_approved: 'PM Aprobó',
-            projectmanager_rejected: 'PM Rechazó',
-            final_pending: 'Pendiente Final',
-            final_approved: 'Aprobado Final',
-            final_rejected: 'Rechazado Final',
-            documents_pending: 'Esperando docs',
-            completed: 'Completado',
-            approved: 'Aprobado',
-            rejected: 'Rechazado',
-            pending_approval: 'Pendiente',
-        };
-        return labels[status] ?? status;
-    };
-
-    const historyStatusColorClass = (status: string): string => {
-        if (historyStatusGroups.completed.includes(status)) {
-            return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-        }
-        if (historyStatusGroups.rejected.includes(status)) {
-            return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-        }
-        if (historyStatusGroups.in_process.includes(status)) {
-            return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-        }
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
-    };
 
     // Normalizado a MXN (cada borrador × su tipo de cambio) para sumar monedas mezcladas.
     const selectedDraftTotal = (draftBatch?.payments ?? [])
@@ -2912,13 +2913,6 @@ export default function Consolidated() {
 
 /* ─── Payments Drawer ─── */
 
-const paymentStatusConfig: Record<string, { label: string; icon: typeof CheckIcon; color: string }> = {
-    pending: { label: 'Pendiente', icon: Clock, color: 'text-yellow-600 dark:text-yellow-400' },
-    approved: { label: 'Aprobado', icon: CheckIcon, color: 'text-green-600 dark:text-green-400' },
-    rejected: { label: 'Rechazado', icon: XCircle, color: 'text-red-600 dark:text-red-400' },
-    pending_approval: { label: 'Pendiente', icon: Clock, color: 'text-yellow-600 dark:text-yellow-400' },
-};
-
 type PaymentsDrawerProps = {
     open: boolean;
     onClose: () => void;
@@ -2985,7 +2979,7 @@ function PaymentsDrawer({
                         {summary && (
                             <>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Total pagado / solicitado</span>
+                                    <span className="text-muted-foreground">Pagado</span>
                                     <span className="font-mono font-medium text-blue-600 dark:text-blue-400">{formatCurrency(summary.total_paid)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
@@ -3011,6 +3005,9 @@ function PaymentsDrawer({
                                     </div>
                                     <p className="text-right text-xs text-muted-foreground">
                                         {progressPercent.toFixed(0)}% consumido · {summary.count} {summary.count === 1 ? 'pago' : 'pagos'}
+                                    </p>
+                                    <p className="text-right text-[10px] text-muted-foreground/80">
+                                        El saldo solo descuenta pagos pagados/aprobados (no borradores ni en revisión).
                                     </p>
                                 </div>
                             </>
@@ -3064,9 +3061,6 @@ function PaymentsDrawer({
                         ) : (
                             <div className="space-y-3">
                                 {payments.map((payment) => {
-                                    const statusConf = paymentStatusConfig[payment.approval_status] ?? paymentStatusConfig.pending;
-                                    const StatusIcon = statusConf.icon;
-
                                     return (
                                         <div key={payment.id} className="rounded-lg border p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                             <div className="flex items-start justify-between">
@@ -3088,10 +3082,14 @@ function PaymentsDrawer({
                                                     </p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="font-mono text-sm font-semibold">{formatCurrency(payment.total)}</p>
-                                                    <div className={cn('mt-1 flex items-center justify-end gap-1 text-xs', statusConf.color)}>
-                                                        <StatusIcon className="h-3.5 w-3.5" />
-                                                        {statusConf.label}
+                                                    <p className="font-mono text-sm font-semibold">{formatNative(payment.total, payment.currency_id)}</p>
+                                                    {nativeNoteOf(payment.total, payment.currency_id) && (
+                                                        <div className="text-[10px] font-normal text-gray-400">orig. {nativeNoteOf(payment.total, payment.currency_id)}</div>
+                                                    )}
+                                                    <div className="mt-1 flex justify-end">
+                                                        <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium', historyStatusColorClass(payment.status))}>
+                                                            {historyStatusLabel(payment.status)}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
