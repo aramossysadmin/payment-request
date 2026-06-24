@@ -88,7 +88,7 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
             return false;
         }
         try {
-            return localStorage.getItem('pr-committed-note-dismissed') === '1';
+            return sessionStorage.getItem('pr-committed-note-dismissed') === '1';
         } catch {
             return false;
         }
@@ -97,9 +97,11 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
     const dismissCommittedNote = () => {
         setCommittedNoteHidden(true);
         try {
-            localStorage.setItem('pr-committed-note-dismissed', '1');
+            // sessionStorage: el cierre dura solo la sesión del navegador (no reaparece
+            // al navegar/recargar), pero NO es permanente: en una sesión nueva vuelve a salir.
+            sessionStorage.setItem('pr-committed-note-dismissed', '1');
         } catch {
-            // localStorage no disponible; el aviso queda oculto solo en esta sesión.
+            // sessionStorage no disponible; el aviso queda oculto solo en memoria.
         }
     };
 
