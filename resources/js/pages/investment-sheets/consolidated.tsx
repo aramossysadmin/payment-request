@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { ArrowDownRight, ArrowUpRight, Banknote, Building2, Calendar, CalendarRange, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, DollarSign, Download, Eye, FileDown, FileText, Inbox, Info, Pencil, Search, Send, Trash2, Upload, Wallet, X, XCircle } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Banknote, Building2, Calendar, CalendarRange, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, Download, Eye, FileDown, FileText, Inbox, Info, Pencil, Search, Send, Trash2, Upload, Wallet, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { DocumentPreview } from '@/components/document-preview';
 import { FileUpload } from '@/components/file-upload';
@@ -352,7 +352,7 @@ export default function Consolidated() {
 
     const {
         paymentPolicy,
-        project, totals, projectDashboard, departmentBreakdown, investmentRequests, filters,
+        project, projectDashboard, departmentBreakdown, investmentRequests, filters,
         userDepartmentId, userDepartmentName, userDepartments, currencies, branches, availableConcepts, conceptDepartmentMap, canEditRequestConcept, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
     } = usePage<PageProps>().props;
 
@@ -1226,62 +1226,6 @@ export default function Consolidated() {
                         </div>
                     );
                 })()}
-
-                {/* Summary Cards */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-900/20">
-                                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Total de Conceptos</p>
-                                    <p className="text-2xl font-bold">{totals.count}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
-                                    <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Monto Total</p>
-                                    <p className="text-2xl font-bold">{formatCurrency(totals.total)}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-emerald-50 p-2 dark:bg-emerald-900/20">
-                                    <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Monto Completado</p>
-                                    <p className="text-2xl font-bold">{formatCurrency(totals.authorized)}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-amber-50 p-2 dark:bg-amber-900/20">
-                                    <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">En Proceso</p>
-                                    <p className="text-2xl font-bold">{formatCurrency(totals.pending)}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
 
                 {/* Department Breakdown */}
                 {departmentBreakdown.length > 0 && (
