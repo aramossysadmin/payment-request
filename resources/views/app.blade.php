@@ -22,11 +22,11 @@
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>
             html {
-                background-color: #F8F6F1;
+                background-color: oklch(0.9745 0.0079 253.8524);
             }
 
             html.dark {
-                background-color: #0D0F1A;
+                background-color: oklch(0.2292 0.0304 259.0329);
             }
         </style>
 
@@ -34,9 +34,6 @@
 
         <link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=open-sans:400,500,600,700" rel="stylesheet" />
 
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])

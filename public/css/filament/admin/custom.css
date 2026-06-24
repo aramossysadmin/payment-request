@@ -1,0 +1,33 @@
+/**
+ * Filament admin — surface lift del modo oscuro slate (alineado con OperationsPortalV2).
+ * CSS plano (no pasa por Tailwind). El color (Slate) y la fuente (Geist) se configuran
+ * en AdminPanelProvider. Filament dark usa los shades más oscuros del ramp (casi negro);
+ * aquí subimos las superficies a los tokens slate medios del front.
+ * Jerarquía: body < sidebar < card < elevado (modal/dropdown) < input.
+ */
+.dark .fi-body {
+    background-color: oklch(0.2292 0.0304 259.0329);
+}
+
+.dark .fi-sidebar,
+.dark .fi-topbar {
+    background-color: oklch(0.2452 0.0305 256.8649);
+}
+
+.dark .fi-section,
+.dark .fi-ta-ctn,
+.dark .fi-simple-main,
+.dark .fi-wi-stats-overview-stat {
+    background-color: oklch(0.2610 0.0307 254.7604);
+}
+
+.dark .fi-modal-window,
+.dark .fi-dropdown-panel,
+.dark .fi-dropdown-list {
+    background-color: oklch(0.2897 0.0338 255.7937);
+}
+
+.dark .fi-input,
+.dark .fi-input-wrapper {
+    background-color: oklch(0.3205 0.0336 253.9373);
+}
