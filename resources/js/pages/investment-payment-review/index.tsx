@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DocumentPreview } from '@/components/document-preview';
 import { ProjectCombobox, type Project } from '@/components/project-combobox';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/currency';
@@ -31,6 +32,7 @@ type Payment = {
     budget_committed: string;
     budget_paid: string;
     budget_available: string;
+    documents: { name: string; url: string }[];
 };
 
 type Group = {
@@ -379,6 +381,17 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                                         {formatCurrency(detailPayment.budget_available)}
                                                     </span>
                                                 </div>
+                                            </section>
+
+                                            <section className="space-y-2 border-t pt-4">
+                                                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                                    Documentos
+                                                </h4>
+                                                {detailPayment.documents.length === 0 ? (
+                                                    <p className="text-sm text-muted-foreground">Sin documentos adjuntos.</p>
+                                                ) : (
+                                                    <DocumentPreview documents={detailPayment.documents} />
+                                                )}
                                             </section>
                                         </div>
                                     </>

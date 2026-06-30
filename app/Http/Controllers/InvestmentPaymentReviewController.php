@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -106,6 +107,18 @@ class InvestmentPaymentReviewController extends Controller
                             'budget_committed' => number_format($bd['committed'], 2, '.', ''),
                             'budget_paid' => number_format($bd['paid'], 2, '.', ''),
                             'budget_available' => number_format($bd['available'], 2, '.', ''),
+                            'documents' => collect(is_array($p->advance_documents) ? $p->advance_documents : [])
+                                ->filter(fn ($doc) => is_string($doc) && $doc !== '')
+                                ->map(fn ($doc) => [
+                                    'name' => basename($doc),
+                                    'url' => URL::temporarySignedRoute(
+                                        'documents.view',
+                                        now()->addHours(48),
+                                        ['path' => $doc],
+                                    ),
+                                ])
+                                ->values()
+                                ->toArray(),
                         ];
                     })->values(),
                 ];
