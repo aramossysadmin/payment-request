@@ -37,6 +37,7 @@ import type { InvestmentRequest } from '@/types/investment-request';
 
 const ivaRateOptions = [
     { value: '0.00', label: 'IVA 0%' },
+    { value: '0.04', label: 'IVA 4%' },
     { value: '0.08', label: 'IVA 8%' },
     { value: '0.16', label: 'IVA 16%' },
     { value: '0.21', label: 'IVA 21%' },

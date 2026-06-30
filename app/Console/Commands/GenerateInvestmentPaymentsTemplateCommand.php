@@ -174,7 +174,7 @@ class GenerateInvestmentPaymentsTemplateCommand extends Command
             ['payment_provision_date', 'Sí', 'YYYY-MM-DD', 'Fecha real del pago, o de previsión si aún no se ejecuta.'],
             ['description', 'No', 'Texto', 'Descripción libre del pago.'],
             ['subtotal', 'Sí', 'Número decimal ≥ 0', 'Subtotal sin IVA.'],
-            ['iva_rate', 'Sí', '0.00  |  0.08  |  0.16', 'Tasa de IVA aplicada.'],
+            ['iva_rate', 'Sí', '0.00  |  0.04  |  0.08  |  0.16  |  0.21', 'Tasa de IVA aplicada.'],
             ['iva', 'Sí', 'Número decimal ≥ 0', 'Monto de IVA. Si iva_rate = 0.00 entonces iva = 0.00.'],
             ['retention', 'No', '0  |  1', 'Aplica retención. Default 0.'],
             ['total', 'Sí', 'Número decimal ≥ 0', 'Subtotal + IVA. Debe coincidir aritméticamente.'],
