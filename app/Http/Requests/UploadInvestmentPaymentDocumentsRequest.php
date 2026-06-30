@@ -52,7 +52,7 @@ class UploadInvestmentPaymentDocumentsRequest extends FormRequest
                 }
             }
 
-            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo'], true)) {
+            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado'], true)) {
                 $document = $this->file('document');
 
                 if (! $document) {

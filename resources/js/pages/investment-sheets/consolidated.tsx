@@ -529,8 +529,8 @@ export default function Consolidated() {
         );
     };
 
-    type UploadType = 'factura' | 'reembolso' | 'estrategia' | 'anticipo';
-    const UPLOAD_TYPES: UploadType[] = ['factura', 'reembolso', 'estrategia', 'anticipo'];
+    type UploadType = 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado';
+    const UPLOAD_TYPES: UploadType[] = ['factura', 'reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado'];
     const isValidUploadType = (value: string | undefined | null): value is UploadType =>
         UPLOAD_TYPES.includes(value as UploadType);
 
@@ -3151,7 +3151,7 @@ function PaymentRequestModal({
                 payment_provision_date: editingPayment.payment_provision_date ?? '',
                 currency_id: String(editingPayment.currency_id),
                 branch_id: String(editingPayment.branch_id),
-                payment_type: (['factura', 'reembolso', 'estrategia', 'anticipo'].includes(editingPayment.payment_type) ? editingPayment.payment_type : 'factura') as 'factura' | 'reembolso' | 'estrategia' | 'anticipo',
+                payment_type: (['factura', 'reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado'].includes(editingPayment.payment_type) ? editingPayment.payment_type : 'factura') as 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado',
                 description: editingPayment.description ?? '',
                 subtotal: editingPayment.subtotal,
                 iva_rate: editingPayment.iva_rate ?? '',
@@ -3167,7 +3167,7 @@ function PaymentRequestModal({
             payment_provision_date: paymentPolicy.provision.nextDate,
             currency_id: ir.currency?.id ? String(ir.currency.id) : '',
             branch_id: ir.branch?.id ? String(ir.branch.id) : '',
-            payment_type: 'factura' as 'factura' | 'reembolso' | 'estrategia' | 'anticipo',
+            payment_type: 'factura' as 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado',
             description: '',
             subtotal: '',
             iva_rate: '',
@@ -3225,7 +3225,7 @@ function PaymentRequestModal({
         setValues((prev) => ({ ...prev, [field]: value }));
     };
 
-    const changePaymentType = (type: 'factura' | 'reembolso' | 'estrategia' | 'anticipo') => {
+    const changePaymentType = (type: 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado') => {
         setValues((prev) => ({ ...prev, payment_type: type }));
         setFiles([]);
         setInvoicePdf(null);
@@ -3526,7 +3526,7 @@ function PaymentRequestModal({
                                 <div className="space-y-2">
                                     <Label>Tipo de pago</Label>
                                     <div className="flex flex-wrap gap-2">
-                                        {(['factura', 'reembolso', 'estrategia', 'anticipo'] as const).map((type) => (
+                                        {(['factura', 'reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado'] as const).map((type) => (
                                             <Button
                                                 key={type}
                                                 type="button"

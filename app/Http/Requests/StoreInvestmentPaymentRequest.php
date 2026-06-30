@@ -92,11 +92,11 @@ class StoreInvestmentPaymentRequest extends FormRequest
                 }
             }
 
-            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo'], true)) {
+            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado'], true)) {
                 $files = $this->file('advance_documents', []);
                 if (is_array($files) && count($files) > 0) {
                     if (count($files) > 1) {
-                        $validator->errors()->add('advance_documents', 'Para reembolso, estrategia o anticipo, adjunta un solo documento (PDF o imagen).');
+                        $validator->errors()->add('advance_documents', 'Para reembolso, estrategia, anticipo, cotización, pagaré o domiciliado, adjunta un solo documento (PDF o imagen).');
                     } elseif (! in_array(strtolower($files[0]->getClientOriginalExtension()), ['pdf', 'jpg', 'jpeg', 'png'], true)) {
                         $validator->errors()->add('advance_documents', 'El documento debe ser PDF o imagen (JPG, JPEG o PNG).');
                     }
