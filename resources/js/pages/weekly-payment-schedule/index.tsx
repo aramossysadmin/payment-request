@@ -1,5 +1,5 @@
-import { Head, router, usePage } from '@inertiajs/react';
-import { FileText, Image as ImageIcon, Inbox, Send } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import { CheckCircle2, FileText, Image as ImageIcon, Inbox, Paperclip, Send, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DocumentPreview } from '@/components/document-preview';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import type { BreadcrumbItem } from '@/types';
 
 interface Payment {
     id: number;
+    uuid: string;
     folio_number: number;
     provider: string;
     concept_name: string;
@@ -28,7 +29,28 @@ interface Payment {
     currency_prefix: string;
     description: string | null;
     payment_type: string;
+    status: string;
     documents: { name: string; url: string }[];
+    receipt_documents: { name: string; url: string }[];
+    receipt_uploaded_at: string | null;
+}
+
+interface SchedulePayment {
+    uuid: string;
+    folio_number: number;
+    provider: string;
+    concept_name: string;
+    payment_provision_date: string | null;
+    total: string;
+    currency_prefix: string;
+    description: string | null;
+    payment_type: string;
+    status: string;
+    included: boolean;
+    exclusion_reason: string | null;
+    documents: { name: string; url: string }[];
+    receipt_documents: { name: string; url: string }[];
+    receipt_uploaded_at: string | null;
 }
 
 type DocumentItem = { name: string; url: string };
@@ -56,6 +78,7 @@ interface Schedule {
     included_count: number;
     total_amount: number;
     approval_status: string;
+    payments: SchedulePayment[];
 }
 
 interface Props {
@@ -90,14 +113,56 @@ const statusColors: Record<string, string> = {
     rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
-export default function WeeklyPaymentScheduleIndex({ payments, schedules, projects, selectedProjectId, currentWeek, currentYear }: Props) {
-    const { errors, props } = usePage();
-    const flash = (props as Record<string, unknown>).flash as { success?: string } | undefined;
+const paymentStatusLabels: Record<string, string> = {
+    approved: 'Aprobado',
+    completed: 'Completado',
+    scheduled_for_bank: 'Programado en banco',
+    receipt_attached: 'Comprobante adjunto',
+};
 
+const paymentStatusColors: Record<string, string> = {
+    approved: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    completed: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    scheduled_for_bank: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+    receipt_attached: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+};
+
+function DocumentChips({ documents, onPreview }: { documents: DocumentItem[]; onPreview: (docs: DocumentItem[]) => void }) {
+    if (documents.length === 0) return null;
+    return (
+        <button
+            type="button"
+            className="inline-flex items-center gap-1"
+            onClick={() => onPreview(documents)}
+            title="Previsualizar documentos"
+        >
+            {classifyDocs(documents).map((d, i) => {
+                const Icon = d.kind === 'img' ? ImageIcon : FileText;
+                const label = d.kind === 'pdf' ? 'PDF' : d.kind === 'xml' ? 'XML' : d.kind === 'img' ? 'IMG' : 'DOC';
+                return (
+                    <span
+                        key={i}
+                        className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent"
+                    >
+                        <Icon className="h-3 w-3" /> {label}
+                    </span>
+                );
+            })}
+        </button>
+    );
+}
+
+export default function WeeklyPaymentScheduleIndex({ payments, schedules, projects, selectedProjectId, currentWeek, currentYear }: Props) {
     const [selectedWeek, setSelectedWeek] = useState(currentWeek);
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [processing, setProcessing] = useState(false);
     const [previewDocs, setPreviewDocs] = useState<DocumentItem[] | null>(null);
+
+    // Diálogo de carga de comprobante de pago
+    const [receiptTarget, setReceiptTarget] = useState<{ uuid: string; folio: number; hasExisting: boolean } | null>(null);
+    const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
+    const [receiptUploading, setReceiptUploading] = useState(false);
+    const [receiptErrors, setReceiptErrors] = useState<Record<string, string>>({});
 
     const selectedProject = useMemo(
         () => projects.find((p) => p.id === selectedProjectId) ?? null,
@@ -107,6 +172,12 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
     const weekPayments = useMemo(
         () => payments.filter((p) => p.payment_week_number === selectedWeek),
         [payments, selectedWeek],
+    );
+
+    // Los pagos con comprobante adjunto están finalizados: visibles pero NO programables.
+    const schedulableWeekPayments = useMemo(
+        () => weekPayments.filter((p) => p.status !== 'receipt_attached'),
+        [weekPayments],
     );
 
     const [itemStates, setItemStates] = useState<Record<number, ItemState>>(() => {
@@ -134,20 +205,24 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
     const toggleAll = (checked: boolean) => {
         setItemStates((prev) => {
             const next = { ...prev };
-            weekPayments.forEach((p) => {
+            schedulableWeekPayments.forEach((p) => {
                 next[p.id] = { ...next[p.id], included: checked };
             });
             return next;
         });
     };
 
-    const includedPayments = weekPayments.filter((p) => itemStates[p.id]?.included);
+    const includedPayments = schedulableWeekPayments.filter((p) => itemStates[p.id]?.included);
     const totalIncluded = includedPayments.reduce((sum, p) => sum + parseFloat(p.total), 0);
-    const allChecked = weekPayments.length > 0 && weekPayments.every((p) => itemStates[p.id]?.included);
+    const allChecked = schedulableWeekPayments.length > 0 && schedulableWeekPayments.every((p) => itemStates[p.id]?.included);
 
     const existingScheduleForWeek = schedules.find(
         (s) => s.week_number === selectedWeek && s.year === selectedYear && s.status !== 'rejected',
     );
+
+    const schedulePayments = existingScheduleForWeek?.payments ?? [];
+    const scheduleIncluded = schedulePayments.filter((p) => p.included);
+    const scheduleTotal = scheduleIncluded.reduce((sum, p) => sum + parseFloat(p.total), 0);
 
     const navigateWeek = (direction: number) => {
         let newWeek = selectedWeek + direction;
@@ -164,10 +239,10 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
     };
 
     const handleSubmit = () => {
-        if (weekPayments.length === 0) return;
+        if (schedulableWeekPayments.length === 0) return;
 
         setProcessing(true);
-        const items = weekPayments.map((p) => ({
+        const items = schedulableWeekPayments.map((p) => ({
             id: p.id,
             included: itemStates[p.id]?.included ?? true,
             exclusion_reason: itemStates[p.id]?.exclusion_reason || null,
@@ -186,17 +261,60 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
         );
     };
 
+    const openReceiptDialog = (uuid: string, folio: number, hasExisting: boolean) => {
+        setReceiptTarget({ uuid, folio, hasExisting });
+        setReceiptFiles([]);
+        setReceiptErrors({});
+    };
+
+    const handleUploadReceipt = () => {
+        if (!receiptTarget || receiptFiles.length === 0) return;
+        setReceiptUploading(true);
+        setReceiptErrors({});
+
+        const formData = new FormData();
+        receiptFiles.forEach((file) => formData.append('receipt_documents[]', file));
+
+        router.post(`/weekly-payment-schedule/${receiptTarget.uuid}/receipt`, formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                setReceiptTarget(null);
+                setReceiptFiles([]);
+            },
+            onError: (errs) => setReceiptErrors(errs as Record<string, string>),
+            onFinish: () => setReceiptUploading(false),
+        });
+    };
+
+    const receiptCell = (payment: { uuid: string; folio_number: number; status: string; receipt_documents: DocumentItem[] }) => (
+        <div className="flex items-center gap-2">
+            <DocumentChips documents={payment.receipt_documents} onPreview={setPreviewDocs} />
+            <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 px-2 text-xs"
+                onClick={() => openReceiptDialog(payment.uuid, payment.folio_number, payment.receipt_documents.length > 0)}
+                title={payment.receipt_documents.length > 0 ? 'Reemplazar el comprobante cargado' : 'Cargar comprobante de pago'}
+            >
+                <Paperclip className="h-3 w-3" />
+                {payment.receipt_documents.length > 0 ? 'Reemplazar' : 'Comprobante'}
+            </Button>
+        </div>
+    );
+
+    const paymentStatusBadge = (status: string) => (
+        <Badge className={`text-xs ${paymentStatusColors[status] ?? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
+            {paymentStatusLabels[status] ?? status}
+        </Badge>
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Programación de Pagos Semanal" />
 
             <div className="mx-auto max-w-7xl space-y-6 p-4 lg:p-6">
-                {flash?.success && (
-                    <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300">
-                        {flash.success}
-                    </div>
-                )}
-
                 {/* Project Selector */}
                 <Card>
                     <CardContent className="pt-6">
@@ -248,19 +366,19 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                     <Card>
                         <CardContent className="pt-6">
                             <div className="text-sm text-gray-500 dark:text-gray-400">Pagos de la semana</div>
-                            <div className="text-2xl font-bold">{weekPayments.length}</div>
+                            <div className="text-2xl font-bold">{existingScheduleForWeek ? schedulePayments.length : weekPayments.length}</div>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardContent className="pt-6">
-                            <div className="text-sm text-gray-500 dark:text-gray-400">Pagos seleccionados</div>
-                            <div className="text-2xl font-bold text-green-600">{includedPayments.length}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">{existingScheduleForWeek ? 'Pagos incluidos' : 'Pagos seleccionados'}</div>
+                            <div className="text-2xl font-bold text-green-600">{existingScheduleForWeek ? scheduleIncluded.length : includedPayments.length}</div>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardContent className="pt-6">
-                            <div className="text-sm text-gray-500 dark:text-gray-400">Total a procesar</div>
-                            <div className="text-2xl font-bold text-blue-600">{formatCurrency(totalIncluded)}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">{existingScheduleForWeek ? 'Total programado' : 'Total a procesar'}</div>
+                            <div className="text-2xl font-bold text-blue-600">{formatCurrency(existingScheduleForWeek ? scheduleTotal : totalIncluded)}</div>
                         </CardContent>
                     </Card>
                 </div>
@@ -269,7 +387,9 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                 <Card>
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">Pagos Autorizados — Semana {selectedWeek}</CardTitle>
+                            <CardTitle className="text-base">
+                                {existingScheduleForWeek ? `Programación de la Semana ${selectedWeek}` : `Pagos Autorizados — Semana ${selectedWeek}`}
+                            </CardTitle>
                             {existingScheduleForWeek && (
                                 <Badge className={statusColors[existingScheduleForWeek.status]}>
                                     {statusLabels[existingScheduleForWeek.status]}
@@ -278,11 +398,85 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                         </div>
                     </CardHeader>
                     <CardContent>
-                        {weekPayments.length === 0 ? (
+                        {existingScheduleForWeek ? (
+                            /* ─── Semana YA programada: tabla solo-lectura + carga de comprobante ─── */
+                            schedulePayments.length === 0 ? (
+                                <p className="py-12 text-center text-sm text-gray-400">
+                                    La programación de la semana {selectedWeek} no tiene pagos registrados.
+                                </p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b text-left text-gray-500 dark:text-gray-400">
+                                                <th className="pb-3 pr-4 font-medium">Folio</th>
+                                                <th className="pb-3 pr-4 font-medium">Proveedor</th>
+                                                <th className="pb-3 pr-4 font-medium">Concepto</th>
+                                                <th className="pb-3 pr-4 font-medium">Tipo de pago</th>
+                                                <th className="pb-3 pr-4 font-medium">Fecha Provisión</th>
+                                                <th className="pb-3 pr-4 text-right font-medium">Total</th>
+                                                <th className="pb-3 pr-4 font-medium">Moneda</th>
+                                                <th className="pb-3 pr-4 font-medium">Estatus</th>
+                                                <th className="pb-3 pr-4 font-medium">Documentos</th>
+                                                <th className="pb-3 font-medium">Comprobante de pago</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {schedulePayments.map((payment) => (
+                                                <tr
+                                                    key={payment.uuid}
+                                                    className={`border-b last:border-0 ${!payment.included ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}
+                                                >
+                                                    <td className="py-3 pr-4 font-mono text-xs">
+                                                        #{String(payment.folio_number).padStart(5, '0')}
+                                                    </td>
+                                                    <td className="py-3 pr-4 font-medium">{payment.provider}</td>
+                                                    <td className="py-3 pr-4">{payment.concept_name}</td>
+                                                    <td className="py-3 pr-4">
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {investmentPaymentTypeLabel(payment.payment_type)}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="py-3 pr-4">
+                                                        {payment.payment_provision_date
+                                                            ? new Date(payment.payment_provision_date + 'T00:00:00').toLocaleDateString('es-MX', {
+                                                                  day: '2-digit',
+                                                                  month: 'short',
+                                                                  year: 'numeric',
+                                                              })
+                                                            : '-'}
+                                                    </td>
+                                                    <td className="py-3 pr-4 text-right font-semibold">
+                                                        {formatCurrency(payment.total)}
+                                                    </td>
+                                                    <td className="py-3 pr-4">{payment.currency_prefix}</td>
+                                                    <td className="py-3 pr-4">
+                                                        {payment.included ? (
+                                                            paymentStatusBadge(payment.status)
+                                                        ) : (
+                                                            <span className="text-xs text-red-600 dark:text-red-400" title={payment.exclusion_reason ?? undefined}>
+                                                                Excluido{payment.exclusion_reason ? ` — ${payment.exclusion_reason}` : ''}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 pr-4">
+                                                        <DocumentChips documents={payment.documents} onPreview={setPreviewDocs} />
+                                                    </td>
+                                                    <td className="py-3">
+                                                        {payment.included ? receiptCell(payment) : null}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
+                        ) : weekPayments.length === 0 ? (
                             <p className="py-12 text-center text-sm text-gray-400">
                                 No hay pagos autorizados para la semana {selectedWeek}.
                             </p>
                         ) : (
+                            /* ─── Semana sin programación: tabla editable (selección) + comprobante ─── */
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
@@ -291,7 +485,6 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                 <Checkbox
                                                     checked={allChecked}
                                                     onCheckedChange={(checked) => toggleAll(checked === true)}
-                                                    disabled={!!existingScheduleForWeek}
                                                 />
                                             </th>
                                             <th className="pb-3 pr-4 font-medium">Folio</th>
@@ -301,25 +494,30 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                             <th className="pb-3 pr-4 font-medium">Fecha Provisión</th>
                                             <th className="pb-3 pr-4 text-right font-medium">Total</th>
                                             <th className="pb-3 pr-4 font-medium">Moneda</th>
-                                            <th className="pb-3 pr-4 font-medium">Razón de exclusión</th>
-                                            <th className="pb-3 font-medium">Documentos</th>
+                                            <th className="pb-3 pr-4 font-medium">Estatus</th>
+                                            <th className="pb-3 pr-4 font-medium">Documentos</th>
+                                            <th className="pb-3 font-medium">Comprobante de pago</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {weekPayments.map((payment) => {
+                                            const isFinished = payment.status === 'receipt_attached';
                                             const state = itemStates[payment.id];
-                                            const isIncluded = state?.included ?? true;
+                                            const isIncluded = !isFinished && (state?.included ?? true);
                                             return (
                                                 <tr
                                                     key={payment.id}
-                                                    className={`border-b last:border-0 ${!isIncluded ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}
+                                                    className={`border-b last:border-0 ${isFinished ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : !isIncluded ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}
                                                 >
                                                     <td className="py-3 pr-4">
-                                                        <Checkbox
-                                                            checked={isIncluded}
-                                                            onCheckedChange={() => toggleItem(payment.id)}
-                                                            disabled={!!existingScheduleForWeek}
-                                                        />
+                                                        {isFinished ? (
+                                                            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-label="Comprobante adjunto" />
+                                                        ) : (
+                                                            <Checkbox
+                                                                checked={isIncluded}
+                                                                onCheckedChange={() => toggleItem(payment.id)}
+                                                            />
+                                                        )}
                                                     </td>
                                                     <td className="py-3 pr-4 font-mono text-xs">
                                                         #{String(payment.folio_number).padStart(5, '0')}
@@ -345,39 +543,21 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                     </td>
                                                     <td className="py-3 pr-4">{payment.currency_prefix}</td>
                                                     <td className="py-3 pr-4">
-                                                        {!isIncluded && (
+                                                        {isFinished ? (
+                                                            paymentStatusBadge(payment.status)
+                                                        ) : !isIncluded ? (
                                                             <Input
                                                                 placeholder="Razón (opcional)"
                                                                 value={state?.exclusion_reason ?? ''}
                                                                 onChange={(e) => setExclusionReason(payment.id, e.target.value)}
-                                                                disabled={!!existingScheduleForWeek}
                                                                 className="h-8 text-xs"
                                                             />
-                                                        )}
+                                                        ) : null}
                                                     </td>
-                                                    <td className="py-3">
-                                                        {payment.documents.length > 0 && (
-                                                            <button
-                                                                type="button"
-                                                                className="inline-flex items-center gap-1"
-                                                                onClick={() => setPreviewDocs(payment.documents)}
-                                                                title="Previsualizar documentos"
-                                                            >
-                                                                {classifyDocs(payment.documents).map((d, i) => {
-                                                                    const Icon = d.kind === 'img' ? ImageIcon : FileText;
-                                                                    const label = d.kind === 'pdf' ? 'PDF' : d.kind === 'xml' ? 'XML' : d.kind === 'img' ? 'IMG' : 'DOC';
-                                                                    return (
-                                                                        <span
-                                                                            key={i}
-                                                                            className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent"
-                                                                        >
-                                                                            <Icon className="h-3 w-3" /> {label}
-                                                                        </span>
-                                                                    );
-                                                                })}
-                                                            </button>
-                                                        )}
+                                                    <td className="py-3 pr-4">
+                                                        <DocumentChips documents={payment.documents} onPreview={setPreviewDocs} />
                                                     </td>
+                                                    <td className="py-3">{receiptCell(payment)}</td>
                                                 </tr>
                                             );
                                         })}
@@ -386,24 +566,28 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                             </div>
                         )}
 
-                        {/* Submit button */}
-                        {weekPayments.length > 0 && !existingScheduleForWeek && (
+                        {/* Submit button — deshabilitado temporalmente por decisión operativa */}
+                        {schedulableWeekPayments.length > 0 && !existingScheduleForWeek && (
                             <div className="mt-6 flex items-center justify-between border-t pt-4">
                                 <p className="text-sm text-gray-500">
-                                    {includedPayments.length} de {weekPayments.length} pagos seleccionados ·{' '}
+                                    {includedPayments.length} de {schedulableWeekPayments.length} pagos seleccionados ·{' '}
                                     <span className="font-semibold">{formatCurrency(totalIncluded)}</span>
                                 </p>
-                                <Button onClick={handleSubmit} disabled={processing || includedPayments.length === 0}>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    {processing ? 'Enviando...' : 'Guardar Programación'}
-                                </Button>
+                                <div className="flex flex-col items-end gap-1">
+                                    <Button onClick={handleSubmit} disabled title="Deshabilitado temporalmente">
+                                        <Send className="mr-2 h-4 w-4" />
+                                        {processing ? 'Enviando...' : 'Guardar Programación'}
+                                    </Button>
+                                    <span className="text-[11px] text-muted-foreground">Deshabilitado temporalmente.</span>
+                                </div>
                             </div>
                         )}
 
                         {existingScheduleForWeek && (
                             <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
                                 Ya existe una programación para esta semana con estado:{' '}
-                                <span className="font-semibold">{statusLabels[existingScheduleForWeek.status]}</span>.
+                                <span className="font-semibold">{statusLabels[existingScheduleForWeek.status]}</span>. Los pagos se muestran en solo lectura;
+                                puedes adjuntar el comprobante de pago de cada uno.
                             </div>
                         )}
                     </CardContent>
@@ -430,7 +614,15 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                     </thead>
                                     <tbody>
                                         {schedules.map((schedule) => (
-                                            <tr key={schedule.id} className="border-b last:border-0">
+                                            <tr
+                                                key={schedule.id}
+                                                className="cursor-pointer border-b last:border-0 hover:bg-accent/40"
+                                                title="Ver esta semana"
+                                                onClick={() => {
+                                                    setSelectedWeek(schedule.week_number);
+                                                    setSelectedYear(schedule.year);
+                                                }}
+                                            >
                                                 <td className="py-3 pr-4 font-medium">
                                                     S{schedule.week_number}/{schedule.year}
                                                 </td>
@@ -467,6 +659,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                 )}
             </div>
 
+            {/* Preview de documentos */}
             <Dialog open={previewDocs !== null} onOpenChange={(open) => { if (!open) setPreviewDocs(null); }}>
                 <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
@@ -474,6 +667,58 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                         <DialogDescription>Vista previa de los archivos adjuntos.</DialogDescription>
                     </DialogHeader>
                     {previewDocs && <DocumentPreview documents={previewDocs} />}
+                </DialogContent>
+            </Dialog>
+
+            {/* Diálogo: cargar comprobante de pago */}
+            <Dialog open={receiptTarget !== null} onOpenChange={(open) => { if (!open && !receiptUploading) setReceiptTarget(null); }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{receiptTarget?.hasExisting ? 'Reemplazar comprobante de pago' : 'Cargar comprobante de pago'}</DialogTitle>
+                        <DialogDescription>
+                            Pago #{receiptTarget ? String(receiptTarget.folio).padStart(5, '0') : ''} —{' '}
+                            {receiptTarget?.hasExisting
+                                ? 'los archivos nuevos reemplazarán el comprobante actual.'
+                                : <>al guardar, el pago quedará como <span className="font-semibold">Comprobante adjunto</span> (proceso finalizado).</>}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                        <div>
+                            <Label htmlFor="receipt-files" className="mb-2 block text-sm">Archivos (PDF, XML o imagen · máx. 5 · 10MB c/u)</Label>
+                            <Input
+                                id="receipt-files"
+                                type="file"
+                                multiple
+                                accept=".pdf,.xml,.jpg,.jpeg,.png"
+                                onChange={(e) => setReceiptFiles(Array.from(e.target.files ?? []))}
+                            />
+                        </div>
+                        {receiptFiles.length > 0 && (
+                            <ul className="space-y-1 text-xs text-muted-foreground">
+                                {receiptFiles.map((f, i) => (
+                                    <li key={i} className="flex items-center gap-1.5">
+                                        <FileText className="h-3 w-3" /> {f.name}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        {Object.values(receiptErrors).length > 0 && (
+                            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                                {Object.values(receiptErrors).map((msg, i) => (
+                                    <div key={i}>{msg}</div>
+                                ))}
+                            </div>
+                        )}
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setReceiptTarget(null)} disabled={receiptUploading}>
+                                Cancelar
+                            </Button>
+                            <Button onClick={handleUploadReceipt} disabled={receiptUploading || receiptFiles.length === 0}>
+                                <Upload className="mr-2 h-4 w-4" />
+                                {receiptUploading ? 'Subiendo...' : receiptTarget?.hasExisting ? 'Reemplazar comprobante' : 'Adjuntar comprobante'}
+                            </Button>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </AppLayout>

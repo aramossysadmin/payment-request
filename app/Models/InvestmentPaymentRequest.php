@@ -29,12 +29,13 @@ class InvestmentPaymentRequest extends Model
 
     /**
      * Estados "Pagado": pago efectivo. Flujo nuevo desde que se cargan documentos
-     * (completed) y al programarse en banco (scheduled_for_bank), más los estados
+     * (completed), al programarse en banco (scheduled_for_bank) y al adjuntarse el
+     * comprobante de pago (receipt_attached, fin del proceso), más los estados
      * legacy del flujo anterior (approved, pending_approval).
      *
      * @var array<int, string>
      */
-    public const PAID_STATUSES = ['pending_approval', 'approved', 'completed', 'scheduled_for_bank'];
+    public const PAID_STATUSES = ['pending_approval', 'approved', 'completed', 'scheduled_for_bank', 'receipt_attached'];
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -67,6 +68,9 @@ class InvestmentPaymentRequest extends Model
         'retention',
         'total',
         'approved_amount',
+        'payment_receipt_documents',
+        'receipt_uploaded_at',
+        'receipt_uploaded_by',
         'ceo_rejection_reason',
         'ceo_reviewed_at',
         'pm_rejection_reason',
@@ -129,6 +133,8 @@ class InvestmentPaymentRequest extends Model
             'payment_week_number' => 'integer',
             'iva_rate' => IvaRate::class,
             'advance_documents' => 'array',
+            'payment_receipt_documents' => 'array',
+            'receipt_uploaded_at' => 'datetime',
             'subtotal' => 'decimal:2',
             'iva' => 'decimal:2',
             'retention' => 'boolean',

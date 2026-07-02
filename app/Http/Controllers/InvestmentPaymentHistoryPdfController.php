@@ -113,6 +113,8 @@ class InvestmentPaymentHistoryPdfController extends Controller
             'documents_pending' => 'Docs Pendientes',
             'final_approved' => 'Final Aprobado',
             'completed' => 'Completado',
+            'scheduled_for_bank' => 'Programado en banco',
+            'receipt_attached' => 'Comprobante adjunto',
             'approved' => 'Aprobado (Legacy)',
             'ceo_rejected' => 'CEO Rechazó',
             'projectmanager_rejected' => 'PM Rechazó',

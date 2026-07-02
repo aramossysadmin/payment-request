@@ -221,6 +221,8 @@ class InvestmentPaymentRequestResource extends Resource
                         'final_rejected' => 'Rechazado Final',
                         'documents_pending' => 'Esperando docs',
                         'completed' => 'Completado',
+                        'scheduled_for_bank' => 'Programado en banco',
+                        'receipt_attached' => 'Comprobante adjunto',
                         'approved' => 'Aprobado (Legacy)',
                         'rejected' => 'Rechazado (Legacy)',
                         'pending_approval' => 'Pendiente (Legacy)',
@@ -311,6 +313,8 @@ class InvestmentPaymentRequestResource extends Resource
             'final_rejected' => 'Rechazado Final',
             'documents_pending' => 'Esperando docs',
             'completed' => 'Completado',
+            'scheduled_for_bank' => 'Programado en banco',
+            'receipt_attached' => 'Comprobante adjunto',
             'approved' => 'Aprobado (Legacy)',
             'rejected' => 'Rechazado (Legacy)',
             'pending_approval' => 'Pendiente (Legacy)',
@@ -325,7 +329,7 @@ class InvestmentPaymentRequestResource extends Resource
     {
         return [
             'gray' => ['draft', 'submitted', 'projectmanager_review', 'final_pending', 'documents_pending', 'pending_approval'],
-            'success' => ['final_approved', 'completed', 'approved'],
+            'success' => ['final_approved', 'completed', 'approved', 'scheduled_for_bank', 'receipt_attached'],
             'warning' => ['ceo_approved', 'projectmanager_approved'],
             'danger' => ['ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'rejected'],
         ];

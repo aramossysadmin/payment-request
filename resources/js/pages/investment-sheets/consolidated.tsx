@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { ArrowDownRight, ArrowUpRight, Banknote, Building2, Calendar, CalendarRange, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, Download, Eye, FileDown, FileText, Inbox, Info, Pencil, Search, Send, Trash2, Upload, Wallet, X, XCircle } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Banknote, Building2, Calendar, CalendarRange, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, Download, Eye, FileDown, FileText, Inbox, Info, Paperclip, Pencil, Search, Send, Trash2, Upload, Wallet, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { DocumentPreview } from '@/components/document-preview';
 import { FileUpload } from '@/components/file-upload';
@@ -183,6 +183,9 @@ type HistoryPayment = {
     iva: string;
     total: string;
     documents_count: number;
+    receipt_documents_count: number;
+    receipt_uploaded_at: string | null;
+    receipt_documents: { name: string; url: string }[];
     approved_amount: string | null;
     was_adjusted: boolean;
     status: string;
@@ -277,7 +280,7 @@ function formatDateEs(dateStr: string | null): string {
 
 const historyStatusGroups: Record<'in_process' | 'completed' | 'rejected', string[]> = {
     in_process: ['submitted', 'ceo_approved', 'projectmanager_review', 'projectmanager_approved', 'final_pending', 'documents_pending', 'pending_approval'],
-    completed: ['final_approved', 'completed', 'approved'],
+    completed: ['final_approved', 'completed', 'approved', 'scheduled_for_bank', 'receipt_attached'],
     rejected: ['ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'rejected'],
 };
 
@@ -298,6 +301,8 @@ function historyStatusLabel(status: string): string {
         approved: 'Aprobado',
         rejected: 'Rechazado',
         pending_approval: 'Pendiente',
+        scheduled_for_bank: 'Programado en banco',
+        receipt_attached: 'Comprobante adjunto',
     };
     return labels[status] ?? status;
 }
@@ -2244,14 +2249,23 @@ export default function Consolidated() {
                                                     </td>
                                                     {/* 10. Documentos */}
                                                     <td className="px-4 py-3 text-center border-r border-gray-100 dark:border-gray-800">
-                                                        {payment.documents_count > 0 ? (
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300" title={`${payment.documents_count} documento(s)`}>
-                                                                <FileText className="h-3 w-3" />
-                                                                {payment.documents_count}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-gray-300">—</span>
-                                                        )}
+                                                        <span className="inline-flex items-center gap-1.5">
+                                                            {payment.documents_count > 0 && (
+                                                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300" title={`${payment.documents_count} documento(s)`}>
+                                                                    <FileText className="h-3 w-3" />
+                                                                    {payment.documents_count}
+                                                                </span>
+                                                            )}
+                                                            {payment.receipt_documents_count > 0 && (
+                                                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" title={`Comprobante de pago (${payment.receipt_documents_count})`}>
+                                                                    <Paperclip className="h-3 w-3" />
+                                                                    {payment.receipt_documents_count}
+                                                                </span>
+                                                            )}
+                                                            {payment.documents_count === 0 && payment.receipt_documents_count === 0 && (
+                                                                <span className="text-gray-300">—</span>
+                                                            )}
+                                                        </span>
                                                     </td>
                                                     {/* 11. Solicitante */}
                                                     <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[140px] truncate" title={payment.user_name}>
@@ -2471,6 +2485,15 @@ export default function Consolidated() {
                                                     </span>
                                                 </li>
                                             )}
+                                            {selectedHistoryPayment.receipt_uploaded_at && (
+                                                <li className="flex items-center gap-2">
+                                                    <Paperclip className="h-4 w-4 text-emerald-600 flex-shrink-0 dark:text-emerald-400" />
+                                                    <span className="text-muted-foreground">Comprobante adjunto:</span>
+                                                    <span className="ml-auto text-xs">
+                                                        {new Date(selectedHistoryPayment.receipt_uploaded_at).toLocaleString('es-MX')}
+                                                    </span>
+                                                </li>
+                                            )}
                                         </ul>
                                     </div>
                                 )}
@@ -2512,6 +2535,31 @@ export default function Consolidated() {
                                                 return (
                                                     <li key={i} className="flex items-center gap-2 rounded-md border px-3 py-2">
                                                         <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                        <a
+                                                            href={doc.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex-1 text-sm font-medium text-primary hover:underline truncate"
+                                                        >
+                                                            Descargar {ext}
+                                                        </a>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {/* Comprobante de pago */}
+                                {selectedHistoryPayment.receipt_documents.length > 0 && (
+                                    <div className="space-y-3 rounded-lg border border-emerald-200 p-4 dark:border-emerald-900/50">
+                                        <h3 className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Comprobante de Pago</h3>
+                                        <ul className="space-y-2">
+                                            {selectedHistoryPayment.receipt_documents.map((doc, i) => {
+                                                const ext = doc.name.split('.').pop()?.toUpperCase() ?? 'DOC';
+                                                return (
+                                                    <li key={i} className="flex items-center gap-2 rounded-md border px-3 py-2">
+                                                        <Paperclip className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                                                         <a
                                                             href={doc.url}
                                                             target="_blank"
