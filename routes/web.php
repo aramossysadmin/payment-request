@@ -23,6 +23,7 @@ use App\Http\Controllers\PaymentRequestPdfController;
 use App\Http\Controllers\ProviderSearchController;
 use App\Http\Controllers\WeeklyPaymentReceiptController;
 use App\Http\Controllers\WeeklyPaymentScheduleController;
+use App\Http\Controllers\WeeklyPaymentScheduleExportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -82,6 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('investment-sheets/{investment_request}/pdf', InvestmentRequestPdfController::class)->name('investment-sheets.pdf');
 
     Route::get('weekly-payment-schedule', [WeeklyPaymentScheduleController::class, 'index'])->name('weekly-payment-schedule.index');
+    Route::get('weekly-payment-schedule/export', WeeklyPaymentScheduleExportController::class)->name('weekly-payment-schedule.export');
     Route::post('weekly-payment-schedule', [WeeklyPaymentScheduleController::class, 'store'])->name('weekly-payment-schedule.store');
     Route::post('weekly-payment-schedule/{payment:uuid}/receipt', [WeeklyPaymentReceiptController::class, 'store'])->name('weekly-payment-schedule.upload-receipt');
 

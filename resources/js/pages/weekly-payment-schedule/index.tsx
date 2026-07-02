@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle2, FileText, Image as ImageIcon, Inbox, Paperclip, Send, Upload } from 'lucide-react';
+import { CheckCircle2, FileDown, FileText, Image as ImageIcon, Inbox, Paperclip, Send, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DocumentPreview } from '@/components/document-preview';
 import { Badge } from '@/components/ui/badge';
@@ -157,6 +157,10 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [processing, setProcessing] = useState(false);
     const [previewDocs, setPreviewDocs] = useState<DocumentItem[] | null>(null);
+
+    // Diálogo de exportación a Excel
+    const [exportOpen, setExportOpen] = useState(false);
+    const [exportScope, setExportScope] = useState<'week' | 'all'>('week');
 
     // Diálogo de carga de comprobante de pago
     const [receiptTarget, setReceiptTarget] = useState<{ uuid: string; folio: number; hasExisting: boolean } | null>(null);
@@ -351,14 +355,20 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                         </p>
                     </div>
 
-                    {/* Week navigator */}
-                    <WeekNavigator
-                        week={selectedWeek}
-                        year={selectedYear}
-                        currentWeek={currentWeek}
-                        currentYear={currentYear}
-                        onNavigate={navigateWeek}
-                    />
+                    {/* Export + Week navigator */}
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={() => { setExportScope('week'); setExportOpen(true); }}>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Exportar Excel
+                        </Button>
+                        <WeekNavigator
+                            week={selectedWeek}
+                            year={selectedYear}
+                            currentWeek={currentWeek}
+                            currentYear={currentYear}
+                            onNavigate={navigateWeek}
+                        />
+                    </div>
                 </div>
 
                 {/* Summary cards */}
@@ -667,6 +677,60 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                         <DialogDescription>Vista previa de los archivos adjuntos.</DialogDescription>
                     </DialogHeader>
                     {previewDocs && <DocumentPreview documents={previewDocs} />}
+                </DialogContent>
+            </Dialog>
+
+            {/* Diálogo: exportar a Excel */}
+            <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Exportar a Excel</DialogTitle>
+                        <DialogDescription>
+                            Descarga la programación de pagos de {selectedProject?.name ?? 'este proyecto'} en formato .xlsx (incluye columna de semana).
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                        <label className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-colors ${exportScope === 'week' ? 'border-primary bg-accent/40' : 'hover:bg-accent/20'}`}>
+                            <input
+                                type="radio"
+                                name="export-scope"
+                                checked={exportScope === 'week'}
+                                onChange={() => setExportScope('week')}
+                                className="h-4 w-4"
+                            />
+                            <span>
+                                <span className="font-medium">Semana seleccionada</span>
+                                <span className="ml-1 text-muted-foreground">(S{selectedWeek}/{selectedYear})</span>
+                            </span>
+                        </label>
+                        <label className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-colors ${exportScope === 'all' ? 'border-primary bg-accent/40' : 'hover:bg-accent/20'}`}>
+                            <input
+                                type="radio"
+                                name="export-scope"
+                                checked={exportScope === 'all'}
+                                onChange={() => setExportScope('all')}
+                                className="h-4 w-4"
+                            />
+                            <span className="font-medium">Todas las semanas</span>
+                        </label>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button variant="outline" onClick={() => setExportOpen(false)}>Cancelar</Button>
+                            <Button
+                                onClick={() => {
+                                    const params = new URLSearchParams({ project_id: String(selectedProjectId) });
+                                    if (exportScope === 'week') {
+                                        params.set('week', String(selectedWeek));
+                                        params.set('year', String(selectedYear));
+                                    }
+                                    window.location.href = `/weekly-payment-schedule/export?${params.toString()}`;
+                                    setExportOpen(false);
+                                }}
+                            >
+                                <FileDown className="mr-2 h-4 w-4" />
+                                Descargar
+                            </Button>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
 
