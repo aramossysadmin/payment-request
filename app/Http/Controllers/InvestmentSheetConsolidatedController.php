@@ -317,6 +317,20 @@ class InvestmentSheetConsolidatedController extends Controller
                 'iva' => (string) $p->iva,
                 'total' => (string) $p->total,
                 'documents_count' => is_array($p->advance_documents) ? count(array_filter($p->advance_documents, fn ($d) => is_string($d) && $d !== '')) : 0,
+                'receipt_documents_count' => is_array($p->payment_receipt_documents) ? count(array_filter($p->payment_receipt_documents, fn ($d) => is_string($d) && $d !== '')) : 0,
+                'receipt_uploaded_at' => $p->receipt_uploaded_at?->toISOString(),
+                'receipt_documents' => collect(is_array($p->payment_receipt_documents) ? $p->payment_receipt_documents : [])
+                    ->filter(fn ($doc) => is_string($doc) && $doc !== '')
+                    ->map(fn ($doc) => [
+                        'name' => basename($doc),
+                        'url' => URL::temporarySignedRoute(
+                            'documents.view',
+                            now()->addHours(48),
+                            ['path' => $doc],
+                        ),
+                    ])
+                    ->values()
+                    ->toArray(),
                 'approved_amount' => $p->approved_amount !== null ? (string) $p->approved_amount : null,
                 'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
                 'status' => $p->status,

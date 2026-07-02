@@ -19,6 +19,28 @@ class WeeklyPaymentScheduleController extends Controller
 {
     public function __construct(private WeeklyPaymentScheduleApprovalService $approvalService) {}
 
+    /**
+     * URLs firmadas (48h) para una lista de rutas de documentos.
+     *
+     * @param  array<int, mixed>|null  $paths
+     * @return array<int, array{name: string, url: string}>
+     */
+    private function signedDocuments(?array $paths): array
+    {
+        return collect(is_array($paths) ? $paths : [])
+            ->filter(fn ($doc) => is_string($doc) && $doc !== '')
+            ->map(fn ($doc) => [
+                'name' => basename($doc),
+                'url' => URL::temporarySignedRoute(
+                    'documents.view',
+                    now()->addHours(48),
+                    ['path' => $doc],
+                ),
+            ])
+            ->values()
+            ->toArray();
+    }
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -66,12 +88,14 @@ class WeeklyPaymentScheduleController extends Controller
             ]);
         }
 
-        // Solo se programan pagos completamente listos:
+        // Pagos visibles en la programación:
         // - 'approved': pagos del flujo anterior (legacy, 103 históricos)
         // - 'completed': pagos del flujo nuevo CON documentos cargados
+        // - 'receipt_attached': ya tienen comprobante (finalizados) — se muestran en
+        //   solo-lectura para consultar/agregar comprobantes, NO son programables.
         // Filtrados por el proyecto seleccionado.
         $payments = InvestmentPaymentRequest::query()
-            ->whereIn('status', ['approved', 'completed'])
+            ->whereIn('status', ['approved', 'completed', 'receipt_attached'])
             ->whereNotNull('payment_provision_date')
             ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $selectedProjectId))
             ->with([
@@ -82,6 +106,7 @@ class WeeklyPaymentScheduleController extends Controller
             ->get()
             ->map(fn (InvestmentPaymentRequest $p) => [
                 'id' => $p->id,
+                'uuid' => $p->uuid,
                 'folio_number' => $p->folio_number,
                 'provider' => $p->provider,
                 'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
@@ -92,27 +117,26 @@ class WeeklyPaymentScheduleController extends Controller
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                 'description' => $p->description,
                 'payment_type' => $p->payment_type,
-                'documents' => collect(is_array($p->advance_documents) ? $p->advance_documents : [])
-                    ->filter(fn ($doc) => is_string($doc) && $doc !== '')
-                    ->map(fn ($doc) => [
-                        'name' => basename($doc),
-                        'url' => URL::temporarySignedRoute(
-                            'documents.view',
-                            now()->addHours(48),
-                            ['path' => $doc],
-                        ),
-                    ])
-                    ->values()
-                    ->toArray(),
+                'status' => $p->status,
+                'documents' => $this->signedDocuments($p->advance_documents),
+                'receipt_documents' => $this->signedDocuments($p->payment_receipt_documents),
+                'receipt_uploaded_at' => $p->receipt_uploaded_at?->toISOString(),
             ]);
 
         // Schedules que contengan al menos 1 pago del proyecto seleccionado.
+        // Incluyen el detalle de sus pagos para poder mostrar semanas ya programadas
+        // (autorizadas o no) en solo-lectura y cargarles comprobante de pago.
         $schedules = WeeklyPaymentSchedule::query()
             ->whereHas(
                 'items.investmentPaymentRequest.investmentRequest',
                 fn ($q) => $q->where('project_id', $selectedProjectId),
             )
-            ->with(['creator', 'items.investmentPaymentRequest', 'approvals.user'])
+            ->with([
+                'creator',
+                'items.investmentPaymentRequest.investmentRequest.investmentExpenseConcept',
+                'items.investmentPaymentRequest.currency',
+                'approvals.user',
+            ])
             ->latest()
             ->limit(20)
             ->get()
@@ -128,6 +152,26 @@ class WeeklyPaymentScheduleController extends Controller
                 'included_count' => $s->items->where('included', true)->count(),
                 'total_amount' => $s->items->where('included', true)->sum(fn ($item) => (float) ($item->investmentPaymentRequest?->approved_amount ?? $item->investmentPaymentRequest?->total ?? 0)),
                 'approval_status' => $s->approvals->first()?->status ?? 'pending',
+                'payments' => $s->items
+                    ->filter(fn ($item) => $item->investmentPaymentRequest !== null)
+                    ->map(fn ($item) => [
+                        'uuid' => $item->investmentPaymentRequest->uuid,
+                        'folio_number' => $item->investmentPaymentRequest->folio_number,
+                        'provider' => $item->investmentPaymentRequest->provider,
+                        'concept_name' => $item->investmentPaymentRequest->investmentRequest?->investmentExpenseConcept?->name ?? '-',
+                        'payment_provision_date' => $item->investmentPaymentRequest->payment_provision_date?->format('Y-m-d'),
+                        'total' => (string) ($item->investmentPaymentRequest->approved_amount ?? $item->investmentPaymentRequest->total),
+                        'currency_prefix' => $item->investmentPaymentRequest->currency?->prefix ?? 'MXN',
+                        'description' => $item->investmentPaymentRequest->description,
+                        'payment_type' => $item->investmentPaymentRequest->payment_type,
+                        'status' => $item->investmentPaymentRequest->status,
+                        'included' => (bool) $item->included,
+                        'exclusion_reason' => $item->exclusion_reason,
+                        'documents' => $this->signedDocuments($item->investmentPaymentRequest->advance_documents),
+                        'receipt_documents' => $this->signedDocuments($item->investmentPaymentRequest->payment_receipt_documents),
+                        'receipt_uploaded_at' => $item->investmentPaymentRequest->receipt_uploaded_at?->toISOString(),
+                    ])
+                    ->values(),
             ]);
 
         return Inertia::render('weekly-payment-schedule/index', [

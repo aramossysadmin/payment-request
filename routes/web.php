@@ -21,6 +21,7 @@ use App\Http\Controllers\PaymentRequestController;
 use App\Http\Controllers\PaymentRequestDocumentController;
 use App\Http\Controllers\PaymentRequestPdfController;
 use App\Http\Controllers\ProviderSearchController;
+use App\Http\Controllers\WeeklyPaymentReceiptController;
 use App\Http\Controllers\WeeklyPaymentScheduleController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -82,6 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('weekly-payment-schedule', [WeeklyPaymentScheduleController::class, 'index'])->name('weekly-payment-schedule.index');
     Route::post('weekly-payment-schedule', [WeeklyPaymentScheduleController::class, 'store'])->name('weekly-payment-schedule.store');
+    Route::post('weekly-payment-schedule/{payment:uuid}/receipt', [WeeklyPaymentReceiptController::class, 'store'])->name('weekly-payment-schedule.upload-receipt');
 
     Route::get('guide', fn () => Inertia::render('guide/index'))->name('guide');
 
