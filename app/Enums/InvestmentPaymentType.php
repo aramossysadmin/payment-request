@@ -11,6 +11,7 @@ enum InvestmentPaymentType: string
     case Cotizacion = 'cotizacion';
     case Pagare = 'pagare';
     case Domiciliado = 'domiciliado';
+    case FacturaEspana = 'factura_espana';
 
     public function label(): string
     {
@@ -22,6 +23,7 @@ enum InvestmentPaymentType: string
             self::Cotizacion => 'Cotización',
             self::Pagare => 'Pagaré',
             self::Domiciliado => 'Domiciliado',
+            self::FacturaEspana => 'Factura España',
         };
     }
 

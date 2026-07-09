@@ -89,7 +89,7 @@ class UpdateInvestmentPaymentRequest extends FormRequest
                 }
             }
 
-            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado'], true)) {
+            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana'], true)) {
                 $files = $this->file('advance_documents', []);
                 if (is_array($files) && count($files) > 0) {
                     if (count($files) > 1) {

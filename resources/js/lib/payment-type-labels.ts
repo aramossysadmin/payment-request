@@ -6,6 +6,7 @@ export const investmentPaymentTypeLabels: Record<string, string> = {
     cotizacion: 'Cotización',
     pagare: 'Pagaré',
     domiciliado: 'Domiciliado',
+    factura_espana: 'Factura España',
 };
 
 export function investmentPaymentTypeLabel(type?: string | null): string {
