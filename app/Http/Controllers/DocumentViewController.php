@@ -25,8 +25,17 @@ class DocumentViewController extends Controller
         }
 
         $mimeType = Storage::disk('local')->mimeType($path);
-        $filename = basename($path);
-        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $realFilename = basename($path);
+        $extension = strtolower(pathinfo($realFilename, PATHINFO_EXTENSION));
+
+        // Nombre de descarga opcional (viene en el signed URL). Permite servir el
+        // archivo con un nombre descriptivo (ej. "CSF SASTRERIA VAN DER WOLF.pdf")
+        // en vez del UUID de storage. Compatible hacia atrás: si no viene, usamos el
+        // basename real.
+        $requestedName = $request->query('download_name');
+        $filename = (is_string($requestedName) && $requestedName !== '')
+            ? preg_replace('#[/\\\\]#', '', $requestedName)
+            : $realFilename;
 
         $inlineMimes = [
             'pdf' => 'application/pdf',

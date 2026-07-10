@@ -30,13 +30,36 @@ class SocietyResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make()
+                Forms\Components\Section::make('Información general')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->label('Nombre')
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
+                    ]),
+
+                Forms\Components\Section::make('Información Fiscal')
+                    ->description('RFC (México) / CIF (España) y Constancia de Situación Fiscal para compartir con proveedores.')
+                    ->icon('heroicon-o-document-text')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('rfc')
+                            ->label('RFC / CIF')
+                            ->prefixIcon('heroicon-o-identification')
+                            ->maxLength(20)
+                            ->rules(['nullable', 'string', 'alpha_num', 'min:9', 'max:13'])
+                            ->helperText('RFC (México, 12-13 chars) o CIF (España, 9 chars). Alfanumérico.'),
+                        Forms\Components\FileUpload::make('constancia_situacion_fiscal')
+                            ->label('Constancia de Situación Fiscal')
+                            ->disk('local')
+                            ->directory('society-fiscal-documents')
+                            ->visibility('private')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->maxSize(10240)
+                            ->downloadable()
+                            ->openable()
+                            ->helperText('PDF de la Constancia (SAT México) o Certificado Censal (AEAT España). Máx 10 MB.'),
                     ]),
             ]);
     }
@@ -50,6 +73,12 @@ class SocietyResource extends Resource
                     ->label('Nombre')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('rfc')
+                    ->label('RFC / CIF')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()

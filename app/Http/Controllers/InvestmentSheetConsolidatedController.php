@@ -424,6 +424,13 @@ class InvestmentSheetConsolidatedController extends Controller
                 'id' => $project->id,
                 'name' => $project->name,
                 'branch' => $project->branch?->name,
+                'society_rfc' => $project->branch?->society?->rfc,
+                'society_csf_url' => filled($project->branch?->society?->constancia_situacion_fiscal)
+                    ? URL::temporarySignedRoute('documents.view', now()->addHours(48), [
+                        'path' => $project->branch->society->constancia_situacion_fiscal,
+                        'download_name' => 'CSF '.$project->branch->society->name.'.pdf',
+                    ])
+                    : null,
                 'currency_id' => $project->currency_id,
                 'currency_prefix' => $project->currency?->prefix ?? 'MXN',
                 'start_date' => $project->start_date?->toDateString(),

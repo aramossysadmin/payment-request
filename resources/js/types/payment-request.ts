@@ -24,6 +24,13 @@ export type Branch = {
     name: string;
 };
 
+export type Society = {
+    id: number;
+    name: string;
+    rfc?: string | null;
+    constancia_situacion_fiscal_url?: string | null;
+};
+
 export type ExpenseConcept = {
     id: number;
     name: string;

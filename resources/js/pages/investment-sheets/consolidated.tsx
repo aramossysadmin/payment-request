@@ -207,6 +207,8 @@ type PageProps = {
         id: number;
         name: string;
         branch: string | null;
+        society_rfc: string | null;
+        society_csf_url: string | null;
         currency_id: number | null;
         currency_prefix: string;
         start_date: string | null;
@@ -998,6 +1000,22 @@ export default function Consolidated() {
                             <Building2 className="h-4 w-4" />
                             {project.branch}
                         </p>
+                    )}
+                    {project.branch && (
+                        <p className="mt-0.5 pl-[22px] font-mono text-sm text-gray-500 dark:text-gray-400">
+                            {project.society_rfc ?? '—'}
+                        </p>
+                    )}
+                    {project.branch && project.society_csf_url && (
+                        <a
+                            href={project.society_csf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-0.5 inline-flex items-center gap-1.5 pl-[22px] text-sm text-gray-500 hover:text-gray-700 hover:underline dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                            <FileDown className="h-3.5 w-3.5" />
+                            <span>Descargar Constancia de Situación Fiscal</span>
+                        </a>
                     )}
                 </div>
 

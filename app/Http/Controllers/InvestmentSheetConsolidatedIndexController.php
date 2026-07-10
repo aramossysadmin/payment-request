@@ -20,7 +20,7 @@ class InvestmentSheetConsolidatedIndexController extends Controller
         // En sesión futura se aplicará un punto más fino que respete permisos
         // pero permita descubrir proyectos nuevos.
         $projects = Project::query()
-            ->with('branch')
+            ->with('branch.society')
             ->where('is_active', true)
             ->withCount(['investmentRequests' => function ($q) use ($user) {
                 $q->visibleTo($user);
@@ -36,6 +36,7 @@ class InvestmentSheetConsolidatedIndexController extends Controller
                 'id' => $p->id,
                 'name' => $p->name,
                 'branch' => $p->branch?->name,
+                'society_rfc' => $p->branch?->society?->rfc,
                 'sheets_count' => (int) $p->investment_requests_count,
                 'total' => number_format((float) ($p->investment_requests_sum_total ?? 0), 2, '.', ''),
             ]),

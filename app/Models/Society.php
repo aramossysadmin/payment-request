@@ -26,11 +26,18 @@ class Society extends Model
 
     protected $fillable = [
         'name',
+        'rfc',
+        'constancia_situacion_fiscal',
     ];
 
     protected function setNameAttribute(string $value): void
     {
         $this->attributes['name'] = mb_strtoupper(trim($value));
+    }
+
+    protected function setRfcAttribute(?string $value): void
+    {
+        $this->attributes['rfc'] = $value === null ? null : mb_strtoupper(trim($value));
     }
 
     public function branches(): HasMany

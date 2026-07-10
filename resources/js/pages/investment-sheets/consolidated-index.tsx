@@ -12,6 +12,7 @@ type ProjectSummary = {
     id: number;
     name: string;
     branch: string | null;
+    society_rfc: string | null;
     sheets_count: number;
     total: string;
 };
@@ -72,6 +73,11 @@ export default function ConsolidatedIndex() {
                                                 <p className="mt-1 flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                                                     <Building2 className="h-3.5 w-3.5" />
                                                     {project.branch}
+                                                </p>
+                                            )}
+                                            {project.branch && (
+                                                <p className="mt-0.5 pl-4 font-mono text-sm text-gray-500 dark:text-gray-400">
+                                                    {project.society_rfc ?? '—'}
                                                 </p>
                                             )}
                                         </div>
