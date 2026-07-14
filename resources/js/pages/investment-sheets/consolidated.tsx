@@ -282,7 +282,7 @@ function formatDateEs(dateStr: string | null): string {
 }
 
 const historyStatusGroups: Record<'in_process' | 'completed' | 'rejected', string[]> = {
-    in_process: ['submitted', 'ceo_approved', 'projectmanager_review', 'projectmanager_approved', 'final_pending', 'documents_pending', 'pending_approval'],
+    in_process: ['submitted', 'ceo_approved', 'projectmanager_review', 'projectmanager_approved', 'documents_pending', 'pending_approval'],
     completed: ['final_approved', 'completed', 'approved', 'scheduled_for_bank', 'receipt_attached'],
     rejected: ['ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'rejected'],
 };
@@ -294,9 +294,9 @@ function historyStatusLabel(status: string): string {
         ceo_approved: 'CEO Aprobó',
         ceo_rejected: 'CEO Rechazó',
         projectmanager_review: 'En revisión PM',
-        projectmanager_approved: 'PM Aprobó',
+        projectmanager_approved: 'PM Aprobó (histórico)',
         projectmanager_rejected: 'PM Rechazó',
-        final_pending: 'Pendiente Final',
+        final_pending: 'Pendiente Final (histórico)',
         final_approved: 'Aprobado Final',
         final_rejected: 'Rechazado Final',
         documents_pending: 'Esperando docs',
@@ -1740,7 +1740,7 @@ export default function Consolidated() {
                         <CardHeader>
                             <CardTitle>Pagos Pendientes de Documentos</CardTitle>
                             <p className="mt-1 text-xs text-muted-foreground">
-                                Pagos que ya tienen aprobación final del CEO y requieren que subas los documentos PDF y XML para concluir el proceso.
+                                Pagos que ya tienen aprobación final y requieren que subas los documentos PDF y XML para concluir el proceso.
                             </p>
                         </CardHeader>
                         <CardContent>
@@ -1982,9 +1982,9 @@ export default function Consolidated() {
                                     <SelectContent>
                                         <SelectItem value="all">Todos</SelectItem>
                                         <SelectItem value="submitted">Enviado</SelectItem>
-                                        <SelectItem value="ceo_approved">CEO Aprobó (1ra)</SelectItem>
-                                        <SelectItem value="ceo_rejected">CEO Rechazó (1ra)</SelectItem>
-                                        <SelectItem value="projectmanager_approved">PM Aprobó</SelectItem>
+                                        <SelectItem value="ceo_approved">CEO Aprobó</SelectItem>
+                                        <SelectItem value="ceo_rejected">CEO Rechazó</SelectItem>
+                                        <SelectItem value="projectmanager_approved">PM Aprobó (histórico)</SelectItem>
                                         <SelectItem value="projectmanager_rejected">PM Rechazó</SelectItem>
                                         <SelectItem value="final_approved">Aprobado Final</SelectItem>
                                         <SelectItem value="final_rejected">Rechazado Final</SelectItem>
@@ -2498,7 +2498,7 @@ export default function Consolidated() {
                                             {selectedHistoryPayment.final_reviewed_at && (
                                                 <li className="flex items-center gap-2">
                                                     <CheckIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
-                                                    <span className="text-muted-foreground">CEO aprobación final:</span>
+                                                    <span className="text-muted-foreground">Aprobación final:</span>
                                                     <span className="ml-auto text-xs">
                                                         {new Date(selectedHistoryPayment.final_reviewed_at).toLocaleString('es-MX')}
                                                     </span>
@@ -2537,7 +2537,7 @@ export default function Consolidated() {
                                         )}
                                         {selectedHistoryPayment.final_rejection_reason && (
                                             <div>
-                                                <p className="text-xs font-semibold text-red-700 dark:text-red-400">CEO Aprobación Final</p>
+                                                <p className="text-xs font-semibold text-red-700 dark:text-red-400">Aprobación Final (histórico)</p>
                                                 <p className="text-sm text-red-900 dark:text-red-300">{selectedHistoryPayment.final_rejection_reason}</p>
                                             </div>
                                         )}

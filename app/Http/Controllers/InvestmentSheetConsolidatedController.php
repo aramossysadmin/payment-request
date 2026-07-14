@@ -267,7 +267,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'status' => $p->status,
                 'payment_type' => $p->payment_type,
                 'is_legacy' => $p->batch_id === null,
-                'has_documents' => is_array($p->advance_documents) && count($p->advance_documents) >= 2,
+                'has_documents' => is_array($p->advance_documents) && count(array_filter($p->advance_documents, fn ($d) => is_string($d) && $d !== '')) >= 1,
                 'documents' => collect(is_array($p->advance_documents) ? $p->advance_documents : [])
                     ->filter(fn ($doc) => is_string($doc) && $doc !== '')
                     ->map(fn ($doc) => [
@@ -342,7 +342,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'ceo_reviewed_at' => $p->ceo_reviewed_at?->toISOString(),
                 'pm_reviewed_at' => $p->pm_reviewed_at?->toISOString(),
                 'final_reviewed_at' => $p->final_reviewed_at?->toISOString(),
-                'has_documents' => is_array($p->advance_documents) && count($p->advance_documents) >= 2,
+                'has_documents' => is_array($p->advance_documents) && count(array_filter($p->advance_documents, fn ($d) => is_string($d) && $d !== '')) >= 1,
                 'documents' => collect(is_array($p->advance_documents) ? $p->advance_documents : [])
                     ->filter(fn ($doc) => is_string($doc) && $doc !== '')
                     ->map(fn ($doc) => [

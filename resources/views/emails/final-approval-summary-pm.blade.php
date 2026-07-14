@@ -2,12 +2,12 @@
 
 {{-- Header --}}
 <div style="border-bottom: 1px solid #D4C9A9; padding-bottom: 4px; margin-bottom: 16px;">
-<span style="font-size: 14px; font-weight: 600; color: #191731; text-transform: uppercase; letter-spacing: 0.5px;">Aprobación Final del CEO — {{ $project->name }}</span>
+<span style="font-size: 14px; font-weight: 600; color: #191731; text-transform: uppercase; letter-spacing: 0.5px;">Aprobación Final — {{ $project->name }}</span>
 </div>
 
 Hola {{ $pm->name }},
 
-El CEO **{{ $approverCeo->name }}** acaba de aplicar la **aprobación final** de pagos para el proyecto **{{ $project->name }}** el {{ $approvedAt->format('d/m/Y H:i') }}.
+**{{ $approver->name }}** acaba de aplicar la **aprobación final** de pagos para el proyecto **{{ $project->name }}** el {{ $approvedAt->format('d/m/Y H:i') }}.
 
 A continuación el resumen consolidado por departamento. El **detalle completo de cada pago** está en el PDF adjunto.
 
@@ -54,7 +54,7 @@ A continuación el resumen consolidado por departamento. El **detalle completo d
 
 @if ($rejectedCount > 0)
 <div style="margin-top: 12px; padding: 8px 12px; background: #fff7ed; border-left: 3px solid #f97316; font-size: 12px; color: #7c2d12;">
-Esta sesión incluyó además <strong>{{ $rejectedCount }} {{ $rejectedCount === 1 ? 'pago rechazado' : 'pagos rechazados' }}</strong> por el CEO. Los solicitantes ya fueron notificados.
+Esta sesión incluyó además <strong>{{ $rejectedCount }} {{ $rejectedCount === 1 ? 'pago rechazado' : 'pagos rechazados' }}</strong>. Los solicitantes ya fueron notificados.
 </div>
 @endif
 
@@ -63,7 +63,7 @@ Revisar en el portal
 </x-mail::button>
 
 <div style="margin-top: 24px; font-size: 11px; color: #6B7280; border-top: 1px solid #E5E7EB; padding-top: 12px;">
-Este correo se envía automáticamente al cerrar la sesión de aprobación final del CEO. Recibes esta notificación porque tienes el rol de <strong>Project Manager</strong>.
+Este correo se envía automáticamente al cerrar la aprobación final. Recibes esta notificación porque tienes el rol de <strong>Project Manager</strong>.
 </div>
 
 Linking — payment-request

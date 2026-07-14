@@ -101,13 +101,13 @@ class InvestmentPaymentRequestResource extends Resource
                         ->label('Capturado')
                         ->content(fn (InvestmentPaymentRequest $record): string => $record->created_at?->format('Y-m-d H:i:s') ?? '—'),
                     Placeholder::make('ceo_reviewed_at')
-                        ->label('Revisado por CEO (Fase 2)')
+                        ->label('Revisado por CEO')
                         ->content(fn (InvestmentPaymentRequest $record): string => $record->ceo_reviewed_at?->format('Y-m-d H:i:s') ?? 'Pendiente'),
                     Placeholder::make('pm_reviewed_at')
-                        ->label('Revisado por Project Manager (Fase 3)')
+                        ->label('Revisado por Project Manager')
                         ->content(fn (InvestmentPaymentRequest $record): string => $record->pm_reviewed_at?->format('Y-m-d H:i:s') ?? 'Pendiente'),
                     Placeholder::make('final_reviewed_at')
-                        ->label('Aprobación Final CEO (Fase 4)')
+                        ->label('Aprobación Final')
                         ->content(fn (InvestmentPaymentRequest $record): string => $record->final_reviewed_at?->format('Y-m-d H:i:s') ?? 'Pendiente'),
                     Placeholder::make('updated_at')
                         ->label('Última actualización')
@@ -126,15 +126,15 @@ class InvestmentPaymentRequestResource extends Resource
                     || $record->final_rejection_reason !== null)
                 ->schema([
                     Placeholder::make('ceo_rejection_reason')
-                        ->label('Rechazo CEO (Fase 2)')
+                        ->label('Rechazo CEO')
                         ->visible(fn (InvestmentPaymentRequest $record): bool => $record->ceo_rejection_reason !== null)
                         ->content(fn (InvestmentPaymentRequest $record): string => $record->ceo_rejection_reason ?? '—'),
                     Placeholder::make('pm_rejection_reason')
-                        ->label('Rechazo Project Manager (Fase 3)')
+                        ->label('Rechazo Project Manager')
                         ->visible(fn (InvestmentPaymentRequest $record): bool => $record->pm_rejection_reason !== null)
                         ->content(fn (InvestmentPaymentRequest $record): string => $record->pm_rejection_reason ?? '—'),
                     Placeholder::make('final_rejection_reason')
-                        ->label('Rechazo Final CEO (Fase 4)')
+                        ->label('Rechazo Final (histórico)')
                         ->visible(fn (InvestmentPaymentRequest $record): bool => $record->final_rejection_reason !== null)
                         ->content(fn (InvestmentPaymentRequest $record): string => $record->final_rejection_reason ?? '—'),
                 ]),
@@ -211,15 +211,12 @@ class InvestmentPaymentRequestResource extends Resource
                     ->options([
                         'draft' => 'Borrador',
                         'submitted' => 'Enviado',
-                        'ceo_approved' => 'CEO Aprobó (1ra)',
-                        'ceo_rejected' => 'CEO Rechazó (1ra)',
-                        'projectmanager_review' => 'En revisión PM',
-                        'projectmanager_approved' => 'PM Aprobó',
+                        'ceo_approved' => 'CEO Aprobó',
+                        'ceo_rejected' => 'CEO Rechazó',
+                        'projectmanager_approved' => 'PM Aprobó (histórico)',
                         'projectmanager_rejected' => 'PM Rechazó',
-                        'final_pending' => 'Pendiente Final',
                         'final_approved' => 'Aprobado Final',
-                        'final_rejected' => 'Rechazado Final',
-                        'documents_pending' => 'Esperando docs',
+                        'final_rejected' => 'Rechazado Final (histórico)',
                         'completed' => 'Completado',
                         'scheduled_for_bank' => 'Programado en banco',
                         'receipt_attached' => 'Comprobante adjunto',
@@ -303,12 +300,12 @@ class InvestmentPaymentRequestResource extends Resource
         return match ($status) {
             'draft' => 'Borrador',
             'submitted' => 'Enviado',
-            'ceo_approved' => 'CEO Aprobó (1ra)',
-            'ceo_rejected' => 'CEO Rechazó (1ra)',
+            'ceo_approved' => 'CEO Aprobó',
+            'ceo_rejected' => 'CEO Rechazó',
             'projectmanager_review' => 'En revisión PM',
-            'projectmanager_approved' => 'PM Aprobó',
+            'projectmanager_approved' => 'PM Aprobó (histórico)',
             'projectmanager_rejected' => 'PM Rechazó',
-            'final_pending' => 'Pendiente Final',
+            'final_pending' => 'Pendiente Final (histórico)',
             'final_approved' => 'Aprobado Final',
             'final_rejected' => 'Rechazado Final',
             'documents_pending' => 'Esperando docs',
@@ -328,9 +325,9 @@ class InvestmentPaymentRequestResource extends Resource
     private static function statusColors(): array
     {
         return [
-            'gray' => ['draft', 'submitted', 'projectmanager_review', 'final_pending', 'documents_pending', 'pending_approval'],
+            'gray' => ['draft', 'submitted', 'projectmanager_review', 'documents_pending', 'pending_approval'],
             'success' => ['final_approved', 'completed', 'approved', 'scheduled_for_bank', 'receipt_attached'],
-            'warning' => ['ceo_approved', 'projectmanager_approved'],
+            'warning' => ['ceo_approved', 'projectmanager_approved', 'final_pending'],
             'danger' => ['ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'rejected'],
         ];
     }

@@ -7,14 +7,12 @@ use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Models\Project;
 use App\Models\User;
-use App\Notifications\InvestmentBatchFinalApprovalSessionNotification;
+use App\Notifications\InvestmentBatchFinalApprovalSummaryToPmNotification;
 use App\Notifications\InvestmentBatchRequesterSummaryNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -149,7 +147,7 @@ class InvestmentPaymentReviewController extends Controller
         $payments = InvestmentPaymentRequest::query()
             ->whereIn('uuid', $decisionsByUuid->keys())
             ->whereIn('status', ['ceo_approved', 'projectmanager_review'])
-            ->with('user')
+            ->with(['user', 'department', 'currency', 'investmentRequest.investmentExpenseConcept.category', 'investmentRequest.project'])
             ->get();
 
         if ($payments->isEmpty()) {
@@ -182,9 +180,10 @@ class InvestmentPaymentReviewController extends Controller
                 if ($decision['approved']) {
                     $approvedAmount = (float) ($decision['approved_amount'] ?? $payment->total);
                     $payment->update([
-                        'status' => 'projectmanager_approved',
+                        'status' => 'final_approved',
                         'approved_amount' => $approvedAmount,
                         'pm_reviewed_at' => now(),
+                        'final_reviewed_at' => now(),
                     ]);
                 } else {
                     $payment->update([
@@ -195,14 +194,16 @@ class InvestmentPaymentReviewController extends Controller
                 }
             }
 
-            // For each affected batch, check if PM finished it and transition to final_pending
+            // Cada batch queda en estado terminal según sus pagos: si tiene al menos un
+            // aprobado por el PM, va a final_approved; si todos fueron rechazados, va a
+            // projectmanager_rejected. Ya no hay paso intermedio "final_pending".
             foreach ($affectedBatchIds as $batchId) {
                 $batch = InvestmentPaymentBatch::find($batchId);
                 if (! $batch) {
                     continue;
                 }
 
-                // Check if any payment of this batch is still pending PM review
+                // Si aún hay pagos pendientes de revisión PM en este batch, no lo cerramos.
                 $pendingPmCount = InvestmentPaymentRequest::query()
                     ->where('batch_id', $batchId)
                     ->whereIn('status', ['ceo_approved', 'projectmanager_review'])
@@ -212,17 +213,15 @@ class InvestmentPaymentReviewController extends Controller
                     continue;
                 }
 
-                // Check if there are any PM-approved payments to send to CEO final
-                $pmApprovedCount = InvestmentPaymentRequest::query()
+                $finalApprovedCount = InvestmentPaymentRequest::query()
                     ->where('batch_id', $batchId)
-                    ->where('status', 'projectmanager_approved')
+                    ->where('status', 'final_approved')
                     ->count();
 
-                if ($pmApprovedCount > 0) {
+                if ($finalApprovedCount > 0) {
                     $batch->update([
-                        'status' => 'final_pending',
-                        'final_ceo_approval_token' => (string) Str::uuid(),
-                        'final_ceo_approval_token_expires_at' => Carbon::now()->addHours(96),
+                        'status' => 'final_approved',
+                        'final_ceo_reviewed_at' => now(),
                     ]);
                 } else {
                     $batch->update(['status' => 'projectmanager_rejected']);
@@ -230,7 +229,7 @@ class InvestmentPaymentReviewController extends Controller
             }
         });
 
-        // Notify requesters — 1 consolidated email per requester (mismo patrón que Fase 2 CEO).
+        $approver = $request->user();
         $approvedCount = 0;
         $rejectedCount = 0;
         $approvedByUser = collect();
@@ -248,6 +247,8 @@ class InvestmentPaymentReviewController extends Controller
             }
         }
 
+        // 1 correo consolidado por solicitante con copy de aprobación final
+        // (el PM es ahora el paso terminal — antes este correo lo mandaba el CEO final).
         $allReviewedPayments = $approvedByUser->merge($rejectedByUser);
         $allReviewedPayments->groupBy('user_id')->each(function ($userPayments) use ($approvedByUser, $rejectionReason) {
             $user = $userPayments->first()->user;
@@ -263,47 +264,35 @@ class InvestmentPaymentReviewController extends Controller
                 $approved,
                 $rejected,
                 $rejectionReason,
-                'projectmanager',
+                'final',
             ));
         });
 
-        // Batches transitioned to final_pending in this PM submit (en esta sesión del PM).
-        // Por convención (Combobox en /investment-payment-review fuerza 1 proyecto por sesión),
-        // todos estos batches deberían ser del mismo proyecto. Por seguridad defensiva agrupamos
-        // por project_id por si la request fue manipulada y mezcla proyectos.
-        $batchesToNotify = InvestmentPaymentBatch::query()
-            ->whereIn('id', $affectedBatchIds)
-            ->where('status', 'final_pending')
-            ->whereNotNull('final_ceo_approval_token')
-            ->with(['project'])
-            ->get();
+        // Correo resumen + PDF a todos los PMs (incluye al aprobador) por proyecto de los pagos aprobados.
+        // Antes se disparaba al aprobar el CEO final; ahora es la aprobación terminal del PM.
+        if ($approvedByUser->isNotEmpty()) {
+            $approvedByProject = $approvedByUser->groupBy(fn ($p) => $p->investmentRequest?->project_id);
+            $projectManagers = User::role('project_manager')->get();
 
-        // Asignar un session_token único POR PROYECTO. Todos los batches del mismo proyecto
-        // comparten el mismo session_token + expiración. El CEO recibe 1 email por proyecto
-        // con todos sus batches consolidados en una sola vista.
-        $batchesByProject = $batchesToNotify->groupBy('project_id');
+            foreach ($approvedByProject as $projectId => $projectPayments) {
+                $project = $projectPayments->first()->investmentRequest?->project;
+                if (! $project) {
+                    continue;
+                }
 
-        foreach ($batchesByProject as $projectBatches) {
-            $sessionToken = (string) Str::uuid();
-            $sessionExpiresAt = Carbon::now()->addHours(96);
+                $projectRejectedCount = $rejectedByUser
+                    ->filter(fn ($p) => $p->investmentRequest?->project_id === $projectId)
+                    ->count();
 
-            foreach ($projectBatches as $batch) {
-                $batch->update([
-                    'final_session_token' => $sessionToken,
-                    'final_session_token_expires_at' => $sessionExpiresAt,
-                ]);
+                $projectManagers->each(fn ($pm) => $pm->notify(new InvestmentBatchFinalApprovalSummaryToPmNotification(
+                    approvedPayments: $projectPayments->values(),
+                    project: $project,
+                    approver: $approver,
+                    approvedAt: now(),
+                    rejectedCount: $projectRejectedCount,
+                )));
             }
         }
-
-        // Notify CEO(s) — role-based, soporta múltiples personas con el rol 'ceo'.
-        // Si nadie tiene el rol asignado, los emails no se envían (silencioso, sin error).
-        // Se envía 1 notification consolidada por proyecto (no 1 por batch).
-        User::role('ceo')->get()->each(function ($ceo) use ($batchesByProject) {
-            foreach ($batchesByProject as $projectBatches) {
-                $sessionToken = $projectBatches->first()->final_session_token;
-                $ceo->notify(new InvestmentBatchFinalApprovalSessionNotification($projectBatches, $sessionToken));
-            }
-        });
 
         return redirect()
             ->route('investment-payment-review.index')

@@ -20,7 +20,7 @@ class InvestmentBatchFinalApprovalSummaryToPmNotification extends Notification i
     public function __construct(
         public Collection $approvedPayments,
         public Project $project,
-        public User $approverCeo,
+        public User $approver,
         public CarbonInterface $approvedAt,
         public int $rejectedCount = 0,
     ) {}
@@ -52,7 +52,7 @@ class InvestmentBatchFinalApprovalSummaryToPmNotification extends Notification i
         $viewData = [
             'pm' => $notifiable,
             'project' => $this->project,
-            'approverCeo' => $this->approverCeo,
+            'approver' => $this->approver,
             'approvedAt' => $this->approvedAt,
             'byDepartment' => $byDepartment,
             'grandTotalByCurrency' => $grandTotalByCurrency,
@@ -66,13 +66,13 @@ class InvestmentBatchFinalApprovalSummaryToPmNotification extends Notification i
             ->output();
 
         $filename = sprintf(
-            'aprobacion-final-ceo-%s-%s.pdf',
+            'aprobacion-final-%s-%s.pdf',
             Str::slug($this->project->name),
             $this->approvedAt->format('Ymd-Hi')
         );
 
         return (new MailMessage)
-            ->subject("Aprobación final CEO — {$this->project->name} ({$this->approvedPayments->count()} pagos)")
+            ->subject("Aprobación final — {$this->project->name} ({$this->approvedPayments->count()} pagos)")
             ->markdown('emails.final-approval-summary-pm', $viewData)
             ->attachData($pdf, $filename, ['mime' => 'application/pdf']);
     }

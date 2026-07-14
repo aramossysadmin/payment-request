@@ -13,7 +13,7 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
     use Queueable;
 
     /**
-     * @param  'ceo'|'projectmanager'|'final'  $stage
+     * @param  'ceo'|'final'  $stage
      */
     public function __construct(
         public Collection $approvedPayments,
@@ -32,8 +32,13 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
 
     public function toMail(object $notifiable): MailMessage
     {
-        $this->approvedPayments->loadMissing(['investmentRequest.investmentExpenseConcept', 'investmentRequest.project', 'currency']);
-        $this->rejectedPayments->loadMissing(['investmentRequest.investmentExpenseConcept', 'investmentRequest.project', 'currency']);
+        // Cargar por elemento en lugar de sobre la collection: `loadMissing` como método de
+        // collection sólo existe en Eloquent Collection, y aquí las notifications se llaman
+        // con Support Collection también (patrón `collect()->push()` en varios callers).
+        // Model::loadMissing es idempotente — no re-consulta si ya está eager-loaded.
+        $relations = ['investmentRequest.investmentExpenseConcept', 'investmentRequest.project', 'currency'];
+        $this->approvedPayments->each(fn ($p) => $p->loadMissing($relations));
+        $this->rejectedPayments->each(fn ($p) => $p->loadMissing($relations));
 
         $approvedCount = $this->approvedPayments->count();
         $rejectedCount = $this->rejectedPayments->count();
@@ -67,7 +72,6 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
     private function resolveSubjectAndDescription(int $approvedCount, int $rejectedCount, string $projectName): array
     {
         return match ($this->stage) {
-            'projectmanager' => $this->pmCopy($approvedCount, $rejectedCount, $projectName),
             'final' => $this->finalCopy($approvedCount, $rejectedCount, $projectName),
             default => $this->ceoCopy($approvedCount, $rejectedCount, $projectName),
         };
@@ -81,7 +85,7 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
         if ($approvedCount > 0 && $rejectedCount === 0) {
             return [
                 "Tus pagos de inversión en {$projectName} fueron aprobados ({$approvedCount})",
-                "El CEO ha aprobado tus pagos del proyecto {$projectName}. Sigue el flujo de revisión del Project Manager y la aprobación final.",
+                "El CEO ha aprobado tus pagos del proyecto {$projectName}. Sigue con la revisión final del Project Manager.",
             ];
         }
 
@@ -101,50 +105,25 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
     /**
      * @return array<int, string>
      */
-    private function pmCopy(int $approvedCount, int $rejectedCount, string $projectName): array
-    {
-        if ($approvedCount > 0 && $rejectedCount === 0) {
-            return [
-                "Tus pagos en {$projectName} fueron aprobados por el Project Manager ({$approvedCount})",
-                "El Project Manager ha aprobado tus pagos del proyecto {$projectName}. Sigue al siguiente paso: aprobación final del CEO.",
-            ];
-        }
-
-        if ($approvedCount === 0 && $rejectedCount > 0) {
-            return [
-                "Tus pagos en {$projectName} fueron rechazados por el Project Manager ({$rejectedCount})",
-                "El Project Manager ha rechazado tus pagos del proyecto {$projectName}. El presupuesto fue liberado y puedes capturar nuevos si lo requieres.",
-            ];
-        }
-
-        return [
-            "Revisión del Project Manager en {$projectName}: {$approvedCount} aprobados, {$rejectedCount} rechazados",
-            "El Project Manager ha revisado tus pagos del proyecto {$projectName}. Aquí está el resumen consolidado.",
-        ];
-    }
-
-    /**
-     * @return array<int, string>
-     */
     private function finalCopy(int $approvedCount, int $rejectedCount, string $projectName): array
     {
         if ($approvedCount > 0 && $rejectedCount === 0) {
             return [
                 "Aprobación final de tus pagos en {$projectName} ({$approvedCount})",
-                "El CEO ha dado la aprobación final a tus pagos del proyecto {$projectName}. Ahora debes subir los documentos correspondientes para finalizar el proceso.",
+                "El Project Manager ha dado la aprobación final a tus pagos del proyecto {$projectName}. Ahora debes subir los documentos correspondientes para finalizar el proceso.",
             ];
         }
 
         if ($approvedCount === 0 && $rejectedCount > 0) {
             return [
                 "Tus pagos en {$projectName} fueron rechazados en la aprobación final ({$rejectedCount})",
-                "El CEO ha rechazado tus pagos del proyecto {$projectName} en la aprobación final. El presupuesto fue liberado.",
+                "El Project Manager ha rechazado tus pagos del proyecto {$projectName} en la aprobación final. El presupuesto fue liberado.",
             ];
         }
 
         return [
             "Aprobación final en {$projectName}: {$approvedCount} aprobados, {$rejectedCount} rechazados",
-            "El CEO ha completado la aprobación final de tus pagos del proyecto {$projectName}. Aquí está el resumen.",
+            "El Project Manager ha completado la aprobación final de tus pagos del proyecto {$projectName}. Aquí está el resumen.",
         ];
     }
 

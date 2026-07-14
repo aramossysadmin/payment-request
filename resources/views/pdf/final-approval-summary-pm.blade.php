@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Aprobación Final del CEO — {{ $project->name }}</title>
+    <title>Aprobación Final — {{ $project->name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #191731; line-height: 1.4; }
@@ -47,17 +47,17 @@
 <body>
 <div class="page">
     <div class="header">
-        <div class="header-title">Resumen de Aprobación Final del CEO</div>
+        <div class="header-title">Resumen de Aprobación Final</div>
         <div class="header-subtitle">{{ $project->name }}</div>
         <div class="header-meta">
-            Aprobado por {{ $approverCeo->name }} · {{ $approvedAt->format('d/m/Y H:i') }}
+            Aprobado por {{ $approver->name }} · {{ $approvedAt->format('d/m/Y H:i') }}
             · {{ $totalPayments }} {{ $totalPayments === 1 ? 'pago aprobado' : 'pagos aprobados' }}
         </div>
     </div>
 
     <div class="meta-box">
         <div class="row"><span class="label">Proyecto:</span> <span class="value">{{ $project->name }}</span></div>
-        <div class="row"><span class="label">CEO aprobador:</span> <span class="value">{{ $approverCeo->name }} ({{ $approverCeo->email }})</span></div>
+        <div class="row"><span class="label">Aprobador:</span> <span class="value">{{ $approver->name }} ({{ $approver->email }})</span></div>
         <div class="row"><span class="label">Fecha de aprobación:</span> <span class="value">{{ $approvedAt->format('d/m/Y H:i') }}</span></div>
         @if ($rejectedCount > 0)
             <div class="row"><span class="label">Pagos rechazados en esta sesión:</span> <span class="value">{{ $rejectedCount }}</span></div>
@@ -127,7 +127,7 @@
     @endif
 
     <div class="footer">
-        Linking — payment-request · Documento confidencial · Generado automáticamente al aprobar la sesión final
+        Linking — payment-request · Documento confidencial · Generado automáticamente al cerrar la aprobación final
     </div>
 </div>
 </body>

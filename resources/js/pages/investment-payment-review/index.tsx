@@ -321,7 +321,7 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                         disabled={submitting || hasErrors}
                                     >
                                         <Send className="mr-2 h-4 w-4" />
-                                        {submitting ? 'Enviando...' : 'Enviar a Victor para aprobación final'}
+                                        {submitting ? 'Enviando...' : 'Guardar aprobación final'}
                                     </Button>
                                 </div>
                             </CardContent>

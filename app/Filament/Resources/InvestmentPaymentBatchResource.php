@@ -84,10 +84,10 @@ class InvestmentPaymentBatchResource extends Resource
                         ->label('Enviado a aprobación CEO')
                         ->content(fn (InvestmentPaymentBatch $record): string => $record->submitted_at?->format('Y-m-d H:i:s') ?? 'Pendiente'),
                     Placeholder::make('ceo_reviewed_at')
-                        ->label('Revisado por CEO (Fase 2)')
+                        ->label('Revisado por CEO')
                         ->content(fn (InvestmentPaymentBatch $record): string => $record->ceo_reviewed_at?->format('Y-m-d H:i:s') ?? 'Pendiente'),
                     Placeholder::make('final_ceo_reviewed_at')
-                        ->label('Aprobación final CEO (Fase 4)')
+                        ->label('Aprobación final (PM)')
                         ->content(fn (InvestmentPaymentBatch $record): string => $record->final_ceo_reviewed_at?->format('Y-m-d H:i:s') ?? 'Pendiente'),
                     Placeholder::make('deadline_at')
                         ->label('Fecha límite (futuro)')
@@ -101,7 +101,7 @@ class InvestmentPaymentBatchResource extends Resource
                 ->columns(2)
                 ->schema([
                     Placeholder::make('ceo_approval_token')
-                        ->label('Token CEO (Fase 2)')
+                        ->label('Token CEO')
                         ->content(fn (InvestmentPaymentBatch $record): string => self::tokenStatus(
                             $record->ceo_approval_token,
                             $record->ceo_approval_token_expires_at
@@ -109,15 +109,6 @@ class InvestmentPaymentBatchResource extends Resource
                     Placeholder::make('ceo_approval_token_expires_at')
                         ->label('Expira CEO Token')
                         ->content(fn (InvestmentPaymentBatch $record): string => $record->ceo_approval_token_expires_at?->format('Y-m-d H:i:s') ?? '—'),
-                    Placeholder::make('final_ceo_approval_token')
-                        ->label('Token CEO Final (Fase 4)')
-                        ->content(fn (InvestmentPaymentBatch $record): string => self::tokenStatus(
-                            $record->final_ceo_approval_token,
-                            $record->final_ceo_approval_token_expires_at
-                        )),
-                    Placeholder::make('final_ceo_approval_token_expires_at')
-                        ->label('Expira Final Token')
-                        ->content(fn (InvestmentPaymentBatch $record): string => $record->final_ceo_approval_token_expires_at?->format('Y-m-d H:i:s') ?? '—'),
                 ]),
         ]);
     }
@@ -163,13 +154,13 @@ class InvestmentPaymentBatchResource extends Resource
                     ->sortable()
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('ceo_reviewed_at')
-                    ->label('CEO 1')
+                    ->label('CEO')
                     ->dateTime('Y-m-d H:i')
                     ->placeholder('—')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('final_ceo_reviewed_at')
-                    ->label('CEO Final')
+                    ->label('Aprob. final (PM)')
                     ->dateTime('Y-m-d H:i')
                     ->placeholder('—')
                     ->sortable()
@@ -188,12 +179,9 @@ class InvestmentPaymentBatchResource extends Resource
                         'submitted' => 'Enviado a CEO',
                         'ceo_approved' => 'CEO Aprobó',
                         'ceo_rejected' => 'CEO Rechazó',
-                        'projectmanager_review' => 'En revisión PM',
-                        'projectmanager_approved' => 'PM Aprobó',
                         'projectmanager_rejected' => 'PM Rechazó',
-                        'final_pending' => 'Pendiente Final',
                         'final_approved' => 'Aprobado Final',
-                        'final_rejected' => 'Rechazado Final',
+                        'final_rejected' => 'Rechazado Final (histórico)',
                     ]),
                 SelectFilter::make('department_id')
                     ->label('Departamento')
@@ -275,7 +263,7 @@ class InvestmentPaymentBatchResource extends Resource
             'projectmanager_review' => 'En revisión PM',
             'projectmanager_approved' => 'PM Aprobó',
             'projectmanager_rejected' => 'PM Rechazó',
-            'final_pending' => 'Pendiente Final',
+            'final_pending' => 'Pendiente Final (histórico)',
             'final_approved' => 'Aprobado Final',
             'final_rejected' => 'Rechazado Final',
             default => $status,
@@ -288,9 +276,9 @@ class InvestmentPaymentBatchResource extends Resource
     private static function statusColors(): array
     {
         return [
-            'gray' => ['draft', 'submitted', 'projectmanager_review', 'final_pending'],
+            'gray' => ['draft', 'submitted', 'projectmanager_review'],
             'success' => ['final_approved'],
-            'warning' => ['ceo_approved', 'projectmanager_approved'],
+            'warning' => ['ceo_approved', 'projectmanager_approved', 'final_pending'],
             'danger' => ['ceo_rejected', 'projectmanager_rejected', 'final_rejected'],
         ];
     }

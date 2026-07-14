@@ -96,7 +96,7 @@ class EditUser extends EditRecord
             $activeBatches = InvestmentPaymentBatch::query()
                 ->where('user_id', $user->id)
                 ->where('department_id', $deptId)
-                ->whereNotIn('status', ['completed', 'final_approved', 'final_rejected'])
+                ->whereNotIn('status', ['completed', 'final_approved', 'final_rejected', 'projectmanager_rejected', 'ceo_rejected'])
                 ->count();
 
             $total = $activeInvestmentRequests + $activePaymentRequests + $activeBatches;

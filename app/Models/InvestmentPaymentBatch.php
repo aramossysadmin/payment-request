@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +12,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class InvestmentPaymentBatch extends Model
 {
-    use LogsActivity;
+    use HasFactory, LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -79,20 +80,6 @@ class InvestmentPaymentBatch extends Model
         return $this->ceo_approval_token !== null
             && $this->ceo_approval_token_expires_at !== null
             && $this->ceo_approval_token_expires_at->isFuture();
-    }
-
-    public function hasValidFinalCeoToken(): bool
-    {
-        return $this->final_ceo_approval_token !== null
-            && $this->final_ceo_approval_token_expires_at !== null
-            && $this->final_ceo_approval_token_expires_at->isFuture();
-    }
-
-    public function hasValidFinalSessionToken(): bool
-    {
-        return $this->final_session_token !== null
-            && $this->final_session_token_expires_at !== null
-            && $this->final_session_token_expires_at->isFuture();
     }
 
     public function department(): BelongsTo

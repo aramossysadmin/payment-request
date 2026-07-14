@@ -61,7 +61,7 @@ class InvestmentBatchReadyForReviewNotification extends Notification implements 
 
         $description = $historicalCount > 0
             ? "El CEO aprobó nuevos pagos del proyecto {$projectName}. Aquí está el panorama de tu cola de revisión, separado entre lo que llegó ahora y lo pendiente de revisiones anteriores del mismo proyecto."
-            : "El CEO aprobó nuevos pagos del proyecto {$projectName}. Están listos para tu revisión antes de la aprobación final del CEO.";
+            : "El CEO aprobó nuevos pagos del proyecto {$projectName}. Están listos para tu revisión y aprobación final.";
 
         return (new MailMessage)
             ->subject($subject)
