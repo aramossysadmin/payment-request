@@ -159,7 +159,7 @@ class InvestmentPaymentReviewController extends Controller
             $decision = $decisionsByUuid[$payment->uuid];
             if ($decision['approved']) {
                 $approvedAmount = (float) ($decision['approved_amount'] ?? $payment->total);
-                if ($approvedAmount > (float) $payment->total) {
+                if ((int) round($approvedAmount * 100) > (int) round((float) $payment->total * 100)) {
                     return back()->withErrors([
                         "decisions.{$payment->uuid}.approved_amount" => 'El monto aprobado no puede ser mayor al monto solicitado ($'.number_format((float) $payment->total, 2).').',
                     ]);

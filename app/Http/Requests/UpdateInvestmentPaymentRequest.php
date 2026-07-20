@@ -112,7 +112,7 @@ class UpdateInvestmentPaymentRequest extends FormRequest
                 $rate = (float) (Currency::find((int) $this->input('currency_id'))?->exchange_rate ?? 1);
                 $totalMxn = (float) $this->input('total', 0) * $rate;
 
-                if ($totalMxn > $remaining) {
+                if ((int) round($totalMxn * 100) > (int) round($remaining * 100)) {
                     $validator->errors()->add(
                         'total',
                         'El total ($'.number_format($totalMxn, 2).' MXN) excede el saldo disponible del presupuesto ($'.number_format($remaining, 2).' MXN, ya descontando lo comprometido y pagado).',

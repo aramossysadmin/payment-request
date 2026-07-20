@@ -113,7 +113,7 @@ class StoreInvestmentPaymentRequest extends FormRequest
                 $rate = (float) (Currency::find((int) $this->input('currency_id'))?->exchange_rate ?? 1);
                 $totalMxn = (float) $this->input('total', 0) * $rate;
 
-                if ($totalMxn > $remaining) {
+                if ((int) round($totalMxn * 100) > (int) round($remaining * 100)) {
                     $label = $breakdown['scope'] === 'concept' ? 'presupuesto' : 'concepto';
                     $validator->errors()->add(
                         'total',
