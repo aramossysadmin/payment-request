@@ -207,7 +207,9 @@ type PageProps = {
         id: number;
         name: string;
         branch: string | null;
+        society_name: string | null;
         society_rfc: string | null;
+        cost_center: string | null;
         society_csf_url: string | null;
         currency_id: number | null;
         currency_prefix: string;
@@ -995,17 +997,19 @@ export default function Consolidated() {
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
                         {project.name}
                     </h1>
-                    {project.branch && (
-                        <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                            <Building2 className="h-4 w-4" />
-                            {project.branch}
-                        </p>
-                    )}
-                    {project.branch && (
-                        <p className="mt-0.5 pl-[22px] font-mono text-sm text-gray-500 dark:text-gray-400">
-                            {project.society_rfc ?? '—'}
-                        </p>
-                    )}
+                    <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                        <Building2 className="h-4 w-4" />
+                        {project.branch ?? '—'}
+                    </p>
+                    <p className="mt-0.5 pl-[22px] text-sm text-gray-500 dark:text-gray-400">
+                        {project.society_name ?? '—'}
+                    </p>
+                    <p className="mt-0.5 pl-[22px] font-mono text-sm text-gray-500 dark:text-gray-400">
+                        {project.society_rfc ?? '—'}
+                    </p>
+                    <p className="mt-0.5 pl-[22px] font-mono text-sm text-gray-500 dark:text-gray-400">
+                        {project.cost_center ?? '—'}
+                    </p>
                     {project.branch && project.society_csf_url && (
                         <a
                             href={project.society_csf_url}

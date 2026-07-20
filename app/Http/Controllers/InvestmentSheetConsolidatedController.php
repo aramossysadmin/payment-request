@@ -175,7 +175,7 @@ class InvestmentSheetConsolidatedController extends Controller
             ->selectRaw('investment_requests.department_id, SUM(investment_payment_requests.total * currencies.exchange_rate) as committed_total')
             ->pluck('committed_total', 'department_id');
 
-        $project->load('branch', 'currency');
+        $project->load('branch.society', 'currency');
 
         $now = Carbon::now();
         $currentWeek = $now->isoWeek;
@@ -424,7 +424,9 @@ class InvestmentSheetConsolidatedController extends Controller
                 'id' => $project->id,
                 'name' => $project->name,
                 'branch' => $project->branch?->name,
+                'society_name' => $project->branch?->society?->name,
                 'society_rfc' => $project->branch?->society?->rfc,
+                'cost_center' => $project->branch?->cost_center,
                 'society_csf_url' => filled($project->branch?->society?->constancia_situacion_fiscal)
                     ? URL::temporarySignedRoute('documents.view', now()->addHours(48), [
                         'path' => $project->branch->society->constancia_situacion_fiscal,

@@ -12,7 +12,9 @@ type ProjectSummary = {
     id: number;
     name: string;
     branch: string | null;
+    society_name: string | null;
     society_rfc: string | null;
+    cost_center: string | null;
     sheets_count: number;
     total: string;
 };
@@ -69,17 +71,19 @@ export default function ConsolidatedIndex() {
                                             <h3 className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
                                                 {project.name}
                                             </h3>
-                                            {project.branch && (
-                                                <p className="mt-1 flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-                                                    <Building2 className="h-3.5 w-3.5" />
-                                                    {project.branch}
-                                                </p>
-                                            )}
-                                            {project.branch && (
-                                                <p className="mt-0.5 pl-4 font-mono text-sm text-gray-500 dark:text-gray-400">
-                                                    {project.society_rfc ?? '—'}
-                                                </p>
-                                            )}
+                                            <p className="mt-1 flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                                                <Building2 className="h-3.5 w-3.5" />
+                                                {project.branch ?? '—'}
+                                            </p>
+                                            <p className="mt-0.5 pl-4 text-sm text-gray-500 dark:text-gray-400">
+                                                {project.society_name ?? '—'}
+                                            </p>
+                                            <p className="mt-0.5 pl-4 font-mono text-sm text-gray-500 dark:text-gray-400">
+                                                {project.society_rfc ?? '—'}
+                                            </p>
+                                            <p className="mt-0.5 pl-4 font-mono text-sm text-gray-500 dark:text-gray-400">
+                                                {project.cost_center ?? '—'}
+                                            </p>
                                         </div>
                                         <ArrowRight className="h-5 w-5 shrink-0 text-gray-400" />
                                     </div>
