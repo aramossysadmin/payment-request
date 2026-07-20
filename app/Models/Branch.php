@@ -29,6 +29,7 @@ class Branch extends Model
     protected $fillable = [
         'name',
         'society_id',
+        'cost_center',
         'sap_database',
         'sap_branch_id',
         'sap_user',

@@ -46,6 +46,11 @@ class BranchResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload(),
+                        Forms\Components\TextInput::make('cost_center')
+                            ->label('Centro de Costos (CeCo)')
+                            ->prefixIcon('heroicon-o-calculator')
+                            ->helperText('Identificador del centro de costos asociado a esta sucursal. Se usará para mapeo contable/operativo.')
+                            ->maxLength(50),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Activa')
                             ->helperText('Toggle de control reservado. El filtro en selectores del portal y la exclusión del envío a SAP se aplicarán cuando se active la integración SAP. Por ahora marca la sucursal como inactiva en el catálogo administrativo.')
@@ -96,6 +101,11 @@ class BranchResource extends Resource
                     ->label('Sociedad')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('cost_center')
+                    ->label('CeCo')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—'),
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Activa')
                     ->boolean()
