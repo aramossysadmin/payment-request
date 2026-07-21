@@ -371,6 +371,26 @@ type ConceptGroup = {
     items: InvestmentRequest[];
 };
 
+function groupCompositionLabel(items: InvestmentRequest[]): string {
+    const initials = items.filter((i) => !i.is_addendum).length;
+    const additives = items.filter((i) => i.is_addendum).length;
+
+    // Regla: cuando hay exactamente 1 inicial, se usa texto descriptivo ("presupuesto inicial")
+    // en vez del conteo. Cuando hay 2+, se muestra el conteo para no ocultar la anomalía.
+    const initialsPart = initials === 0
+        ? null
+        : initials === 1
+            ? 'presupuesto inicial'
+            : `${initials} presupuestos iniciales`;
+
+    const additivesPart = additives === 0
+        ? null
+        : `${additives} ${additives === 1 ? 'aditiva' : 'aditivas'}`;
+
+    if (initialsPart && additivesPart) return `${initialsPart} + ${additivesPart}`;
+    return (initialsPart ?? additivesPart)!;
+}
+
 function groupByConcept(items: InvestmentRequest[]): ConceptGroup[] {
     const map = new Map<string, InvestmentRequest[]>();
 
@@ -896,6 +916,16 @@ export default function Consolidated() {
         return `/investment-sheets/consolidated/${project.id}/payment-history-pdf${qs ? '?' + qs : ''}`;
     };
 
+    // URL para el PDF del detalle de solicitudes de inversión respetando solo el filtro de dpto.
+    const buildInvestmentRequestsPdfUrl = (): string => {
+        const params = new URLSearchParams();
+        if (filters.department_id) {
+            params.set('department_id', filters.department_id);
+        }
+        const qs = params.toString();
+        return `/investment-sheets/consolidated/${project.id}/investment-requests-pdf${qs ? '?' + qs : ''}`;
+    };
+
     const selectedHistoryPayment = historyDetailUuid
         ? userPaymentHistory.find((p) => p.uuid === historyDetailUuid)
         : null;
@@ -1402,6 +1432,18 @@ export default function Consolidated() {
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                {canSeeAllDepartments && (
+                                    <Button asChild variant="outline" size="sm" className="shrink-0">
+                                        <a
+                                            href={buildInvestmentRequestsPdfUrl()}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            <FileDown className="mr-1 h-4 w-4" />
+                                            PDF
+                                        </a>
+                                    </Button>
+                                )}
                                 {hasActiveFilters && (
                                     <Button variant="ghost" size="icon" onClick={clearFilters} className="shrink-0">
                                         <X className="h-4 w-4" />
@@ -1464,7 +1506,7 @@ export default function Consolidated() {
                                                                             {group.categoryName ? `${group.categoryName} - ${group.conceptName}` : group.conceptName}
                                                                         </div>
                                                                         {!isSingle && (
-                                                                            <div className="text-xs text-gray-500 mt-0.5">{group.items.length} conceptos</div>
+                                                                            <div className="text-xs text-gray-500 mt-0.5">{groupCompositionLabel(group.items)}</div>
                                                                         )}
                                                                         {isSingle && firstItem.is_addendum && (
                                                                             <Badge variant="outline" className="mt-0.5 border-amber-400 text-amber-600 text-[10px] dark:border-amber-600 dark:text-amber-400">

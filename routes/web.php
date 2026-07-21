@@ -15,6 +15,7 @@ use App\Http\Controllers\InvestmentRequestController;
 use App\Http\Controllers\InvestmentRequestPdfController;
 use App\Http\Controllers\InvestmentSheetConsolidatedController;
 use App\Http\Controllers\InvestmentSheetConsolidatedIndexController;
+use App\Http\Controllers\InvestmentSheetInvestmentRequestsPdfController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentRequestApprovalController;
 use App\Http\Controllers\PaymentRequestController;
@@ -58,6 +59,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('investment-sheets/consolidated', InvestmentSheetConsolidatedIndexController::class)->name('investment-sheets.consolidated.index');
     Route::get('investment-sheets/consolidated/{project}', InvestmentSheetConsolidatedController::class)->name('investment-sheets.consolidated');
     Route::get('investment-sheets/consolidated/{project}/payment-history-pdf', InvestmentPaymentHistoryPdfController::class)->name('investment-sheets.payment-history-pdf');
+    Route::get('investment-sheets/consolidated/{project}/investment-requests-pdf', InvestmentSheetInvestmentRequestsPdfController::class)
+        ->middleware('role:super_admin|ceo|project_manager')
+        ->name('investment-sheets.investment-requests-pdf');
     Route::get('investment-payment-requests/{investmentRequestId}', [InvestmentPaymentRequestController::class, 'index'])->name('investment-payment-requests.index');
     Route::post('investment-payment-requests', [InvestmentPaymentRequestController::class, 'store'])->name('investment-payment-requests.store');
     Route::match(['patch', 'post'], 'investment-payment-requests/{payment:uuid}', [InvestmentPaymentRequestController::class, 'update'])->name('investment-payment-requests.update');

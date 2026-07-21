@@ -11,6 +11,7 @@ use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Models\Project;
+use App\Services\InvestmentDepartmentBreakdownService;
 use App\Services\PaymentRequestPolicyService;
 use App\States\InvestmentRequest\Completed;
 use Illuminate\Database\Eloquent\Builder;
@@ -139,41 +140,10 @@ class InvestmentSheetConsolidatedController extends Controller
             ->where('project_id', $project->id)
             ->visibleTo($user)
             ->join('currencies', 'investment_requests.currency_id', '=', 'currencies.id')
-            ->selectRaw("SUM(investment_requests.subtotal * currencies.exchange_rate) as total_subtotal, SUM(investment_requests.total * currencies.exchange_rate) as total_total, COUNT(*) as total_count, SUM(CASE WHEN investment_requests.status = 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as authorized_total, SUM(CASE WHEN investment_requests.status != 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as pending_total")
+            ->selectRaw("SUM(investment_requests.subtotal * currencies.exchange_rate) as total_subtotal, SUM(investment_requests.total * currencies.exchange_rate) as total_total, COUNT(DISTINCT CONCAT(COALESCE(CAST(investment_requests.investment_expense_concept_id AS CHAR), CONCAT('ir-', investment_requests.id)), '-', investment_requests.department_id)) as total_count, SUM(CASE WHEN investment_requests.status = 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as authorized_total, SUM(CASE WHEN investment_requests.status != 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as pending_total")
             ->first();
 
-        $departmentBreakdown = InvestmentRequest::query()
-            ->where('project_id', $project->id)
-            ->visibleTo($user)
-            ->join('departments', 'investment_requests.department_id', '=', 'departments.id')
-            ->join('currencies', 'investment_requests.currency_id', '=', 'currencies.id')
-            ->selectRaw('departments.id as department_id, departments.name as department_name, SUM(investment_requests.total * currencies.exchange_rate) as department_total, COUNT(*) as department_count')
-            ->groupBy('departments.id', 'departments.name')
-            ->orderByDesc('department_total')
-            ->get();
-
-        $visibleIrIds = InvestmentRequest::query()
-            ->where('project_id', $project->id)
-            ->visibleTo($user)
-            ->pluck('id');
-
-        $paidByDepartment = InvestmentPaymentRequest::query()
-            ->join('investment_requests', 'investment_payment_requests.investment_request_id', '=', 'investment_requests.id')
-            ->join('currencies', 'investment_payment_requests.currency_id', '=', 'currencies.id')
-            ->whereIn('investment_payment_requests.investment_request_id', $visibleIrIds)
-            ->whereIn('investment_payment_requests.status', self::PAID_STATUSES)
-            ->groupBy('investment_requests.department_id')
-            ->selectRaw('investment_requests.department_id, SUM(investment_payment_requests.total * currencies.exchange_rate) as paid_total')
-            ->pluck('paid_total', 'department_id');
-
-        $committedByDepartment = InvestmentPaymentRequest::query()
-            ->join('investment_requests', 'investment_payment_requests.investment_request_id', '=', 'investment_requests.id')
-            ->join('currencies', 'investment_payment_requests.currency_id', '=', 'currencies.id')
-            ->whereIn('investment_payment_requests.investment_request_id', $visibleIrIds)
-            ->whereIn('investment_payment_requests.status', self::COMMITTED_STATUSES)
-            ->groupBy('investment_requests.department_id')
-            ->selectRaw('investment_requests.department_id, SUM(investment_payment_requests.total * currencies.exchange_rate) as committed_total')
-            ->pluck('committed_total', 'department_id');
+        $departmentBreakdown = InvestmentDepartmentBreakdownService::for($project, $user);
 
         $project->load('branch.society', 'currency');
 
@@ -460,24 +430,16 @@ class InvestmentSheetConsolidatedController extends Controller
                 'pending' => number_format((float) ($totals->pending_total ?? 0), 2, '.', ''),
                 'count' => (int) ($totals->total_count ?? 0),
             ],
-            'departmentBreakdown' => $departmentBreakdown->map(function ($d) use ($paidByDepartment, $committedByDepartment) {
-                $total = (float) $d->department_total;
-                $paid = (float) ($paidByDepartment[$d->department_id] ?? 0);
-                $committed = (float) ($committedByDepartment[$d->department_id] ?? 0);
-                $pending = max(0, $total - $committed - $paid);
-                $percentConsumed = $total > 0 ? (($committed + $paid) / $total) * 100 : 0;
-
-                return [
-                    'id' => $d->department_id,
-                    'name' => $d->department_name,
-                    'total' => number_format($total, 2, '.', ''),
-                    'committed' => number_format($committed, 2, '.', ''),
-                    'paid' => number_format($paid, 2, '.', ''),
-                    'pending' => number_format($pending, 2, '.', ''),
-                    'percent_paid' => round($percentConsumed, 1),
-                    'count' => (int) $d->department_count,
-                ];
-            }),
+            'departmentBreakdown' => $departmentBreakdown->map(fn (array $d) => [
+                'id' => $d['id'],
+                'name' => $d['name'],
+                'total' => number_format($d['total'], 2, '.', ''),
+                'committed' => number_format($d['committed'], 2, '.', ''),
+                'paid' => number_format($d['paid'], 2, '.', ''),
+                'pending' => number_format($d['pending'], 2, '.', ''),
+                'percent_paid' => $d['percent_consumed'],
+                'count' => $d['count'],
+            ]),
             'investmentRequests' => InvestmentRequestResource::collection($investmentRequests),
             'filters' => [
                 'search' => $request->input('search'),
