@@ -75,6 +75,10 @@ class ProjectResource extends Resource
                             ->label('Activo')
                             ->default(true)
                             ->helperText('Los proyectos inactivos no estarán disponibles para nuevas hojas de inversión.'),
+                        Forms\Components\Toggle::make('requires_pm_approval')
+                            ->label('Requiere autorización del PM')
+                            ->default(false)
+                            ->helperText('Cuando está activo, las nuevas Solicitudes de Inversión de este proyecto requieren aprobación del Project Manager antes de tomar efecto.'),
                     ]),
             ]);
     }
@@ -99,6 +103,11 @@ class ProjectResource extends Resource
                 Tables\Columns\ToggleColumn::make('is_active')
                     ->label('Estado')
                     ->sortable(),
+                Tables\Columns\IconColumn::make('requires_pm_approval')
+                    ->label('Requiere PM')
+                    ->boolean()
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()

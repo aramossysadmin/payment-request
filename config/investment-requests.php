@@ -12,7 +12,7 @@ return [
     |
     */
 
-    'authorizer_email' => env('INVESTMENT_AUTHORIZER_EMAIL', 'moises.monrroy@grupocosteno.com'),
+    'authorizer_email' => env('INVESTMENT_AUTHORIZER_EMAIL', 'yazmin.rueda@grupocosteno.com'),
 
     /*
     |--------------------------------------------------------------------------

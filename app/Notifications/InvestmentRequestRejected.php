@@ -43,7 +43,7 @@ class InvestmentRequestRejected extends Notification implements ShouldQueue
             [
                 'sectionTitle' => 'Detalles de la Solicitud',
                 'greeting' => 'Hola '.$notifiable->name,
-                'description' => $this->rejector->name.' ha rechazado la concepto de inversión.',
+                'description' => $this->rejector->name.' ha rechazado la solicitud de inversión.',
                 'details' => $details,
                 'stageInfo' => $this->getStageInfo($this->investmentRequest),
                 'documents' => $this->getDocuments($this->investmentRequest),

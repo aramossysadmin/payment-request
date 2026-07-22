@@ -10,24 +10,81 @@ use App\Notifications\InvestmentRequestCreated;
 use App\Notifications\InvestmentRequestRejected;
 use App\States\InvestmentRequest\Completed;
 use App\States\InvestmentRequest\PendingDepartment;
+use App\States\InvestmentRequest\Rejected;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class InvestmentApprovalService
 {
     /**
-     * Create the single approval record and notify the authorizer.
+     * Create the approval record(s) and notify the corresponding approver(s).
      *
-     * If config('investment-requests.require_authorization') is false, the
-     * request is auto-approved (Completed) without notifying anyone.
+     * Precedence:
+     *   1. Per-project lock (requires_pm_approval=true) → notify all PMs. Wins
+     *      over the global bypass so the feature can be activated per project
+     *      from Filament without touching the production .env.
+     *   2. Global bypass (require_authorization=false) → autoApprove for
+     *      projects without a lock.
+     *   3. Default flow → notify the global authorizer_email.
      */
     public function createApprovals(InvestmentRequest $investmentRequest): void
     {
+        if ($investmentRequest->project?->requires_pm_approval) {
+            $this->createPmApprovals($investmentRequest);
+
+            return;
+        }
+
         if (! config('investment-requests.require_authorization')) {
             $this->autoApprove($investmentRequest);
 
             return;
         }
 
+        $this->createGlobalAuthorizerApproval($investmentRequest);
+    }
+
+    /**
+     * Per-project lock flow: create ONE shared approval owned by the first PM
+     * and notify every user with the project_manager role. If no PM exists,
+     * fall back to the global authorizer to avoid orphan requests.
+     */
+    private function createPmApprovals(InvestmentRequest $investmentRequest): void
+    {
+        $pms = User::role('project_manager')->get();
+
+        if ($pms->isEmpty()) {
+            Log::warning('Investment request created on locked project but no project_manager user exists; falling back to global authorizer.', [
+                'investment_request_id' => $investmentRequest->id,
+                'project_id' => $investmentRequest->project_id,
+            ]);
+
+            $this->createGlobalAuthorizerApproval($investmentRequest);
+
+            return;
+        }
+
+        $primaryPm = $pms->first();
+
+        $approval = InvestmentRequestApproval::create([
+            'investment_request_id' => $investmentRequest->id,
+            'user_id' => $primaryPm->id,
+            'stage' => 'department',
+            'level' => 1,
+            'status' => 'pending',
+        ]);
+        $approval->approval_token = Str::uuid()->toString();
+        $approval->approval_token_expires_at = now()->addHours(48);
+        $approval->save();
+
+        $pms->each(fn (User $pm) => $pm->notify(new InvestmentRequestCreated($investmentRequest, $approval->approval_token)));
+    }
+
+    /**
+     * Default flow: single approval owned by the global authorizer_email user.
+     */
+    private function createGlobalAuthorizerApproval(InvestmentRequest $investmentRequest): void
+    {
         $authorizer = $this->getAuthorizer();
 
         if (! $authorizer) {
@@ -98,7 +155,7 @@ class InvestmentApprovalService
     }
 
     /**
-     * Reject the investment request and notify the requester.
+     * Reject the investment request, transition to Rejected, and notify the requester.
      */
     public function reject(InvestmentRequest $investmentRequest, User $authorizer, string $comments): void
     {
@@ -118,6 +175,9 @@ class InvestmentApprovalService
         $approval->approval_token = null;
         $approval->approval_token_expires_at = null;
         $approval->save();
+
+        $investmentRequest->status->transitionTo(Rejected::class);
+        $investmentRequest->refresh();
 
         $investmentRequest->user->notify(
             new InvestmentRequestRejected($investmentRequest, $authorizer, $comments)

@@ -13,6 +13,7 @@ use App\Models\Project;
 use App\Services\InvestmentApprovalService;
 use App\States\InvestmentRequest\Completed;
 use App\States\InvestmentRequest\PendingDepartment;
+use App\States\InvestmentRequest\Rejected;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -51,6 +52,8 @@ class InvestmentRequestController extends Controller
             $query->whereState('status', PendingDepartment::$name);
         } elseif ($group === 'completed') {
             $query->whereState('status', Completed::$name);
+        } elseif ($group === 'rejected') {
+            $query->whereState('status', Rejected::$name);
         }
 
         $investmentRequests = $query->latest()->paginate(15)->withQueryString();

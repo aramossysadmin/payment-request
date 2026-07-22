@@ -34,6 +34,7 @@ class Project extends Model
         'opening_date',
         'authorized_budget',
         'is_active',
+        'requires_pm_approval',
     ];
 
     protected function setNameAttribute(string $value): void
@@ -45,6 +46,7 @@ class Project extends Model
     {
         return [
             'is_active' => 'boolean',
+            'requires_pm_approval' => 'boolean',
             'start_date' => 'date',
             'opening_date' => 'date',
             'authorized_budget' => 'decimal:2',

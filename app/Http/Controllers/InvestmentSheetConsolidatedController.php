@@ -14,6 +14,7 @@ use App\Models\Project;
 use App\Services\InvestmentDepartmentBreakdownService;
 use App\Services\PaymentRequestPolicyService;
 use App\States\InvestmentRequest\Completed;
+use App\States\InvestmentRequest\PendingDepartment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -351,24 +352,22 @@ class InvestmentSheetConsolidatedController extends Controller
                 ->whereState('status', Completed::class)
         );
 
-        // Aditivas y Deductivas capturadas pero aún pendientes de autorización
-        // (status != completed). Se muestran como subsección "En proceso de
-        // autorización" en el dashboard, cada una SOLO cuando es > 0.
-        // NOTA: usamos where('status', '!=', ...) directo porque Spatie
-        // ModelStates no expone un scope whereStateNot — solo whereState.
+        // Aditivas y Deductivas capturadas pero aún pendientes de autorización.
+        // Filtro positivo por PendingDepartment: excluye Completed (ya sumadas
+        // arriba) y también Rejected (nunca deben contar).
         $pendingAdditional = $this->sumTotalMxn(
             InvestmentRequest::query()
                 ->where('project_id', $project->id)
                 ->where('is_addendum', true)
                 ->where('is_deductive', false)
-                ->where('status', '!=', Completed::$name)
+                ->whereState('status', PendingDepartment::class)
         );
 
         $pendingDeductive = $this->sumTotalMxn(
             InvestmentRequest::query()
                 ->where('project_id', $project->id)
                 ->where('is_deductive', true)
-                ->where('status', '!=', Completed::$name)
+                ->whereState('status', PendingDepartment::class)
         );
 
         $updatedBudget = $originalBudget + $additionalBudget - $deductiveBudget;

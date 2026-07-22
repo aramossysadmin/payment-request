@@ -34,7 +34,7 @@ class InvestmentRequestCompleted extends Notification implements ShouldQueue
             [
                 'sectionTitle' => 'Detalles de la Solicitud',
                 'greeting' => 'Hola '.$notifiable->name,
-                'description' => 'Tu concepto de inversión ha completado la aprobación.',
+                'description' => 'Tu solicitud de inversión ha completado la aprobación.',
                 'details' => $this->getMinimalDetails($this->investmentRequest),
                 'stageInfo' => $this->getStageInfo($this->investmentRequest),
                 'documents' => $this->getDocuments($this->investmentRequest),

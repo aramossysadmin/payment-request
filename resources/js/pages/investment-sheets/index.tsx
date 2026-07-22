@@ -138,6 +138,7 @@ export default function Index() {
                     <TabsList className="w-full">
                         <TabsTrigger value="pending">Pendientes</TabsTrigger>
                         <TabsTrigger value="completed">Finalizados</TabsTrigger>
+                        <TabsTrigger value="rejected">Rechazados</TabsTrigger>
                         <TabsTrigger value="all">Todos</TabsTrigger>
                     </TabsList>
                 </Tabs>
