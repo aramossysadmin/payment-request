@@ -88,7 +88,7 @@
         .small { font-size: 9px; }
         .mono { font-family: DejaVu Sans Mono, monospace; }
         .saldo-zero { color: #dc2626; font-weight: 600; }
-        .mxn-prefix { color: #999; font-size: 0.75em; font-weight: normal; letter-spacing: 0.3px; margin-right: 3px; }
+        .curr-prefix { color: #999; font-size: 0.75em; font-weight: normal; letter-spacing: 0.3px; margin-right: 3px; }
 
         /* Folio + status badges */
         .folio-cell { font-family: DejaVu Sans Mono, monospace; font-size: 9.5px; color: #191731; }
@@ -130,7 +130,7 @@
                     </div>
                     <div class="project-card-footer">
                         <span class="lbl">{{ $projectTotalCount }} {{ $projectTotalCount === 1 ? 'concepto' : 'conceptos' }}</span>
-                        <span class="val">${{ number_format($projectTotalAmount, 2) }}</span>
+                        <span class="val"><span class="curr-prefix">{{ $displayPrefix }}</span>${{ number_format($projectTotalAmount, 2) }}</span>
                     </div>
                 </td>
             </tr>
@@ -182,7 +182,7 @@
                                     <div class="dept-count">{{ $d['count'] }} {{ $d['count'] === 1 ? 'concepto' : 'conceptos' }}</div>
                                 </td>
                                 <td class="total-col">
-                                    <div class="dept-total"><span class="mxn-prefix">MXN</span>{{ number_format($d['total'], 2) }}</div>
+                                    <div class="dept-total"><span class="curr-prefix">{{ $displayPrefix }}</span>{{ number_format($d['total'], 2) }}</div>
                                 </td>
                             </tr>
                         </table>
@@ -191,9 +191,9 @@
                     </td>
                     <td class="col-details">
                         <div class="dept-rows">
-                            <div class="dept-row"><span class="lbl dept-committed">Comprometido</span><span class="val dept-committed"><span class="mxn-prefix">MXN</span>{{ number_format($d['committed'], 2) }}</span></div>
-                            <div class="dept-row"><span class="lbl dept-paid">Pagado</span><span class="val dept-paid"><span class="mxn-prefix">MXN</span>{{ number_format($d['paid'], 2) }}</span></div>
-                            <div class="dept-row"><span class="lbl dept-pending">Disponible</span><span class="val dept-pending"><span class="mxn-prefix">MXN</span>{{ number_format($d['pending'], 2) }}</span></div>
+                            <div class="dept-row"><span class="lbl dept-committed">Comprometido</span><span class="val dept-committed"><span class="curr-prefix">{{ $displayPrefix }}</span>{{ number_format($d['committed'], 2) }}</span></div>
+                            <div class="dept-row"><span class="lbl dept-paid">Pagado</span><span class="val dept-paid"><span class="curr-prefix">{{ $displayPrefix }}</span>{{ number_format($d['paid'], 2) }}</span></div>
+                            <div class="dept-row"><span class="lbl dept-pending">Disponible</span><span class="val dept-pending"><span class="curr-prefix">{{ $displayPrefix }}</span>{{ number_format($d['pending'], 2) }}</span></div>
                         </div>
                     </td>
                 </tr>
@@ -221,16 +221,16 @@
                                         <div class="dept-count">{{ $d['count'] }} {{ $d['count'] === 1 ? 'concepto' : 'conceptos' }}</div>
                                     </td>
                                     <td class="total-col">
-                                        <div class="dept-total"><span class="mxn-prefix">MXN</span>{{ number_format($d['total'], 2) }}</div>
+                                        <div class="dept-total"><span class="curr-prefix">{{ $displayPrefix }}</span>{{ number_format($d['total'], 2) }}</div>
                                     </td>
                                 </tr>
                             </table>
                             <div class="dept-bar"><div class="dept-bar-fill {{ $percentClass($percent) }}" style="width: {{ $barWidth }}%"></div></div>
                             <div class="dept-percent">{{ number_format($percent, 0) }}% consumido</div>
                             <div class="dept-rows">
-                                <div class="dept-row"><span class="lbl dept-committed">Comprometido</span><span class="val dept-committed"><span class="mxn-prefix">MXN</span>{{ number_format($d['committed'], 2) }}</span></div>
-                                <div class="dept-row"><span class="lbl dept-paid">Pagado</span><span class="val dept-paid"><span class="mxn-prefix">MXN</span>{{ number_format($d['paid'], 2) }}</span></div>
-                                <div class="dept-row"><span class="lbl dept-pending">Disponible</span><span class="val dept-pending"><span class="mxn-prefix">MXN</span>{{ number_format($d['pending'], 2) }}</span></div>
+                                <div class="dept-row"><span class="lbl dept-committed">Comprometido</span><span class="val dept-committed"><span class="curr-prefix">{{ $displayPrefix }}</span>{{ number_format($d['committed'], 2) }}</span></div>
+                                <div class="dept-row"><span class="lbl dept-paid">Pagado</span><span class="val dept-paid"><span class="curr-prefix">{{ $displayPrefix }}</span>{{ number_format($d['paid'], 2) }}</span></div>
+                                <div class="dept-row"><span class="lbl dept-pending">Disponible</span><span class="val dept-pending"><span class="curr-prefix">{{ $displayPrefix }}</span>{{ number_format($d['pending'], 2) }}</span></div>
                             </div>
                         </td>
                     @endforeach
@@ -255,8 +255,8 @@
                     <th style="width: 28%">Concepto de Inversión</th>
                     <th style="width: 30%">Descripción</th>
                     <th style="width: 18%">Folio</th>
-                    <th class="text-right" style="width: 12%">Presupuesto <span class="muted" style="font-weight: normal;">(MXN)</span></th>
-                    <th class="text-right" style="width: 12%">Saldo <span class="muted" style="font-weight: normal;">(MXN)</span></th>
+                    <th class="text-right" style="width: 12%">Presupuesto <span class="muted" style="font-weight: normal;">({{ $displayPrefix }})</span></th>
+                    <th class="text-right" style="width: 12%">Saldo <span class="muted" style="font-weight: normal;">({{ $displayPrefix }})</span></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -296,7 +296,7 @@
                                     <span class="badge {{ $item['is_addendum'] ? 'badge-aditiva' : 'badge-inicial' }}">{{ $item['type_label'] }}</span>
                                     <span class="badge badge-{{ $item['status_color'] ?? 'neutral' }}">{{ $item['status_label'] }}</span>
                                 </td>
-                                <td class="text-right mono">{{ number_format($item['total_mxn'], 2) }}</td>
+                                <td class="text-right mono">{{ number_format($item['total_display'], 2) }}</td>
                                 <td></td>
                             </tr>
                         @endforeach
@@ -308,7 +308,15 @@
     @endif
 
     <div class="footer">
-        <div class="footer-meta">Generado el {{ $generatedAt->format('d/m/Y H:i') }} por {{ $generatedBy }} · Departamento: {{ $departmentFilterName }}</div>
+        <div class="footer-meta">Generado el {{ $generatedAt->format('d/m/Y H:i') }} por {{ $generatedBy }} · Departamento: {{ $departmentFilterName }} · Moneda: {{ $displayCurrencyName }} ({{ $displayPrefix }})</div>
+        @if (! empty($exchangeRates))
+            <div class="footer-meta" style="margin-top: 4px;">
+                Tipos de cambio usados (1 unidad = X MXN):
+                @foreach ($exchangeRates as $r)
+                    {{ $r['prefix'] }} = {{ number_format($r['exchange_rate'], 4) }}@if (! $loop->last) · @endif
+                @endforeach
+            </div>
+        @endif
         <div>Reporte generado automáticamente por el portal de Payment Request</div>
     </div>
 </div>

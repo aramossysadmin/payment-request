@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesDisplayCurrency;
+use App\Models\Currency;
 use App\Models\Department;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
@@ -18,6 +20,8 @@ use Illuminate\Support\Str;
 
 class InvestmentSheetInvestmentRequestsPdfController extends Controller
 {
+    use ResolvesDisplayCurrency;
+
     /** @var array<int, string> */
     private const PAID_STATUSES = InvestmentPaymentRequest::PAID_STATUSES;
 
@@ -36,6 +40,8 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
 
         $project->load('branch.society', 'currency');
 
+        $displayCurrency = $this->resolveDisplayCurrency($request, $project);
+
         // Filtro: solo Departamento. Buscar y Estado se ignoran deliberadamente.
         $departmentIdRaw = $request->input('department_id');
         $departmentId = ($departmentIdRaw !== null && $departmentIdRaw !== '' && $departmentIdRaw !== 'all')
@@ -46,13 +52,21 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
         // Refleja el total del proyecto aunque estemos viendo un dpto específico.
         $fullBreakdown = InvestmentDepartmentBreakdownService::for($project, $user);
         $projectTotalCount = (int) $fullBreakdown->sum('count');
-        $projectTotalAmount = (float) $fullBreakdown->sum('total');
+        $projectTotalAmount = $this->mxnToDisplay((float) $fullBreakdown->sum('total'), $displayCurrency);
 
         // Breakdown que va a las tarjetas "Inversión por Departamento".
         // Este SÍ se filtra por dpto para que la sección refleje el filtro aplicado.
-        $departmentBreakdown = $departmentId !== null
+        $departmentBreakdown = ($departmentId !== null
             ? $fullBreakdown->where('id', $departmentId)->values()
-            : $fullBreakdown;
+            : $fullBreakdown)
+            ->map(function (array $d) use ($displayCurrency): array {
+                $d['total'] = $this->mxnToDisplay((float) $d['total'], $displayCurrency);
+                $d['committed'] = $this->mxnToDisplay((float) $d['committed'], $displayCurrency);
+                $d['paid'] = $this->mxnToDisplay((float) $d['paid'], $displayCurrency);
+                $d['pending'] = $this->mxnToDisplay((float) $d['pending'], $displayCurrency);
+
+                return $d;
+            });
 
         // Solicitudes: mismo scope de visibilidad que la vista, sin paginado.
         $requestsQuery = InvestmentRequest::query()
@@ -74,7 +88,7 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
         // Los items de cada grupo se preservan para renderizar filas expandidas.
         $departmentsWithGroups = $investmentRequests
             ->groupBy(fn (InvestmentRequest $ir) => $ir->department_id)
-            ->map(function ($deptItems, $deptId) use ($project) {
+            ->map(function ($deptItems, $deptId) use ($project, $displayCurrency) {
                 $firstOfDept = $deptItems->first();
 
                 $groups = $deptItems
@@ -82,7 +96,7 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
                         ? "concept-{$ir->investment_expense_concept_id}"
                         : "no-concept-{$ir->id}"
                     )
-                    ->map(function ($items) use ($project) {
+                    ->map(function ($items) use ($project, $displayCurrency) {
                         // Ordenar iniciales primero, luego por folio ascendente.
                         $ordered = $items
                             ->sortBy([
@@ -92,15 +106,19 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
                             ->values();
                         $first = $ordered->first();
 
-                        $itemsPayload = $ordered->map(fn (InvestmentRequest $ir) => [
-                            'folio_number' => str_pad((string) $ir->folio_number, 5, '0', STR_PAD_LEFT),
-                            'is_addendum' => (bool) $ir->is_addendum,
-                            'type_label' => $ir->is_addendum ? 'Aditiva' : 'Inicial',
-                            'status_label' => $ir->status->label(),
-                            'status_color' => $ir->status->color(),
-                            'description' => $ir->description,
-                            'total_mxn' => (float) $ir->total * (float) ($ir->currency?->exchange_rate ?? 1),
-                        ])->values();
+                        $itemsPayload = $ordered->map(function (InvestmentRequest $ir) use ($displayCurrency): array {
+                            $mxn = (float) $ir->total * (float) ($ir->currency?->exchange_rate ?? 1);
+
+                            return [
+                                'folio_number' => str_pad((string) $ir->folio_number, 5, '0', STR_PAD_LEFT),
+                                'is_addendum' => (bool) $ir->is_addendum,
+                                'type_label' => $ir->is_addendum ? 'Aditiva' : 'Inicial',
+                                'status_label' => $ir->status->label(),
+                                'status_color' => $ir->status->color(),
+                                'description' => $ir->description,
+                                'total_display' => $this->mxnToDisplay($mxn, $displayCurrency),
+                            ];
+                        })->values();
 
                         return [
                             'concept_name' => $first->investmentExpenseConcept?->name ?? '—',
@@ -109,7 +127,7 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
                             'initials_count' => (int) $items->where('is_addendum', false)->count(),
                             'additives_count' => (int) $items->where('is_addendum', true)->count(),
                             'items' => $itemsPayload,
-                            ...$this->groupBudgetAndRemaining($project, $first),
+                            ...$this->groupBudgetAndRemaining($project, $first, $displayCurrency),
                         ];
                     })
                     ->sortBy(fn (array $g) => $g['concept_name'])
@@ -148,6 +166,9 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
                 : 'Todos',
             'generatedAt' => Carbon::now(),
             'generatedBy' => $user->name,
+            'displayPrefix' => $displayCurrency->prefix,
+            'displayCurrencyName' => $displayCurrency->name,
+            'exchangeRates' => $this->exchangeRateNote($displayCurrency),
         ])
             ->setOption('isPhpEnabled', true) // requerido para paginación via <script type="text/php">
             ->setPaper('legal', 'landscape');
@@ -156,11 +177,12 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
     }
 
     /**
-     * Calcula presupuesto y saldo del grupo (concepto + dpto) al que pertenece un IR.
+     * Calcula presupuesto y saldo del grupo (concepto + dpto) al que pertenece un IR,
+     * en la moneda de despliegue solicitada.
      *
      * @return array{group_budget: float, group_remaining: float}
      */
-    private function groupBudgetAndRemaining(Project $project, InvestmentRequest $ir): array
+    private function groupBudgetAndRemaining(Project $project, InvestmentRequest $ir, Currency $displayCurrency): array
     {
         $rate = (float) ($ir->currency?->exchange_rate ?? 1);
 
@@ -181,8 +203,8 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
             );
 
             return [
-                'group_budget' => $groupBudget,
-                'group_remaining' => $groupBudget - $groupCommitted - $groupPaid,
+                'group_budget' => $this->mxnToDisplay($groupBudget, $displayCurrency),
+                'group_remaining' => $this->mxnToDisplay($groupBudget - $groupCommitted - $groupPaid, $displayCurrency),
             ];
         }
 
@@ -196,8 +218,8 @@ class InvestmentSheetInvestmentRequestsPdfController extends Controller
         );
 
         return [
-            'group_budget' => $budget,
-            'group_remaining' => $budget - $committed - $paid,
+            'group_budget' => $this->mxnToDisplay($budget, $displayCurrency),
+            'group_remaining' => $this->mxnToDisplay($budget - $committed - $paid, $displayCurrency),
         ];
     }
 

@@ -2,21 +2,40 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\PaymentHistoryExport;
 use App\Http\Controllers\Concerns\ResolvesDisplayCurrency;
-use App\Models\Department;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\Project;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-class InvestmentPaymentHistoryPdfController extends Controller
+class InvestmentPaymentHistoryExcelController extends Controller
 {
     use ResolvesDisplayCurrency;
 
-    public function __invoke(Request $request, Project $project): Response
+    private const STATUS_LABELS = [
+        'submitted' => 'Enviado',
+        'ceo_approved' => 'CEO Aprobó (1ra)',
+        'projectmanager_review' => 'PM Revisando',
+        'projectmanager_approved' => 'PM Aprobó',
+        'final_pending' => 'Final Pendiente',
+        'documents_pending' => 'Docs Pendientes',
+        'final_approved' => 'Final Aprobado',
+        'completed' => 'Completado',
+        'scheduled_for_bank' => 'Programado en banco',
+        'receipt_attached' => 'Comprobante adjunto',
+        'approved' => 'Aprobado (Legacy)',
+        'ceo_rejected' => 'CEO Rechazó',
+        'projectmanager_rejected' => 'PM Rechazó',
+        'final_rejected' => 'Final Rechazó',
+        'rejected' => 'Rechazado',
+        'pending_approval' => 'Pendiente',
+    ];
+
+    public function __invoke(Request $request, Project $project): BinaryFileResponse
     {
         $user = $request->user();
         $canSeeAllDepartments = $user->hasAnyRole(['super_admin', 'ceo', 'project_manager']);
@@ -24,12 +43,9 @@ class InvestmentPaymentHistoryPdfController extends Controller
         $project->loadMissing('currency');
         $displayCurrency = $this->resolveDisplayCurrency($request, $project);
 
-        // Filtro de departamento: si no es privilegiado, restringir a los dptos del user.
-        // Si especifica un departamento, debe ser uno al que el user pertenece.
         $departmentParam = $request->input('department_id');
         $departmentId = null;
-        $departmentIds = null; // array de IDs cuando user multi-dpto y no filtra específicamente
-        $departmentAll = false;
+        $departmentIds = null;
         $userDepartmentIds = $user->departments()->pluck('departments.id')->all();
 
         if (! $canSeeAllDepartments) {
@@ -38,17 +54,12 @@ class InvestmentPaymentHistoryPdfController extends Controller
                 abort_unless(in_array($requestedId, $userDepartmentIds, true), 403, 'No tienes acceso a ese departamento.');
                 $departmentId = $requestedId;
             } else {
-                // Sin filtro: ve TODOS sus dptos
                 $departmentIds = $userDepartmentIds;
             }
-        } elseif ($departmentParam === 'all' || $departmentParam === null || $departmentParam === '') {
-            $departmentAll = true;
-        } else {
+        } elseif ($departmentParam !== null && $departmentParam !== '' && $departmentParam !== 'all') {
             $departmentId = (int) $departmentParam;
         }
 
-        // Filtro de semana: privilegiados pueden omitirlo (todo el período);
-        // usuarios normales DEBEN enviar week_number + week_year (validación 422).
         $weekNumber = $request->integer('week_number') ?: null;
         $weekYear = $request->integer('week_year') ?: null;
 
@@ -104,8 +115,7 @@ class InvestmentPaymentHistoryPdfController extends Controller
             })->values();
         }
 
-        // Enriquecer cada pago con montos convertidos a la moneda de display.
-        $paymentsPayload = $payments->map(function (InvestmentPaymentRequest $p) use ($displayCurrency): array {
+        $rows = $payments->map(function (InvestmentPaymentRequest $p) use ($displayCurrency): array {
             $nativeRate = (float) ($p->currency?->exchange_rate ?? 1);
             $totalMxn = (float) $p->total * $nativeRate;
             $approvedMxn = $p->approved_amount !== null
@@ -113,75 +123,36 @@ class InvestmentPaymentHistoryPdfController extends Controller
                 : null;
 
             return [
-                'model' => $p,
+                'folio' => '#'.str_pad((string) $p->folio_number, 5, '0', STR_PAD_LEFT),
+                'status_label' => self::STATUS_LABELS[$p->status] ?? $p->status,
+                'payment_provision_date' => $p->payment_provision_date?->format('Y-m-d'),
+                'week' => $p->payment_provision_date
+                    ? 'S'.$p->payment_provision_date->isoWeek.'/'.$p->payment_provision_date->isoWeekYear
+                    : null,
+                'concept' => $p->investmentRequest?->investmentExpenseConcept?->name,
+                'description' => $p->description,
+                'category' => $p->investmentRequest?->investmentExpenseConcept?->category?->name,
+                'department' => $p->department?->name,
+                'provider' => $p->provider,
+                'rfc' => $p->rfc,
+                'payment_type' => $p->payment_type,
                 'total_display' => $this->mxnToDisplay($totalMxn, $displayCurrency),
                 'approved_display' => $approvedMxn !== null
                     ? $this->mxnToDisplay($approvedMxn, $displayCurrency)
                     : null,
+                'native_currency' => $p->currency?->prefix ?? 'MXN',
+                'user' => $p->user?->name,
+                'created_at' => $p->created_at?->format('Y-m-d'),
             ];
         })->values();
 
-        // Total consolidado en la moneda de display.
-        $totalDisplayApproved = $paymentsPayload->reduce(
-            fn (float $sum, array $row) => $sum + (float) ($row['approved_display'] ?? $row['total_display']),
-            0.0
-        );
-        $totalDisplayRequested = $paymentsPayload->reduce(
-            fn (float $sum, array $row) => $sum + (float) $row['total_display'],
-            0.0
-        );
-
-        $statusLabels = [
-            'submitted' => 'Enviado',
-            'ceo_approved' => 'CEO Aprobó (1ra)',
-            'projectmanager_review' => 'PM Revisando',
-            'projectmanager_approved' => 'PM Aprobó',
-            'final_pending' => 'Final Pendiente',
-            'documents_pending' => 'Docs Pendientes',
-            'final_approved' => 'Final Aprobado',
-            'completed' => 'Completado',
-            'scheduled_for_bank' => 'Programado en banco',
-            'receipt_attached' => 'Comprobante adjunto',
-            'approved' => 'Aprobado (Legacy)',
-            'ceo_rejected' => 'CEO Rechazó',
-            'projectmanager_rejected' => 'PM Rechazó',
-            'final_rejected' => 'Final Rechazó',
-            'rejected' => 'Rechazado',
-            'pending_approval' => 'Pendiente',
-        ];
-
-        $filtersApplied = [
-            'department' => $departmentAll
-                ? 'Todos los departamentos'
-                : ($departmentId !== null
-                    ? (Department::find($departmentId)?->name ?? '—')
-                    : ($departmentIds !== null
-                        ? 'Mis departamentos ('.Department::whereIn('id', $departmentIds)->pluck('name')->implode(', ').')'
-                        : '—')),
-            'week' => ($weekNumber !== null && $weekYear !== null) ? "Semana {$weekNumber} / {$weekYear}" : 'Todas las semanas',
-            'status' => $statusFilter !== 'all' && $statusFilter !== null ? ($statusLabels[$statusFilter] ?? $statusFilter) : 'Todos',
-            'quick_filter' => $quickFilter !== 'all' ? $quickFilter : null,
-            'search' => $search !== '' ? $search : null,
-        ];
-
-        $pdf = Pdf::loadView('pdf.payment-history', [
-            'project' => $project,
-            'paymentsPayload' => $paymentsPayload,
-            'showDepartmentColumn' => $departmentAll,
-            'filtersApplied' => $filtersApplied,
-            'totalDisplayRequested' => $totalDisplayRequested,
-            'totalDisplayApproved' => $totalDisplayApproved,
-            'statusLabels' => $statusLabels,
-            'generatedAt' => Carbon::now(),
-            'generatedBy' => $user->name,
-            'displayPrefix' => $displayCurrency->prefix,
-            'displayCurrencyName' => $displayCurrency->name,
-            'exchangeRates' => $this->exchangeRateNote($displayCurrency),
-        ])->setPaper('legal', 'landscape');
-
         $slug = Str::slug($project->name);
         $stamp = Carbon::now()->format('Ymd');
+        $filename = "historial-pagos-{$slug}-{$stamp}.xlsx";
 
-        return $pdf->download("historial-pagos-{$slug}-{$stamp}.pdf");
+        return Excel::download(
+            new PaymentHistoryExport($rows, $displayCurrency->prefix),
+            $filename,
+        );
     }
 }

@@ -56,7 +56,8 @@
         <div class="header-subtitle">{{ $project->name }}</div>
         <div class="header-meta">
             Generado el {{ $generatedAt->format('d/m/Y H:i') }} por {{ $generatedBy }}
-            · {{ count($payments) }} {{ count($payments) === 1 ? 'pago' : 'pagos' }}
+            · {{ count($paymentsPayload) }} {{ count($paymentsPayload) === 1 ? 'pago' : 'pagos' }}
+            · Moneda: {{ $displayCurrencyName }} ({{ $displayPrefix }})
         </div>
     </div>
 
@@ -72,7 +73,7 @@
         @endif
     </div>
 
-    @if (count($payments) === 0)
+    @if (count($paymentsPayload) === 0)
         <p class="muted" style="text-align:center; padding: 20px;">No hay pagos que coincidan con los filtros aplicados.</p>
     @else
         <table class="history">
@@ -88,15 +89,16 @@
                 @if ($showDepartmentColumn)
                     <th style="width: 6%">Depto</th>
                 @endif
-                <th class="text-right" style="width: 8%">Monto Solicitado</th>
-                <th class="text-right" style="width: 8%">Monto Aprobado</th>
+                <th class="text-right" style="width: 8%">Monto Solicitado ({{ $displayPrefix }})</th>
+                <th class="text-right" style="width: 8%">Monto Aprobado ({{ $displayPrefix }})</th>
                 <th style="width: 8%">Solicitante</th>
                 <th style="width: 6%">F. Solicitud</th>
             </tr>
             </thead>
             <tbody>
-            @foreach ($payments as $p)
+            @foreach ($paymentsPayload as $row)
                 @php
+                    $p = $row['model'];
                     $statusClass = in_array($p->status, ['completed', 'final_approved', 'approved'])
                         ? 'status-completed'
                         : (in_array($p->status, ['ceo_rejected', 'projectmanager_rejected', 'final_rejected', 'rejected'])
@@ -104,7 +106,6 @@
                             : (in_array($p->status, ['submitted', 'pending_approval', 'documents_pending', 'final_pending', 'projectmanager_review'])
                                 ? 'status-pending'
                                 : 'status-other'));
-                    $currencyPrefix = $p->currency?->prefix ?? 'MXN';
                 @endphp
                 <tr>
                     <td class="nowrap">#{{ str_pad($p->folio_number, 5, '0', STR_PAD_LEFT) }}</td>
@@ -118,11 +119,11 @@
                         <td class="small">{{ $p->department?->name ?? '—' }}</td>
                     @endif
                     <td class="text-right nowrap">
-                        <span class="small muted">{{ $currencyPrefix }}</span> ${{ number_format((float) $p->total, 2) }}
+                        <span class="small muted">{{ $displayPrefix }}</span> ${{ number_format((float) $row['total_display'], 2) }}
                     </td>
                     <td class="text-right nowrap">
-                        @if ($p->approved_amount !== null)
-                            <span class="small muted">{{ $currencyPrefix }}</span> ${{ number_format((float) $p->approved_amount, 2) }}
+                        @if ($row['approved_display'] !== null)
+                            <span class="small muted">{{ $displayPrefix }}</span> ${{ number_format((float) $row['approved_display'], 2) }}
                         @else
                             <span class="muted">—</span>
                         @endif
@@ -134,20 +135,25 @@
             </tbody>
         </table>
 
-        @if (! empty($totalsByCurrency))
-            <div class="totals">
-                <div class="totals-title">Totales por moneda</div>
-                @foreach ($totalsByCurrency as $prefix => $sum)
-                    <div class="totals-row">
-                        <div class="totals-label">{{ $prefix }}</div>
-                        <div class="totals-value">${{ number_format($sum, 2) }}</div>
-                    </div>
-                @endforeach
-                <div class="muted small" style="margin-top: 6px;">
-                    Nota: los totales se muestran en su moneda nativa. No se aplica conversión a MXN en este reporte.
-                </div>
+        <div class="totals">
+            <div class="totals-title">Totales en {{ $displayPrefix }}</div>
+            <div class="totals-row">
+                <div class="totals-label">Total solicitado</div>
+                <div class="totals-value">{{ $displayPrefix }} ${{ number_format($totalDisplayRequested, 2) }}</div>
             </div>
-        @endif
+            <div class="totals-row">
+                <div class="totals-label">Total aprobado (con fallback a solicitado si aún no hay aprobado)</div>
+                <div class="totals-value">{{ $displayPrefix }} ${{ number_format($totalDisplayApproved, 2) }}</div>
+            </div>
+            @if (! empty($exchangeRates))
+                <div class="muted small" style="margin-top: 6px;">
+                    Convertido a {{ $displayCurrencyName }} ({{ $displayPrefix }}). Tipos de cambio (1 unidad = X MXN):
+                    @foreach ($exchangeRates as $r)
+                        {{ $r['prefix'] }} = {{ number_format($r['exchange_rate'], 4) }}@if (! $loop->last) · @endif
+                    @endforeach
+                </div>
+            @endif
+        </div>
     @endif
 
     <div class="footer">

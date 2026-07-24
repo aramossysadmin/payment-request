@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { ArrowDownRight, ArrowUpRight, Banknote, Building2, Calendar, CalendarRange, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, Download, Eye, FileDown, FileText, Inbox, Info, Paperclip, Pencil, Search, Send, Trash2, Upload, Wallet, X, XCircle } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Banknote, Building2, Calendar, CalendarRange, CheckIcon, ChevronDown, ChevronRight, ChevronsUpDownIcon, Clock, Download, Eye, FileDown, FileSpreadsheet, FileText, Inbox, Info, Paperclip, Pencil, Search, Send, Trash2, Upload, Wallet, X, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { DocumentPreview } from '@/components/document-preview';
 import { FileUpload } from '@/components/file-upload';
@@ -893,8 +893,8 @@ export default function Consolidated() {
 
     const hasActiveHistoryFilters = historySearch !== '' || historyStatus !== 'all' || selectedWeek !== projectDashboard.current_week || selectedYear !== projectDashboard.current_year || historyQuickFilter !== 'all' || historyDepartmentFilter !== 'mine' || ! weekFilterEnabled || Object.keys(historyColumnFilters).length > 0;
 
-    // URL para el PDF del historial respetando todos los filtros.
-    const buildPaymentHistoryPdfUrl = (): string => {
+    // Filtros del historial serializados como query string (compartidos entre PDF y Excel).
+    const buildPaymentHistoryQuery = (): URLSearchParams => {
         const params = new URLSearchParams();
         if (canSeeAllDepartments && historyDepartmentFilter === 'all') {
             params.set('department_id', 'all');
@@ -912,18 +912,45 @@ export default function Consolidated() {
             params.set('week_number', String(selectedWeek));
             params.set('week_year', String(selectedYear));
         }
-        const qs = params.toString();
-        return `/investment-sheets/consolidated/${project.id}/payment-history-pdf${qs ? '?' + qs : ''}`;
+        if (displayCurrency.current?.id) {
+            params.set('display_currency_id', String(displayCurrency.current.id));
+        }
+        return params;
     };
 
-    // URL para el PDF del detalle de solicitudes de inversión respetando solo el filtro de dpto.
-    const buildInvestmentRequestsPdfUrl = (): string => {
+    const buildInvestmentRequestsQuery = (): URLSearchParams => {
         const params = new URLSearchParams();
         if (filters.department_id) {
             params.set('department_id', filters.department_id);
         }
-        const qs = params.toString();
+        if (displayCurrency.current?.id) {
+            params.set('display_currency_id', String(displayCurrency.current.id));
+        }
+        return params;
+    };
+
+    // URL para el PDF del historial respetando todos los filtros y la moneda de display.
+    const buildPaymentHistoryPdfUrl = (): string => {
+        const qs = buildPaymentHistoryQuery().toString();
+        return `/investment-sheets/consolidated/${project.id}/payment-history-pdf${qs ? '?' + qs : ''}`;
+    };
+
+    // URL para el Excel del historial.
+    const buildPaymentHistoryExcelUrl = (): string => {
+        const qs = buildPaymentHistoryQuery().toString();
+        return `/investment-sheets/consolidated/${project.id}/payment-history-excel${qs ? '?' + qs : ''}`;
+    };
+
+    // URL para el PDF del detalle de solicitudes de inversión respetando solo el filtro de dpto.
+    const buildInvestmentRequestsPdfUrl = (): string => {
+        const qs = buildInvestmentRequestsQuery().toString();
         return `/investment-sheets/consolidated/${project.id}/investment-requests-pdf${qs ? '?' + qs : ''}`;
+    };
+
+    // URL para el Excel del detalle de solicitudes de inversión.
+    const buildInvestmentRequestsExcelUrl = (): string => {
+        const qs = buildInvestmentRequestsQuery().toString();
+        return `/investment-sheets/consolidated/${project.id}/investment-requests-excel${qs ? '?' + qs : ''}`;
     };
 
     const selectedHistoryPayment = historyDetailUuid
@@ -1433,16 +1460,28 @@ export default function Consolidated() {
                                     </Select>
                                 </div>
                                 {canSeeAllDepartments && (
-                                    <Button asChild variant="outline" size="sm" className="shrink-0">
-                                        <a
-                                            href={buildInvestmentRequestsPdfUrl()}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            <FileDown className="mr-1 h-4 w-4" />
-                                            PDF
-                                        </a>
-                                    </Button>
+                                    <>
+                                        <Button asChild variant="outline" size="sm" className="shrink-0" title="Descargar PDF del detalle de solicitudes">
+                                            <a
+                                                href={buildInvestmentRequestsPdfUrl()}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <FileDown className="mr-1 h-4 w-4" />
+                                                PDF
+                                            </a>
+                                        </Button>
+                                        <Button asChild variant="outline" size="sm" className="shrink-0" title="Descargar Excel del detalle de solicitudes">
+                                            <a
+                                                href={buildInvestmentRequestsExcelUrl()}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <FileSpreadsheet className="mr-1 h-4 w-4" />
+                                                Excel
+                                            </a>
+                                        </Button>
+                                    </>
                                 )}
                                 {hasActiveFilters && (
                                     <Button variant="ghost" size="icon" onClick={clearFilters} className="shrink-0">
@@ -2093,11 +2132,18 @@ export default function Consolidated() {
                             )}
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">&nbsp;</label>
-                                <Button asChild variant="outline" size="sm" className="shrink-0" title="Descargar PDF del historial filtrado">
-                                    <a href={buildPaymentHistoryPdfUrl()} target="_blank" rel="noopener noreferrer">
-                                        <FileDown className="mr-1 h-4 w-4" /> PDF
-                                    </a>
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button asChild variant="outline" size="sm" className="shrink-0" title="Descargar PDF del historial filtrado">
+                                        <a href={buildPaymentHistoryPdfUrl()} target="_blank" rel="noopener noreferrer">
+                                            <FileDown className="mr-1 h-4 w-4" /> PDF
+                                        </a>
+                                    </Button>
+                                    <Button asChild variant="outline" size="sm" className="shrink-0" title="Descargar Excel del historial filtrado">
+                                        <a href={buildPaymentHistoryExcelUrl()} target="_blank" rel="noopener noreferrer">
+                                            <FileSpreadsheet className="mr-1 h-4 w-4" /> Excel
+                                        </a>
+                                    </Button>
+                                </div>
                             </div>
                             {hasActiveHistoryFilters && (
                                 <Button variant="ghost" size="icon" onClick={clearHistoryFilters} className="shrink-0" title="Limpiar filtros">
