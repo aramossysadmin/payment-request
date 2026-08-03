@@ -49,7 +49,7 @@ class WeeklyPaymentScheduleExportController extends Controller
             ->whereNotNull('payment_provision_date')
             ->whereHas('investmentRequest', fn ($q) => $q->where('project_id', $projectId))
             ->when($week !== null, fn ($q) => $q->where('payment_week_number', $week))
-            ->with(['investmentRequest.investmentExpenseConcept', 'currency'])
+            ->with(['investmentRequest.investmentExpenseConcept', 'currency', 'department'])
             ->orderBy('payment_week_number')
             ->orderBy('folio_number')
             ->get();

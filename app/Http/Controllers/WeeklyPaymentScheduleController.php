@@ -102,6 +102,7 @@ class WeeklyPaymentScheduleController extends Controller
                 'investmentRequest.project',
                 'investmentRequest.investmentExpenseConcept',
                 'currency',
+                'department',
             ])
             ->get()
             ->map(fn (InvestmentPaymentRequest $p) => [
@@ -110,6 +111,7 @@ class WeeklyPaymentScheduleController extends Controller
                 'folio_number' => $p->folio_number,
                 'provider' => $p->provider,
                 'concept_name' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
+                'department_name' => $p->department?->name ?? '—',
                 'project_name' => $p->investmentRequest?->project?->name ?? '-',
                 'payment_provision_date' => $p->payment_provision_date?->format('Y-m-d'),
                 'payment_week_number' => $p->payment_week_number,
@@ -135,6 +137,7 @@ class WeeklyPaymentScheduleController extends Controller
                 'creator',
                 'items.investmentPaymentRequest.investmentRequest.investmentExpenseConcept',
                 'items.investmentPaymentRequest.currency',
+                'items.investmentPaymentRequest.department',
                 'approvals.user',
             ])
             ->latest()
@@ -159,6 +162,7 @@ class WeeklyPaymentScheduleController extends Controller
                         'folio_number' => $item->investmentPaymentRequest->folio_number,
                         'provider' => $item->investmentPaymentRequest->provider,
                         'concept_name' => $item->investmentPaymentRequest->investmentRequest?->investmentExpenseConcept?->name ?? '-',
+                        'department_name' => $item->investmentPaymentRequest->department?->name ?? '—',
                         'payment_provision_date' => $item->investmentPaymentRequest->payment_provision_date?->format('Y-m-d'),
                         'total' => (string) ($item->investmentPaymentRequest->approved_amount ?? $item->investmentPaymentRequest->total),
                         'currency_prefix' => $item->investmentPaymentRequest->currency?->prefix ?? 'MXN',

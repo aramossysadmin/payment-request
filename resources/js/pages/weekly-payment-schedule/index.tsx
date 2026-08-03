@@ -22,6 +22,7 @@ interface Payment {
     folio_number: number;
     provider: string;
     concept_name: string;
+    department_name: string;
     project_name: string;
     payment_provision_date: string;
     payment_week_number: number;
@@ -40,6 +41,7 @@ interface SchedulePayment {
     folio_number: number;
     provider: string;
     concept_name: string;
+    department_name: string;
     payment_provision_date: string | null;
     total: string;
     currency_prefix: string;
@@ -422,6 +424,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                 <th className="pb-3 pr-4 font-medium">Folio</th>
                                                 <th className="pb-3 pr-4 font-medium">Proveedor</th>
                                                 <th className="pb-3 pr-4 font-medium">Concepto</th>
+                                                <th className="pb-3 pr-4 font-medium">Departamento</th>
                                                 <th className="pb-3 pr-4 font-medium">Tipo de pago</th>
                                                 <th className="pb-3 pr-4 font-medium">Fecha Provisión</th>
                                                 <th className="pb-3 pr-4 text-right font-medium">Total</th>
@@ -442,6 +445,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                     </td>
                                                     <td className="py-3 pr-4 font-medium">{payment.provider}</td>
                                                     <td className="py-3 pr-4">{payment.concept_name}</td>
+                                                    <td className="py-3 pr-4">{payment.department_name}</td>
                                                     <td className="py-3 pr-4">
                                                         <Badge variant="outline" className="text-xs">
                                                             {investmentPaymentTypeLabel(payment.payment_type)}
@@ -500,6 +504,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                             <th className="pb-3 pr-4 font-medium">Folio</th>
                                             <th className="pb-3 pr-4 font-medium">Proveedor</th>
                                             <th className="pb-3 pr-4 font-medium">Concepto</th>
+                                            <th className="pb-3 pr-4 font-medium">Departamento</th>
                                             <th className="pb-3 pr-4 font-medium">Tipo de pago</th>
                                             <th className="pb-3 pr-4 font-medium">Fecha Provisión</th>
                                             <th className="pb-3 pr-4 text-right font-medium">Total</th>
@@ -534,6 +539,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                     </td>
                                                     <td className="py-3 pr-4 font-medium">{payment.provider}</td>
                                                     <td className="py-3 pr-4">{payment.concept_name}</td>
+                                                    <td className="py-3 pr-4">{payment.department_name}</td>
                                                     <td className="py-3 pr-4">
                                                         <Badge variant="outline" className="text-xs">
                                                             {investmentPaymentTypeLabel(payment.payment_type)}
