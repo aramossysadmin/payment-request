@@ -34,6 +34,7 @@ class Project extends Model
         'opening_date',
         'authorized_budget',
         'is_active',
+        'closed_at',
         'requires_pm_approval',
     ];
 
@@ -49,8 +50,26 @@ class Project extends Model
             'requires_pm_approval' => 'boolean',
             'start_date' => 'date',
             'opening_date' => 'date',
+            'closed_at' => 'datetime',
             'authorized_budget' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Mantiene sincronizado `closed_at` con el toggle `is_active`:
+     * al cerrar el proyecto (`is_active` pasa de true a false) se marca `closed_at = now()`;
+     * al reabrirlo (`is_active` pasa de false a true) se limpia `closed_at = null`.
+     * Se aplica en `saving` para cubrir cualquier vía de update (Filament, controllers, tinker).
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Project $project): void {
+            if (! $project->isDirty('is_active')) {
+                return;
+            }
+
+            $project->closed_at = $project->is_active ? null : now();
+        });
     }
 
     public function branch(): BelongsTo
@@ -68,6 +87,10 @@ class Project extends Model
         return $this->hasMany(InvestmentRequest::class);
     }
 
+    /**
+     * Scope de proyectos activos (equivalente a "abiertos" en el nuevo modelo de estado):
+     * `is_active = true` significa abierto para captura; `false` significa cerrado.
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

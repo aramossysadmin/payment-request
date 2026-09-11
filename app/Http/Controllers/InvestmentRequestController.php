@@ -109,6 +109,16 @@ class InvestmentRequestController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
+        $projectId = $request->input('project_id');
+        if ($projectId) {
+            $project = Project::find($projectId);
+            abort_if(
+                $project !== null && ! $project->is_active,
+                403,
+                'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.',
+            );
+        }
+
         $investmentRequest = new InvestmentRequest($validated);
         $investmentRequest->user_id = $user->id;
 
@@ -209,6 +219,25 @@ class InvestmentRequestController extends Controller
         Gate::authorize('update', $investmentRequest);
 
         abort_unless($investmentRequest->status->equals(PendingDepartment::class), 403);
+
+        // Bloqueo por proyecto cerrado: aplica al proyecto ACTUAL del IR y al DESTINO si
+        // el request está intentando mover el IR a otro proyecto.
+        $currentProject = $investmentRequest->project;
+        abort_if(
+            $currentProject !== null && ! $currentProject->is_active,
+            403,
+            'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.',
+        );
+
+        $incomingProjectId = $request->input('project_id');
+        if ($incomingProjectId && $incomingProjectId !== $investmentRequest->project_id) {
+            $incomingProject = Project::find($incomingProjectId);
+            abort_if(
+                $incomingProject !== null && ! $incomingProject->is_active,
+                403,
+                'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.',
+            );
+        }
 
         $validated = $request->validated();
 

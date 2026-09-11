@@ -14,13 +14,17 @@ class InvestmentSheetConsolidatedIndexController extends Controller
     {
         $user = $request->user();
 
+        // Un proyecto cerrado (`is_active=false`) queda oculto para usuarios normales,
+        // pero PM y super_admin lo siguen viendo (modo solo lectura, con badge en el UI).
+        $isPrivileged = $user->hasAnyRole(['super_admin', 'project_manager']);
+
         // NOTA: el whereHas(investmentRequests, visibleTo) anterior ocultaba
         // proyectos nuevos sin Solicitudes capturadas todavía, dejándolos
         // invisibles para todos los usuarios hasta la primera captura.
         // Solución temporal Opción A: mostrar TODOS los proyectos activos.
         $projects = Project::query()
             ->with('branch.society')
-            ->where('is_active', true)
+            ->when(! $isPrivileged, fn ($q) => $q->where('is_active', true))
             ->orderBy('name')
             ->get();
 
@@ -47,6 +51,8 @@ class InvestmentSheetConsolidatedIndexController extends Controller
                 'cost_center' => $p->branch?->cost_center,
                 'sheets_count' => (int) ($aggregates[$p->id]?->concepts_count ?? 0),
                 'total' => number_format((float) ($aggregates[$p->id]?->sum_total ?? 0), 2, '.', ''),
+                'is_active' => (bool) $p->is_active,
+                'closed_at' => $p->closed_at?->toISOString(),
             ]),
         ]);
     }

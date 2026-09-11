@@ -22,6 +22,13 @@ class InvestmentPaymentBatchController extends Controller
         abort_unless($payment->user_id === auth()->id(), Response::HTTP_FORBIDDEN);
         abort_unless($payment->status === 'draft', Response::HTTP_FORBIDDEN);
 
+        $project = $payment->investmentRequest?->project;
+        abort_if(
+            $project !== null && ! $project->is_active,
+            Response::HTTP_FORBIDDEN,
+            'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.',
+        );
+
         $payment->delete();
 
         return back()->with('success', 'Pago eliminado del borrador.');
@@ -33,6 +40,13 @@ class InvestmentPaymentBatchController extends Controller
 
         abort_unless($batch->user_id === $user->id || $user->belongsToDepartment($batch->department_id), Response::HTTP_FORBIDDEN);
         abort_unless($batch->status === 'draft', Response::HTTP_CONFLICT, 'El lote ya fue enviado.');
+
+        $project = $batch->project;
+        abort_if(
+            $project !== null && ! $project->is_active,
+            Response::HTTP_FORBIDDEN,
+            'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.',
+        );
 
         // Política de ventana: bloquear ENVIAR a Autorización fuera de horario (si la ventana está activa).
         $policy = PaymentRequestPolicyService::fromCurrent();

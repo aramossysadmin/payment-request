@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ProjectClosedBanner } from '@/components/project-closed-banner';
 import { ProjectCombobox, type Project } from '@/components/project-combobox';
 import { WeekNavigator } from '@/components/week-navigator';
 import { formatCurrency } from '@/lib/currency';
@@ -244,7 +245,10 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
         setSelectedYear(newYear);
     };
 
+    const isSelectedProjectClosed = selectedProject !== null && selectedProject.is_active === false;
+
     const handleSubmit = () => {
+        if (isSelectedProjectClosed) return;
         if (schedulableWeekPayments.length === 0) return;
 
         setProcessing(true);
@@ -274,6 +278,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
     };
 
     const handleUploadReceipt = () => {
+        if (isSelectedProjectClosed) return;
         if (!receiptTarget || receiptFiles.length === 0) return;
         setReceiptUploading(true);
         setReceiptErrors({});
@@ -302,7 +307,14 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                 size="sm"
                 className="h-7 gap-1 px-2 text-xs"
                 onClick={() => openReceiptDialog(payment.uuid, payment.folio_number, payment.receipt_documents.length > 0)}
-                title={payment.receipt_documents.length > 0 ? 'Reemplazar el comprobante cargado' : 'Cargar comprobante de pago'}
+                disabled={isSelectedProjectClosed}
+                title={
+                    isSelectedProjectClosed
+                        ? 'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.'
+                        : payment.receipt_documents.length > 0
+                            ? 'Reemplazar el comprobante cargado'
+                            : 'Cargar comprobante de pago'
+                }
             >
                 <Paperclip className="h-3 w-3" />
                 {payment.receipt_documents.length > 0 ? 'Reemplazar' : 'Comprobante'}
@@ -332,6 +344,13 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                         />
                     </CardContent>
                 </Card>
+
+                {isSelectedProjectClosed && selectedProject && (
+                    <ProjectClosedBanner
+                        closedAt={selectedProject.closed_at ?? null}
+                        projectName={selectedProject.name}
+                    />
+                )}
 
                 {!selectedProjectId ? (
                     <div className="rounded-md border border-dashed py-16 text-center">

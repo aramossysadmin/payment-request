@@ -72,9 +72,10 @@ class ProjectResource extends Resource
                             ->minValue(0)
                             ->helperText('Monto autorizado para el proyecto. Se utiliza como referencia en el dashboard de Hojas de Inversión.'),
                         Forms\Components\Toggle::make('is_active')
-                            ->label('Activo')
+                            ->label('Abierto para captura')
                             ->default(true)
-                            ->helperText('Los proyectos inactivos no estarán disponibles para nuevas hojas de inversión.'),
+                            ->disabled(fn (): bool => ! auth()->user()?->hasAnyRole(['super_admin', 'project_manager']))
+                            ->helperText('Un proyecto cerrado bloquea capturas y cambios para todos los usuarios. Solo PM y super admin pueden verlo en modo lectura. El cierre y la reapertura quedan registrados en el historial de actividad. Solo super admin y PM pueden cambiar este estado.'),
                         Forms\Components\Toggle::make('requires_pm_approval')
                             ->label('Requiere autorización del PM')
                             ->default(false)
@@ -102,7 +103,17 @@ class ProjectResource extends Resource
                     ->toggleable(),
                 Tables\Columns\ToggleColumn::make('is_active')
                     ->label('Estado')
-                    ->sortable(),
+                    ->sortable()
+                    ->disabled(fn (): bool => ! auth()->user()?->hasAnyRole(['super_admin', 'project_manager']))
+                    ->tooltip(fn (Project $record): string => $record->is_active
+                        ? 'Abierto para captura'
+                        : 'Cerrado — solo lectura para PM y super admin'),
+                Tables\Columns\TextColumn::make('closed_at')
+                    ->label('Cerrado desde')
+                    ->dateTime('d/m/Y H:i')
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('requires_pm_approval')
                     ->label('Requiere PM')
                     ->boolean()
@@ -117,8 +128,8 @@ class ProjectResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Estado')
-                    ->trueLabel('Activos')
-                    ->falseLabel('Inactivos')
+                    ->trueLabel('Abiertos')
+                    ->falseLabel('Cerrados')
                     ->placeholder('Todos'),
                 Tables\Filters\TrashedFilter::make(),
             ])

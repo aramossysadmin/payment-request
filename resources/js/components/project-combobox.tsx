@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 export type Project = {
     id: number;
     name: string;
+    is_active?: boolean;
+    closed_at?: string | null;
 };
 
 type ProjectComboboxProps = {
@@ -45,8 +47,16 @@ export function ProjectCombobox({
                     aria-expanded={open}
                     className="w-full justify-between"
                 >
-                    <span className={cn('truncate', !selectedProject && 'text-muted-foreground')}>
-                        {selectedProject ? selectedProject.name : placeholder}
+                    <span className={cn('flex min-w-0 items-center gap-2 truncate', !selectedProject && 'text-muted-foreground')}>
+                        <span className="truncate">
+                            {selectedProject ? selectedProject.name : placeholder}
+                        </span>
+                        {selectedProject?.is_active === false && (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-200">
+                                <Lock className="h-3 w-3" />
+                                Cerrado
+                            </span>
+                        )}
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -72,7 +82,15 @@ export function ProjectCombobox({
                                             selectedId === project.id ? 'opacity-100' : 'opacity-0',
                                         )}
                                     />
-                                    {project.name}
+                                    <span className="flex flex-1 items-center justify-between gap-2">
+                                        <span className="truncate">{project.name}</span>
+                                        {project.is_active === false && (
+                                            <span className="inline-flex shrink-0 items-center gap-1 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-200">
+                                                <Lock className="h-3 w-3" />
+                                                Cerrado
+                                            </span>
+                                        )}
+                                    </span>
                                 </CommandItem>
                             ))}
                         </CommandGroup>

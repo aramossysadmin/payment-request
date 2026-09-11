@@ -31,6 +31,13 @@ class WeeklyPaymentReceiptController extends Controller
 
         abort_unless($visible, Response::HTTP_FORBIDDEN, 'No tienes acceso al proyecto de este pago.');
 
+        $project = $payment->investmentRequest?->project;
+        abort_if(
+            $project !== null && ! $project->is_active,
+            Response::HTTP_FORBIDDEN,
+            'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.',
+        );
+
         abort_unless(
             in_array($payment->status, self::UPLOADABLE_STATUSES, true),
             Response::HTTP_CONFLICT,

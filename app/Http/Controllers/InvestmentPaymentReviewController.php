@@ -31,8 +31,13 @@ class InvestmentPaymentReviewController extends Controller
 
         $projects = Project::whereIn('id', $projectIds)
             ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Project $p) => ['id' => $p->id, 'name' => $p->name])
+            ->get(['id', 'name', 'is_active', 'closed_at'])
+            ->map(fn (Project $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'is_active' => (bool) $p->is_active,
+                'closed_at' => $p->closed_at?->toISOString(),
+            ])
             ->values();
 
         $selectedProjectId = $request->integer('project_id') ?: null;
@@ -152,6 +157,23 @@ class InvestmentPaymentReviewController extends Controller
 
         if ($payments->isEmpty()) {
             return back()->withErrors(['decisions' => 'No se encontraron pagos válidos para procesar.']);
+        }
+
+        // Bloqueo por proyecto cerrado: cualquiera de los pagos que apunte a un
+        // proyecto cerrado impide procesar el lote completo.
+        $closedProjectNames = $payments
+            ->map(fn (InvestmentPaymentRequest $p) => $p->investmentRequest?->project)
+            ->filter(fn (?Project $project) => $project !== null && ! $project->is_active)
+            ->map(fn (Project $project) => $project->name)
+            ->unique()
+            ->values();
+
+        if ($closedProjectNames->isNotEmpty()) {
+            return back()->withErrors([
+                'decisions' => 'No se puede procesar: hay pagos de proyecto(s) cerrado(s): '
+                    .$closedProjectNames->implode(', ')
+                    .'. Un proyecto cerrado bloquea toda captura o cambio.',
+            ]);
         }
 
         // Validate approved_amount <= total for each approved payment

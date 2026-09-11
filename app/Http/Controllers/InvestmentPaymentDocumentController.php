@@ -17,6 +17,13 @@ class InvestmentPaymentDocumentController extends Controller
 
         abort_unless($isSuperAdmin || $payment->user_id === $user->id, Response::HTTP_FORBIDDEN, 'Solo el solicitante puede subir documentos.');
 
+        $project = $payment->investmentRequest?->project;
+        abort_if(
+            $project !== null && ! $project->is_active,
+            Response::HTTP_FORBIDDEN,
+            'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.',
+        );
+
         $allowedStatuses = $isSuperAdmin
             ? ['final_approved', 'approved', 'completed']
             : ['final_approved'];

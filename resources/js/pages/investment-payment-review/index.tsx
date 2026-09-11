@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DocumentPreview } from '@/components/document-preview';
+import { ProjectClosedBanner } from '@/components/project-closed-banner';
 import { ProjectCombobox, type Project } from '@/components/project-combobox';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/currency';
@@ -136,7 +137,13 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
 
     const hasErrors = Object.keys(errors).length > 0;
 
+    const selectedProject = selectedProjectId
+        ? projects.find((p) => p.id === selectedProjectId) ?? null
+        : null;
+    const isSelectedProjectClosed = selectedProject !== null && selectedProject.is_active === false;
+
     const handleSubmit = () => {
+        if (isSelectedProjectClosed) return;
         if (hasErrors) return;
         setSubmitting(true);
 
@@ -180,6 +187,13 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                         />
                     </CardContent>
                 </Card>
+
+                {isSelectedProjectClosed && selectedProject && (
+                    <ProjectClosedBanner
+                        closedAt={selectedProject.closed_at ?? null}
+                        projectName={selectedProject.name}
+                    />
+                )}
 
                 {!selectedProjectId ? (
                     <Card>
@@ -318,7 +332,8 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                     <Button
                                         size="lg"
                                         onClick={handleSubmit}
-                                        disabled={submitting || hasErrors}
+                                        disabled={submitting || hasErrors || isSelectedProjectClosed}
+                                        title={isSelectedProjectClosed ? 'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.' : undefined}
                                     >
                                         <Send className="mr-2 h-4 w-4" />
                                         {submitting ? 'Enviando...' : 'Guardar aprobación final'}

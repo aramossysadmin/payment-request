@@ -5,6 +5,7 @@ import { DocumentPreview } from '@/components/document-preview';
 import { FileUpload } from '@/components/file-upload';
 import InputError from '@/components/input-error';
 import { Pagination } from '@/components/pagination';
+import { ProjectClosedBanner } from '@/components/project-closed-banner';
 import { ProviderAutocomplete } from '@/components/provider-autocomplete';
 import { WeekNavigator } from '@/components/week-navigator';
 import { useCurrencyFormatters, useDisplayCurrency } from '@/contexts/display-currency';
@@ -216,6 +217,8 @@ type PageProps = {
         start_date: string | null;
         opening_date: string | null;
         authorized_budget: string | null;
+        is_active: boolean;
+        closed_at: string | null;
     };
     totals: {
         subtotal: string;
@@ -431,6 +434,11 @@ export default function Consolidated() {
         userDepartmentId, userDepartmentName, userDepartments, currencies, branches, availableConcepts, conceptDepartmentMap, canEditRequestConcept, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
     } = usePage<PageProps>().props;
 
+    // Un proyecto cerrado bloquea toda captura/mutación en el frontend (defense-in-depth
+    // sobre los guards del backend). PM/super_admin siguen viendo la información en modo
+    // solo lectura con el banner arriba.
+    const isProjectClosed = !project.is_active;
+
     // Moneda de visualización: los agregados llegan en MXN (normalizados en backend) → formatMxn;
     // los importes por pago se convierten desde su moneda nativa con formatNative.
     const displayCurrency = useDisplayCurrency();
@@ -478,6 +486,7 @@ export default function Consolidated() {
     };
 
     const handleDeleteDraftPayment = (uuid: string) => {
+        if (!project.is_active) return;
         router.delete(`/investment-payment-batches/payments/${uuid}`, {
             preserveScroll: true,
             onFinish: () => setDeleteConfirmUuid(null),
@@ -486,6 +495,7 @@ export default function Consolidated() {
 
     const [submittingBatch, setSubmittingBatch] = useState(false);
     const handleSubmitBatch = () => {
+        if (!project.is_active) return;
         if (!draftBatch || selectedDraftIds.size === 0) return;
         setSubmittingBatch(true);
         router.post(
@@ -513,6 +523,7 @@ export default function Consolidated() {
     const [editDescSaving, setEditDescSaving] = useState(false);
 
     const openEditDescription = (ir: { uuid: string; folio_number: number; description: string | null; investment_expense_concept_id?: number | null; investment_expense_concept?: { id?: number; name: string; category?: { id: number; name: string } | null } | null; expense_concept?: { name: string } | null; department?: { id?: number; name?: string } | null }) => {
+        if (!project.is_active) return;
         const snapshot = (ir.investment_expense_concept && ir.investment_expense_concept.id)
             ? {
                 id: ir.investment_expense_concept.id,
@@ -541,6 +552,7 @@ export default function Consolidated() {
     };
 
     const handleSaveDescription = () => {
+        if (!project.is_active) return;
         if (!editDescState) return;
         setEditDescSaving(true);
         const payload: { description: string; investment_expense_concept_id?: number } = {
@@ -574,6 +586,7 @@ export default function Consolidated() {
     const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
 
     const openUploadDialog = (uuid: string, currentPaymentType?: string | null) => {
+        if (!project.is_active) return;
         setUploadType(isValidUploadType(currentPaymentType) ? currentPaymentType : 'factura');
         setUploadPdf(null);
         setUploadXml(null);
@@ -595,6 +608,7 @@ export default function Consolidated() {
         : Boolean(uploadDocument);
 
     const handleUploadDocuments = () => {
+        if (!project.is_active) return;
         if (!uploadDialogUuid || !uploadCanSubmit) return;
         setUploading(true);
         setUploadErrors({});
@@ -993,12 +1007,14 @@ export default function Consolidated() {
     const hasActiveFilters = filters.search || filters.status || filters.department_id;
 
     const openPaymentModal = (ir: InvestmentRequest) => {
+        if (!project.is_active) return;
         setSelectedIr(ir);
         setEditingDraftPayment(null);
         setModalOpen(true);
     };
 
     const openEditDraftPayment = (payment: DraftPayment) => {
+        if (!project.is_active) return;
         const stubIr = {
             id: payment.investment_request_id,
             folio_number: payment.concept_folio ?? 0,
@@ -1049,6 +1065,10 @@ export default function Consolidated() {
             <Head title={`Hoja de Inversión — ${project.name}`} />
 
             <div className="p-4 md:p-6 space-y-6">
+                {!project.is_active && (
+                    <ProjectClosedBanner closedAt={project.closed_at} projectName={project.name} />
+                )}
+
                 {/* Header */}
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
@@ -1751,8 +1771,14 @@ export default function Consolidated() {
                                                                             variant="ghost"
                                                                             className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
                                                                             onClick={() => openEditDraftPayment(payment)}
-                                                                            disabled={!paymentPolicy.capture.canAct}
-                                                                            title={paymentPolicy.capture.canAct ? 'Editar pago' : undefined}
+                                                                            disabled={!paymentPolicy.capture.canAct || isProjectClosed}
+                                                                            title={
+                                                                                isProjectClosed
+                                                                                    ? 'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.'
+                                                                                    : paymentPolicy.capture.canAct
+                                                                                        ? 'Editar pago'
+                                                                                        : undefined
+                                                                            }
                                                                         >
                                                                             <Pencil className="h-3.5 w-3.5" />
                                                                         </Button>
@@ -1770,7 +1796,8 @@ export default function Consolidated() {
                                                             variant="ghost"
                                                             className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950"
                                                             onClick={() => setDeleteConfirmUuid(payment.uuid)}
-                                                            title="Eliminar pago"
+                                                            disabled={isProjectClosed}
+                                                            title={isProjectClosed ? 'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.' : 'Eliminar pago'}
                                                         >
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
@@ -1799,8 +1826,9 @@ export default function Consolidated() {
                                         <TooltipTrigger asChild>
                                             <span className="inline-block">
                                                 <Button
-                                                    disabled={selectedDraftIds.size === 0 || submittingBatch || !paymentPolicy.submit.canAct}
+                                                    disabled={selectedDraftIds.size === 0 || submittingBatch || !paymentPolicy.submit.canAct || isProjectClosed}
                                                     onClick={handleSubmitBatch}
+                                                    title={isProjectClosed ? 'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.' : undefined}
                                                 >
                                                     <Send className="mr-2 h-4 w-4" />
                                                     {submittingBatch ? 'Enviando...' : 'Enviar a Autorización'}
@@ -1939,6 +1967,8 @@ export default function Consolidated() {
                                                                 size="sm"
                                                                 variant="outline"
                                                                 onClick={() => openUploadDialog(payment.uuid, payment.payment_type)}
+                                                                disabled={isProjectClosed}
+                                                                title={isProjectClosed ? 'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.' : undefined}
                                                             >
                                                                 <Upload className="mr-1.5 h-3.5 w-3.5" />
                                                                 Subir documentos

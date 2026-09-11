@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { ArrowRight, Building2, FileText, FolderOpen } from 'lucide-react';
+import { ArrowRight, Building2, FileText, FolderOpen, Lock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
@@ -17,6 +18,8 @@ type ProjectSummary = {
     cost_center: string | null;
     sheets_count: number;
     total: string;
+    is_active: boolean;
+    closed_at: string | null;
 };
 
 type PageProps = {
@@ -61,7 +64,7 @@ export default function ConsolidatedIndex() {
                         {projects.map((project) => (
                             <Card
                                 key={project.id}
-                                className="cursor-pointer transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700"
+                                className={`cursor-pointer transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 ${!project.is_active ? 'border-red-200 bg-red-50/40 dark:border-red-900 dark:bg-red-950/10' : ''}`}
                                 onClick={() => router.visit(`/investment-sheets/consolidated/${project.id}`)}
                             >
                                 <CardContent className="pt-6">
@@ -71,6 +74,12 @@ export default function ConsolidatedIndex() {
                                             <h3 className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
                                                 {project.name}
                                             </h3>
+                                            {!project.is_active && (
+                                                <Badge variant="destructive" className="mt-1 gap-1">
+                                                    <Lock className="h-3 w-3" />
+                                                    Cerrado
+                                                </Badge>
+                                            )}
                                             <p className="mt-1 flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                                                 <Building2 className="h-3.5 w-3.5" />
                                                 {project.branch ?? '—'}

@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { Banknote, DollarSign, PieChart, TrendingUp, Wallet } from 'lucide-react';
+import { ProjectClosedBanner } from '@/components/project-closed-banner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Select,
@@ -44,7 +45,7 @@ type ConceptRow = {
 };
 
 type PageProps = {
-    projects: { id: number; name: string }[];
+    projects: { id: number; name: string; is_active: boolean; closed_at: string | null }[];
     filters: { project_id: string; department_id: string };
     kpis: { budget: string; committed: string; paid: string; remaining: string; percent: number };
     byDepartment: ExecutionItem[];
@@ -115,11 +116,21 @@ export default function InvestmentDashboard() {
         });
     };
 
+    const selectedProject = projects.find((p) => String(p.id) === filters.project_id);
+    const isSelectedProjectClosed = selectedProject !== undefined && !selectedProject.is_active;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Control Presupuestal de Inversión" />
 
             <div className="space-y-6 p-4 md:p-6">
+                {isSelectedProjectClosed && selectedProject && (
+                    <ProjectClosedBanner
+                        closedAt={selectedProject.closed_at}
+                        projectName={selectedProject.name}
+                    />
+                )}
+
                 {/* Header + Filters */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
@@ -139,7 +150,14 @@ export default function InvestmentDashboard() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {projects.map((p) => (
-                                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                                        <SelectItem key={p.id} value={String(p.id)}>
+                                            {p.name}
+                                            {!p.is_active && (
+                                                <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-200">
+                                                    Cerrado
+                                                </span>
+                                            )}
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>

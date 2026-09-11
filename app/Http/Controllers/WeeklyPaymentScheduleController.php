@@ -56,8 +56,13 @@ class WeeklyPaymentScheduleController extends Controller
 
         $projects = Project::whereIn('id', $projectIds)
             ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Project $p) => ['id' => $p->id, 'name' => $p->name])
+            ->get(['id', 'name', 'is_active', 'closed_at'])
+            ->map(fn (Project $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'is_active' => (bool) $p->is_active,
+                'closed_at' => $p->closed_at?->toISOString(),
+            ])
             ->values();
 
         $selectedProjectId = $request->integer('project_id') ?: null;
@@ -192,6 +197,27 @@ class WeeklyPaymentScheduleController extends Controller
     {
         $validated = $request->validated();
         $user = $request->user();
+
+        // Bloqueo por proyecto cerrado: si cualquiera de los pagos incluidos apunta a un
+        // proyecto cerrado, no se permite crear la programación.
+        $paymentIds = collect($validated['items'])->pluck('id');
+        $closedProjectNames = InvestmentPaymentRequest::query()
+            ->whereIn('id', $paymentIds)
+            ->with('investmentRequest.project')
+            ->get()
+            ->map(fn (InvestmentPaymentRequest $p) => $p->investmentRequest?->project)
+            ->filter(fn (?Project $project) => $project !== null && ! $project->is_active)
+            ->map(fn (Project $project) => $project->name)
+            ->unique()
+            ->values();
+
+        if ($closedProjectNames->isNotEmpty()) {
+            return back()->withErrors([
+                'items' => 'No se puede crear la programación: hay pagos de proyecto(s) cerrado(s): '
+                    .$closedProjectNames->implode(', ')
+                    .'. Un proyecto cerrado bloquea toda captura o cambio.',
+            ]);
+        }
 
         $schedule = WeeklyPaymentSchedule::create([
             'week_number' => $validated['week_number'],

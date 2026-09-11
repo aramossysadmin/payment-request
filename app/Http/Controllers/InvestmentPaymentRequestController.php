@@ -15,6 +15,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 class InvestmentPaymentRequestController extends Controller
 {
@@ -80,6 +81,13 @@ class InvestmentPaymentRequestController extends Controller
 
         $investmentRequest = InvestmentRequest::findOrFail($validated['investment_request_id']);
 
+        $project = $investmentRequest->project;
+        abort_if(
+            $project !== null && ! $project->is_active,
+            Response::HTTP_FORBIDDEN,
+            'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.',
+        );
+
         $batch = $this->findOrCreateActiveBatch($user, $investmentRequest);
 
         $paymentRequest = new InvestmentPaymentRequest(Arr::except($validated, ['invoice_documents', 'advance_documents']));
@@ -115,6 +123,13 @@ class InvestmentPaymentRequestController extends Controller
 
     public function update(UpdateInvestmentPaymentRequest $request, InvestmentPaymentRequest $payment): RedirectResponse
     {
+        $project = $payment->investmentRequest?->project;
+        abort_if(
+            $project !== null && ! $project->is_active,
+            Response::HTTP_FORBIDDEN,
+            'Este proyecto está cerrado. No se pueden realizar capturas ni cambios.',
+        );
+
         $validated = $request->validated();
 
         $keepDocuments = collect($validated['keep_documents'] ?? [])

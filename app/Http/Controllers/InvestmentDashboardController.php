@@ -17,13 +17,17 @@ class InvestmentDashboardController extends Controller
     {
         $user = $request->user();
 
+        // Un proyecto cerrado (`is_active=false`) queda oculto para usuarios normales,
+        // pero PM y super_admin lo siguen viendo (modo solo lectura, con badge en el UI).
+        $isPrivileged = $user->hasAnyRole(['super_admin', 'project_manager']);
+
         // NOTA: el whereHas(investmentRequests) anterior ocultaba proyectos
         // nuevos sin Solicitudes capturadas. Solución temporal Opción A:
         // mostrar TODOS los proyectos activos.
         $projects = Project::query()
-            ->where('is_active', true)
+            ->when(! $isPrivileged, fn ($q) => $q->where('is_active', true))
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'is_active', 'closed_at']);
 
         $projectId = $request->filled('project_id')
             ? (int) $request->input('project_id')
@@ -46,7 +50,12 @@ class InvestmentDashboardController extends Controller
         }
 
         return Inertia::render('investment-dashboard/index', [
-            'projects' => $projects->map(fn (Project $p) => ['id' => $p->id, 'name' => $p->name]),
+            'projects' => $projects->map(fn (Project $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'is_active' => (bool) $p->is_active,
+                'closed_at' => $p->closed_at?->toISOString(),
+            ]),
             'filters' => [
                 'project_id' => $projectId ? (string) $projectId : '',
                 'department_id' => $departmentId ? (string) $departmentId : 'all',

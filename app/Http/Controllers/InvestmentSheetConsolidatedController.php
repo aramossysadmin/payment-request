@@ -407,6 +407,8 @@ class InvestmentSheetConsolidatedController extends Controller
                 'start_date' => $project->start_date?->toDateString(),
                 'opening_date' => $project->opening_date?->toDateString(),
                 'authorized_budget' => $project->authorized_budget !== null ? number_format((float) $project->authorized_budget, 2, '.', '') : null,
+                'is_active' => (bool) $project->is_active,
+                'closed_at' => $project->closed_at?->toISOString(),
             ],
             'projectDashboard' => [
                 'current_week' => $currentWeek,
