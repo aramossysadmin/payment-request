@@ -99,7 +99,7 @@ class InvestmentRequestController extends Controller
                 ->with(['category:id,name', 'category.departments:id,name'])
                 ->orderBy('name')
                 ->get(['id', 'name', 'investment_expense_category_id']),
-            'projects' => Project::active()->orderBy('name')->get(['id', 'name', 'branch_id']),
+            'projects' => Project::query()->active()->accessibleBy($user)->orderBy('name')->get(['id', 'name', 'branch_id']),
             'userDepartments' => $user->departments()->orderBy('name')->get(['departments.id', 'departments.name']),
         ]);
     }
@@ -209,7 +209,7 @@ class InvestmentRequestController extends Controller
                 ->with(['category:id,name', 'category.departments:id,name'])
                 ->orderBy('name')
                 ->get(['id', 'name', 'investment_expense_category_id']),
-            'projects' => Project::active()->orderBy('name')->get(['id', 'name', 'branch_id']),
+            'projects' => Project::query()->active()->accessibleBy($user)->orderBy('name')->get(['id', 'name', 'branch_id']),
             'userDepartments' => $user->departments()->orderBy('name')->get(['departments.id', 'departments.name']),
         ]);
     }

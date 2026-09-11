@@ -46,6 +46,13 @@ class InvestmentSheetConsolidatedController extends Controller
     public function __invoke(Request $request, Project $project): Response
     {
         $user = $request->user();
+
+        abort_if(
+            ! $user->canAccessProject($project),
+            403,
+            'No tienes acceso a este proyecto.',
+        );
+
         $isSuperAdmin = $user->hasRole('super_admin');
         $canSeeAllDepartments = $user->hasAnyRole(['super_admin', 'ceo', 'project_manager']);
         $canEditRequestConcept = $user->hasAnyRole(['super_admin', 'ceo', 'project_manager']);

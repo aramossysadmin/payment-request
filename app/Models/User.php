@@ -123,6 +123,44 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Proyectos a los que este usuario tiene acceso explícito.
+     * Los usuarios con rol super_admin, ceo o project_manager tienen acceso total
+     * automáticamente y esta relación no aplica para ellos (ver hasElevatedAccess).
+     */
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class)->withTimestamps();
+    }
+
+    /**
+     * True si el usuario tiene bypass automático sobre la restricción de acceso
+     * a proyectos (ve todos sin necesidad de asignación explícita).
+     */
+    public function hasElevatedAccess(): bool
+    {
+        return $this->hasAnyRole(['super_admin', 'ceo', 'project_manager']);
+    }
+
+    /**
+     * True si el usuario puede acceder al proyecto dado. Los roles privilegiados
+     * tienen bypass total; el resto necesita tener el proyecto en su lista
+     * de proyectos autorizados. Un proyecto `null` (para IRs históricos sin
+     * project_id) se considera accesible.
+     */
+    public function canAccessProject(?Project $project): bool
+    {
+        if ($project === null) {
+            return true;
+        }
+
+        if ($this->hasElevatedAccess()) {
+            return true;
+        }
+
+        return $this->projects()->where('projects.id', $project->id)->exists();
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

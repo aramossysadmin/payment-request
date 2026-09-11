@@ -264,7 +264,7 @@ class InvestmentRequest extends Model
         $userDepartmentIds = $user->departments()->pluck('departments.id')->all();
         $allVisibleDepartmentIds = array_values(array_unique(array_merge($authorizedDepartmentIds, $userDepartmentIds)));
 
-        return $query->where(function ($q) use ($user, $allVisibleDepartmentIds) {
+        $query->where(function ($q) use ($user, $allVisibleDepartmentIds) {
             $q->where('user_id', $user->id);
 
             if (! empty($allVisibleDepartmentIds)) {
@@ -275,5 +275,24 @@ class InvestmentRequest extends Model
                 $approvalQuery->where('user_id', $user->id);
             });
         });
+
+        // Filtro AND adicional por proyectos autorizados. Los usuarios con rol
+        // ceo o project_manager tienen bypass (ven todos los proyectos igual
+        // que super_admin — el bypass total ya se resolvió arriba, así que
+        // aquí sólo ceo y project_manager quedan pendientes de bypass).
+        // Los IRs sin project_id (históricos) no se bloquean por esta capa.
+        if (! $user->hasAnyRole(['ceo', 'project_manager'])) {
+            $userProjectIds = $user->projects()->pluck('projects.id')->all();
+
+            $query->where(function ($q) use ($userProjectIds) {
+                $q->whereNull('project_id');
+
+                if (! empty($userProjectIds)) {
+                    $q->orWhereIn('project_id', $userProjectIds);
+                }
+            });
+        }
+
+        return $query;
     }
 }

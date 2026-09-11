@@ -38,6 +38,12 @@ class InvestmentSheetInvestmentRequestsExcelController extends Controller
             'No tienes permisos para descargar este reporte.'
         );
 
+        abort_if(
+            ! $user->canAccessProject($project),
+            403,
+            'No tienes acceso a este proyecto.',
+        );
+
         $project->load('branch.society', 'currency');
         $displayCurrency = $this->resolveDisplayCurrency($request, $project);
 

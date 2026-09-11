@@ -21,10 +21,11 @@ class InvestmentDashboardController extends Controller
         // pero PM y super_admin lo siguen viendo (modo solo lectura, con badge en el UI).
         $isPrivileged = $user->hasAnyRole(['super_admin', 'project_manager']);
 
-        // NOTA: el whereHas(investmentRequests) anterior ocultaba proyectos
-        // nuevos sin Solicitudes capturadas. Solución temporal Opción A:
-        // mostrar TODOS los proyectos activos.
+        // Doble filtro:
+        // 1) accessibleBy: solo proyectos asignados al usuario (bypass para super_admin/ceo/PM).
+        // 2) is_active=true para usuarios no privilegiados: no ven proyectos cerrados.
         $projects = Project::query()
+            ->accessibleBy($user)
             ->when(! $isPrivileged, fn ($q) => $q->where('is_active', true))
             ->orderBy('name')
             ->get(['id', 'name', 'is_active', 'closed_at']);

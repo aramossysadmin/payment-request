@@ -153,6 +153,19 @@ class UserResource extends Resource
                             ->label('Activo')
                             ->default(true),
                     ]),
+                Forms\Components\Section::make('Proyectos autorizados')
+                    ->description('Selecciona los proyectos a los que este usuario tiene acceso. Los usuarios con rol super_admin, ceo o project_manager tienen acceso total automáticamente y no requieren esta configuración.')
+                    ->schema([
+                        Forms\Components\Select::make('projects')
+                            ->label('Proyectos')
+                            ->relationship('projects', 'name')
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->columnSpanFull()
+                            ->helperText('El usuario solo podrá ver y capturar información en los proyectos aquí seleccionados. Un usuario sin proyectos asignados no verá ningún proyecto en el portal.'),
+                    ])
+                    ->visible(fn (?User $record): bool => $record === null || ! $record->hasAnyRole(['super_admin', 'ceo', 'project_manager'])),
             ]);
     }
 
@@ -180,6 +193,12 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label('Roles')
                     ->badge(),
+                Tables\Columns\TextColumn::make('projects.name')
+                    ->label('Proyectos autorizados')
+                    ->badge()
+                    ->separator(',')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->placeholder('—'),
                 Tables\Columns\ToggleColumn::make('is_active')
                     ->label('Activo')
                     ->sortable(),
