@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\InvestmentPaymentType;
 use App\Enums\IvaRate;
+use App\Http\Requests\Concerns\ResolvesInvestmentStrategy;
 use App\Models\Currency;
 use App\Models\InvestmentPaymentRequest;
 use App\Services\PaymentPolicyAuditService;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Validator;
 
 class UpdateInvestmentPaymentRequest extends FormRequest
 {
+    use ResolvesInvestmentStrategy;
+
     public function authorize(): bool
     {
         $payment = $this->route('payment');
@@ -51,6 +54,7 @@ class UpdateInvestmentPaymentRequest extends FormRequest
             'iva' => ['required', 'numeric', 'min:0'],
             'retention' => ['boolean'],
             'total' => ['required', 'numeric', 'min:0'],
+            ...$this->strategyRules(),
         ];
     }
 
@@ -71,6 +75,8 @@ class UpdateInvestmentPaymentRequest extends FormRequest
 
                 return;
             }
+
+            $this->validateStrategyIsActive($validator);
 
             $paymentType = $this->input('payment_type');
 
@@ -145,6 +151,7 @@ class UpdateInvestmentPaymentRequest extends FormRequest
             'iva.required' => 'El IVA es obligatorio.',
             'total.required' => 'El total es obligatorio.',
             'total.min' => 'El total debe ser mayor o igual a 0.',
+            ...$this->strategyMessages(),
         ];
     }
 }

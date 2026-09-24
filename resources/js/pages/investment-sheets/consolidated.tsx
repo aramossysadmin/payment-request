@@ -80,6 +80,7 @@ type InvestmentPayment = {
     provider: string;
     rfc: string | null;
     payment_type: string;
+    strategy: string | null;
     currency_prefix: string;
     currency_id: number;
     subtotal: string;
@@ -117,6 +118,9 @@ type DraftPayment = {
     is_invoice: boolean;
     payment_type: string;
     iva_rate: string | null;
+    strategy_id: number | null;
+    strategy_amount: string | null;
+    strategy: string | null;
     retention: boolean;
     subtotal: string;
     iva: string;
@@ -150,6 +154,7 @@ type AuthorizedPayment = {
     was_adjusted: boolean;
     status: string;
     payment_type: string;
+    strategy: string | null;
     is_legacy: boolean;
     has_documents: boolean;
     documents: { name: string; url: string }[];
@@ -174,6 +179,10 @@ type HistoryPayment = {
     department_id: number;
     department_name: string;
     payment_type: string;
+    strategy_name: string | null;
+    strategy_rate: string | null;
+    strategy_amount: string | null;
+    strategy: string | null;
     payment_provision_date: string | null;
     week_number: number | null;
     week_year: number | null;
@@ -200,6 +209,13 @@ type HistoryPayment = {
     final_reviewed_at: string | null;
     has_documents: boolean;
     documents: { name: string; url: string }[];
+};
+
+type StrategyOption = {
+    id: number;
+    name: string;
+    rate: string;
+    factor: string;
 };
 
 type PageProps = {
@@ -248,6 +264,7 @@ type PageProps = {
     userDepartmentName: string | null;
     userDepartments: { id: number; name: string }[];
     currencies: Currency[];
+    strategies: StrategyOption[];
     branches: Branch[];
     availableConcepts: { id: number; name: string; investment_expense_category_id: number; category: { id: number; name: string } | null }[];
     conceptDepartmentMap: Record<number, number[]>;
@@ -279,6 +296,24 @@ const ivaRateOptions = [
     { value: '0.16', label: 'IVA 16%' },
     { value: '0.21', label: 'IVA 21%' },
 ];
+
+/** Espejo de Strategy::amountsFor() en backend: Total = monto × (1 + factor), Subtotal = Total ÷ (1 + IVA), en centavos. */
+function computeStrategyAmounts(strategy: StrategyOption | undefined, strategyAmount: string, ivaRate: string) {
+    const amount = parseFloat(strategyAmount);
+    if (!strategy || !Number.isFinite(amount) || amount <= 0) {
+        return { subtotal: '', iva: '', total: '' };
+    }
+    const amountCents = Math.round(amount * 100);
+    const factorMicros = Math.round(parseFloat(strategy.factor) * 1_000_000);
+    const ivaHundredths = Math.round((parseFloat(ivaRate) || 0) * 100);
+    const totalCents = Math.round((amountCents * (1_000_000 + factorMicros)) / 1_000_000);
+    const subtotalCents = Math.round((totalCents * 100) / (100 + ivaHundredths));
+    return {
+        subtotal: (subtotalCents / 100).toFixed(2),
+        iva: ((totalCents - subtotalCents) / 100).toFixed(2),
+        total: (totalCents / 100).toFixed(2),
+    };
+}
 
 function formatDateEs(dateStr: string | null): string {
     if (!dateStr) return '';
@@ -431,7 +466,7 @@ export default function Consolidated() {
     const {
         paymentPolicy,
         project, projectDashboard, departmentBreakdown, investmentRequests, filters,
-        userDepartmentId, userDepartmentName, userDepartments, currencies, branches, availableConcepts, conceptDepartmentMap, canEditRequestConcept, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
+        userDepartmentId, userDepartmentName, userDepartments, currencies, strategies, branches, availableConcepts, conceptDepartmentMap, canEditRequestConcept, errors, draftBatch, authorizedPayments, userPaymentHistory, isSuperAdmin, canSeeAllDepartments, departments,
     } = usePage<PageProps>().props;
 
     // Un proyecto cerrado bloquea toda captura/mutación en el frontend (defense-in-depth
@@ -1746,7 +1781,10 @@ export default function Consolidated() {
                                                 <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
                                                     #{String(payment.folio_number).padStart(5, '0')}
                                                 </td>
-                                                <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
+                                                <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">
+                                                    <div>{payment.concept_name}</div>
+                                                    {payment.strategy && <div className="mt-0.5 text-xs font-normal text-muted-foreground">{payment.strategy}</div>}
+                                                </td>
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
                                                     {payment.description ? payment.description : <span className="text-gray-400">—</span>}
                                                 </td>
@@ -1943,7 +1981,10 @@ export default function Consolidated() {
                                                                 <Badge variant="secondary" className="ml-1.5 align-middle text-[10px]">Histórico</Badge>
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept_name}</td>
+                                                        <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">
+                                                            <div>{payment.concept_name}</div>
+                                                            {payment.strategy && <div className="mt-0.5 text-xs font-normal text-muted-foreground">{payment.strategy}</div>}
+                                                        </td>
                                                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
                                                             {payment.description ? payment.description : <span className="text-gray-400">—</span>}
                                                         </td>
@@ -2347,8 +2388,9 @@ export default function Consolidated() {
                                                         {payment.category_name}
                                                     </td>
                                                     {/* Concepto */}
-                                                    <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate" title={payment.concept_name}>
-                                                        {payment.concept_name}
+                                                    <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800 max-w-[200px]">
+                                                        <div className="truncate" title={payment.concept_name}>{payment.concept_name}</div>
+                                                        {payment.strategy && <div className="mt-0.5 text-xs font-normal text-muted-foreground">{payment.strategy}</div>}
                                                     </td>
                                                     {/* Descripción */}
                                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800 max-w-[200px] truncate uppercase" title={payment.description ?? undefined}>
@@ -2550,6 +2592,21 @@ export default function Consolidated() {
                                 <div className="space-y-3 rounded-lg border p-4">
                                     <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Montos</h3>
                                     <dl className="space-y-2 text-sm">
+                                        {selectedHistoryPayment.strategy_amount !== null && (
+                                            <>
+                                                <div className="flex justify-between">
+                                                    <dt className="text-muted-foreground">Estrategia</dt>
+                                                    <dd className="font-medium">
+                                                        {selectedHistoryPayment.strategy_name ?? '—'}
+                                                        {selectedHistoryPayment.strategy_rate !== null && ` (${selectedHistoryPayment.strategy_rate}%)`}
+                                                    </dd>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <dt className="text-muted-foreground">Monto Estrategia</dt>
+                                                    <dd className="font-mono">{formatNative(selectedHistoryPayment.strategy_amount, selectedHistoryPayment.currency_id)}</dd>
+                                                </div>
+                                            </>
+                                        )}
                                         <div className="flex justify-between">
                                             <dt className="text-muted-foreground">Subtotal</dt>
                                             <dd className="font-mono">{formatNative(selectedHistoryPayment.subtotal, selectedHistoryPayment.currency_id)}</dd>
@@ -3108,6 +3165,7 @@ export default function Consolidated() {
                     onClose={handlePaymentModalClose}
                     investmentRequest={selectedIr}
                     currencies={currencies}
+                    strategies={strategies}
                     branches={branches}
                     errors={errors}
                     editingPayment={editingDraftPayment}
@@ -3282,6 +3340,9 @@ function PaymentsDrawer({
                                                     {payment.rfc && (
                                                         <p className="text-xs text-muted-foreground">{payment.rfc}</p>
                                                     )}
+                                                    {payment.strategy && (
+                                                        <p className="mt-0.5 text-xs text-muted-foreground">{payment.strategy}</p>
+                                                    )}
                                                     <p className="mt-1 text-xs text-muted-foreground">
                                                         {payment.user_name} · {new Date(payment.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </p>
@@ -3317,6 +3378,7 @@ type PaymentRequestModalProps = {
     onClose: () => void;
     investmentRequest: InvestmentRequest;
     currencies: Currency[];
+    strategies: StrategyOption[];
     branches: Branch[];
     errors: Record<string, string>;
     editingPayment?: DraftPayment | null;
@@ -3325,7 +3387,7 @@ type PaymentRequestModalProps = {
 
 function PaymentRequestModal({
     open, onClose, investmentRequest: ir,
-    currencies, branches, errors,
+    currencies, strategies, branches, errors,
     editingPayment,
     paymentPolicy,
 }: PaymentRequestModalProps) {
@@ -3345,6 +3407,8 @@ function PaymentRequestModal({
                 description: editingPayment.description ?? '',
                 subtotal: editingPayment.subtotal,
                 iva_rate: editingPayment.iva_rate ?? '',
+                strategy_id: editingPayment.strategy_id ? String(editingPayment.strategy_id) : '',
+                strategy_amount: editingPayment.strategy_amount ?? '',
                 iva: editingPayment.iva,
                 retention: editingPayment.retention,
                 total: editingPayment.total,
@@ -3361,6 +3425,8 @@ function PaymentRequestModal({
             description: '',
             subtotal: '',
             iva_rate: '',
+            strategy_id: '',
+            strategy_amount: '',
             iva: '',
             retention: false,
             total: '',
@@ -3399,7 +3465,19 @@ function PaymentRequestModal({
         return { iva: iva.toFixed(2), total: total.toFixed(2) };
     };
 
+    const isStrategy = values.payment_type === 'estrategia';
+    const selectedStrategy = strategies.find((s) => String(s.id) === values.strategy_id);
+
+    const withStrategyAmounts = <T extends { strategy_id: string; strategy_amount: string; iva_rate: string }>(next: T): T => ({
+        ...next,
+        ...computeStrategyAmounts(strategies.find((s) => String(s.id) === next.strategy_id), next.strategy_amount, next.iva_rate),
+    });
+
     const handleChange = (field: string, value: string) => {
+        if (isStrategy && (field === 'strategy_amount' || field === 'strategy_id' || field === 'iva_rate')) {
+            setValues((prev) => withStrategyAmounts({ ...prev, [field]: value }));
+            return;
+        }
         if (field === 'subtotal') {
             const subtotal = parseFloat(value) || 0;
             const { iva, total } = recalculate(subtotal, parseFloat(values.iva_rate) || 0);
@@ -3416,7 +3494,16 @@ function PaymentRequestModal({
     };
 
     const changePaymentType = (type: 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado' | 'factura_espana') => {
-        setValues((prev) => ({ ...prev, payment_type: type }));
+        setValues((prev) => {
+            if (type === 'estrategia') {
+                return withStrategyAmounts({ ...prev, payment_type: type, iva_rate: '0.16' });
+            }
+            if (prev.payment_type === 'estrategia') {
+                const { iva, total } = recalculate(parseFloat(prev.subtotal) || 0, parseFloat(prev.iva_rate) || 0);
+                return { ...prev, payment_type: type, strategy_id: '', strategy_amount: '', iva, total };
+            }
+            return { ...prev, payment_type: type };
+        });
         setFiles([]);
         setInvoicePdf(null);
         setInvoiceXml(null);
@@ -3619,6 +3706,46 @@ function PaymentRequestModal({
                                     </Select>
                                     <InputError message={errors.currency_id} />
                                 </div>
+                                {isStrategy && (
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="modal_strategy_amount">Monto Estrategia</Label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
+                                                <Input
+                                                    id="modal_strategy_amount"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    className="pl-7"
+                                                    value={values.strategy_amount}
+                                                    onChange={(e) => handleChange('strategy_amount', e.target.value)}
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                            <InputError message={errors.strategy_amount} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Código Estrategia</Label>
+                                            <Select value={values.strategy_id} onValueChange={(v) => handleChange('strategy_id', v)}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={strategies.length > 0 ? 'Seleccionar' : 'Sin estrategias activas'} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {strategies.map((s) => (
+                                                        <SelectItem key={s.id} value={String(s.id)}>{Number(s.rate)}%</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {selectedStrategy && (
+                                                <p className="text-[11px] text-muted-foreground">
+                                                    Total = Monto × {Number((1 + Number(selectedStrategy.factor)).toFixed(6))}
+                                                </p>
+                                            )}
+                                            <InputError message={errors.strategy_id} />
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="modal_subtotal">Subtotal</Label>
@@ -3629,9 +3756,11 @@ function PaymentRequestModal({
                                                 type="number"
                                                 step="0.01"
                                                 min="0"
-                                                className="pl-7"
+                                                className={cn('pl-7', isStrategy && 'bg-gray-50 dark:bg-gray-800')}
                                                 value={values.subtotal}
                                                 onChange={(e) => handleChange('subtotal', e.target.value)}
+                                                readOnly={isStrategy}
+                                                tabIndex={isStrategy ? -1 : undefined}
                                                 placeholder="0.00"
                                             />
                                         </div>

@@ -95,7 +95,12 @@
                             <td class="nowrap">#{{ str_pad($p->folio_number, 5, '0', STR_PAD_LEFT) }}</td>
                             <td class="nowrap">{{ $p->created_at?->format('Y-m-d') ?? '—' }}</td>
                             <td class="nowrap">{{ $p->payment_provision_date?->format('Y-m-d') ?? '—' }}</td>
-                            <td>{{ $conceptLabel }}</td>
+                            <td>
+                                {{ $conceptLabel }}
+                                @if ($p->hasStrategy())
+                                    <div class="small muted">{{ $p->strategySummary() }}</div>
+                                @endif
+                            </td>
                             <td>{{ $p->provider }}</td>
                             <td class="small">{{ $p->user?->name ?? '—' }}</td>
                             <td class="text-right nowrap">

@@ -46,6 +46,7 @@ class InvestmentPaymentRequestController extends Controller
                 'provider' => $p->provider,
                 'rfc' => $p->rfc,
                 'payment_type' => $p->payment_type,
+                'strategy' => $p->strategySummary(),
                 'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                 'currency_id' => $p->currency_id,
                 'subtotal' => (string) $p->subtotal,
@@ -91,6 +92,7 @@ class InvestmentPaymentRequestController extends Controller
         $batch = $this->findOrCreateActiveBatch($user, $investmentRequest);
 
         $paymentRequest = new InvestmentPaymentRequest(Arr::except($validated, ['invoice_documents', 'advance_documents']));
+        $paymentRequest->fill($request->strategyAttributes());
         $paymentRequest->user_id = $user->id;
         $paymentRequest->department_id = $investmentRequest->department_id;
         $paymentRequest->batch_id = $batch->id;
@@ -180,6 +182,7 @@ class InvestmentPaymentRequestController extends Controller
             'payment_type' => $validated['payment_type'],
             'payment_week_number' => Carbon::parse($validated['payment_provision_date'])->isoWeek,
             'advance_documents' => $newDocuments,
+            ...$request->strategyAttributes(),
         ]);
 
         $payment->save();

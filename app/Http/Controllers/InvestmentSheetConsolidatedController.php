@@ -11,6 +11,7 @@ use App\Models\InvestmentPaymentBatch;
 use App\Models\InvestmentPaymentRequest;
 use App\Models\InvestmentRequest;
 use App\Models\Project;
+use App\Models\Strategy;
 use App\Services\InvestmentDepartmentBreakdownService;
 use App\Services\PaymentRequestPolicyService;
 use App\States\InvestmentRequest\Completed;
@@ -205,6 +206,9 @@ class InvestmentSheetConsolidatedController extends Controller
                         'is_invoice' => $p->payment_type === 'factura',
                         'payment_type' => $p->payment_type,
                         'iva_rate' => $p->iva_rate?->value,
+                        'strategy_id' => $p->strategy_id,
+                        'strategy_amount' => $p->strategy_amount !== null ? (string) $p->strategy_amount : null,
+                        'strategy' => $p->strategySummary(),
                         'retention' => (bool) $p->retention,
                         'subtotal' => (string) $p->subtotal,
                         'iva' => (string) $p->iva,
@@ -244,6 +248,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 'was_adjusted' => $p->approved_amount !== null && (float) $p->approved_amount < (float) $p->total,
                 'status' => $p->status,
                 'payment_type' => $p->payment_type,
+                'strategy' => $p->strategySummary(),
                 'is_legacy' => $p->batch_id === null,
                 'has_documents' => is_array($p->advance_documents) && count(array_filter($p->advance_documents, fn ($d) => is_string($d) && $d !== '')) >= 1,
                 'documents' => collect(is_array($p->advance_documents) ? $p->advance_documents : [])
@@ -285,6 +290,10 @@ class InvestmentSheetConsolidatedController extends Controller
                 'department_id' => $p->department_id,
                 'department_name' => $p->department?->name ?? '—',
                 'payment_type' => $p->payment_type,
+                'strategy_name' => $p->strategy_name_snapshot,
+                'strategy_rate' => $p->strategyRate(),
+                'strategy' => $p->strategySummary(),
+                'strategy_amount' => $p->strategy_amount !== null ? (string) $p->strategy_amount : null,
                 'payment_provision_date' => $p->payment_provision_date?->toDateString(),
                 'week_number' => $p->payment_provision_date ? (int) $p->payment_provision_date->isoWeek : null,
                 'week_year' => $p->payment_provision_date ? (int) $p->payment_provision_date->isoWeekYear : null,
@@ -463,6 +472,7 @@ class InvestmentSheetConsolidatedController extends Controller
                 ? Department::query()->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'currencies' => Currency::all(['id', 'name', 'prefix', 'exchange_rate']),
+            'strategies' => Strategy::query()->active()->orderBy('rate')->get(['id', 'name', 'rate', 'factor']),
             'branches' => Branch::orderBy('name')->get(['id', 'name']),
             'availableConcepts' => InvestmentExpenseConcept::active()
                 ->with('category:id,name')

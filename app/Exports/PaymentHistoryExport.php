@@ -45,6 +45,8 @@ class PaymentHistoryExport implements FromCollection, ShouldAutoSize, WithColumn
             'Proveedor',
             'RFC',
             'Tipo de Pago',
+            'Estrategia (%)',
+            'Monto Estrategia (moneda nativa)',
             "Monto Solicitado ({$this->displayPrefix})",
             "Monto Aprobado ({$this->displayPrefix})",
             'Moneda Nativa',
@@ -72,6 +74,8 @@ class PaymentHistoryExport implements FromCollection, ShouldAutoSize, WithColumn
             $row['provider'] ?? '—',
             $row['rfc'] ?? '—',
             $row['payment_type'] ?? '—',
+            $row['strategy_rate'] !== null ? (float) $row['strategy_rate'] : null,
+            $row['strategy_amount'],
             (float) ($row['total_display'] ?? 0),
             $row['approved_display'] !== null ? (float) $row['approved_display'] : null,
             $row['native_currency'] ?? '—',
@@ -87,8 +91,9 @@ class PaymentHistoryExport implements FromCollection, ShouldAutoSize, WithColumn
     public function columnFormats(): array
     {
         return [
-            'L' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED2,
             'M' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED2,
+            'N' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED2,
+            'O' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED2,
         ];
     }
 

@@ -95,6 +95,7 @@ class InvestmentBatchReadyForReviewNotification extends Notification implements 
                     'folio' => $p->folio_number,
                     'provider' => $p->provider,
                     'concept' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
+                    'strategy' => $p->strategySummary(),
                     'total' => number_format((float) $p->total, 2),
                     'currency' => $p->currency?->prefix ?? 'MXN',
                 ])->values()->toArray(),

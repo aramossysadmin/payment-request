@@ -92,6 +92,14 @@ class InvestmentPaymentRequestResource extends Resource
                     Placeholder::make('payment_week_number')
                         ->label('Semana de pago')
                         ->content(fn (InvestmentPaymentRequest $record): string => $record->payment_week_number ? 'Semana '.$record->payment_week_number : '—'),
+                    Placeholder::make('strategy_rate')
+                        ->label('Estrategia')
+                        ->content(fn (InvestmentPaymentRequest $record): string => $record->strategyRate().'%')
+                        ->visible(fn (InvestmentPaymentRequest $record): bool => $record->hasStrategy()),
+                    Placeholder::make('strategy_amount')
+                        ->label('Monto Estrategia')
+                        ->content(fn (InvestmentPaymentRequest $record): string => '$ '.number_format((float) $record->strategy_amount, 2).' '.($record->currency?->prefix ?? 'MXN'))
+                        ->visible(fn (InvestmentPaymentRequest $record): bool => $record->hasStrategy()),
                 ]),
 
             Section::make('Timeline del Flujo')
@@ -170,7 +178,8 @@ class InvestmentPaymentRequestResource extends Resource
                 Tables\Columns\TextColumn::make('investmentRequest.investmentExpenseConcept.name')
                     ->label('Concepto')
                     ->searchable()
-                    ->limit(30),
+                    ->limit(30)
+                    ->description(fn (InvestmentPaymentRequest $record): ?string => $record->strategySummary()),
                 Tables\Columns\TextColumn::make('provider')
                     ->label('Proveedor')
                     ->searchable()

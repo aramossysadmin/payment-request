@@ -56,6 +56,10 @@ class InvestmentPaymentRequest extends Model
         'currency_id',
         'branch_id',
         'expense_concept_id',
+        'strategy_id',
+        'strategy_amount',
+        'strategy_factor_snapshot',
+        'strategy_name_snapshot',
         'payment_type',
         'description',
         'status',
@@ -140,6 +144,8 @@ class InvestmentPaymentRequest extends Model
             'retention' => 'boolean',
             'total' => 'decimal:2',
             'approved_amount' => 'decimal:2',
+            'strategy_amount' => 'decimal:2',
+            'strategy_factor_snapshot' => 'decimal:6',
             'ceo_reviewed_at' => 'datetime',
             'pm_reviewed_at' => 'datetime',
             'final_reviewed_at' => 'datetime',
@@ -179,6 +185,62 @@ class InvestmentPaymentRequest extends Model
     public function expenseConcept(): BelongsTo
     {
         return $this->belongsTo(ExpenseConcept::class);
+    }
+
+    public function strategy(): BelongsTo
+    {
+        return $this->belongsTo(Strategy::class)->withTrashed();
+    }
+
+    /**
+     * Se basa en la copia fija guardada en el pago (no en payment_type), porque el tipo
+     * puede cambiar al subir documentos y la estrategia sigue explicando el monto.
+     */
+    public function hasStrategy(): bool
+    {
+        return $this->strategy_amount !== null && $this->strategy_factor_snapshot !== null;
+    }
+
+    public function strategyRate(): ?string
+    {
+        if (! $this->hasStrategy()) {
+            return null;
+        }
+
+        return Strategy::trimZeros(bcmul((string) $this->strategy_factor_snapshot, '100', 4));
+    }
+
+    /**
+     * Texto único usado en correos, PDFs, reportes y páginas: "Estrategia 4.5% · Monto Estrategia $10,000.00 MXN".
+     */
+    public function strategySummary(): ?string
+    {
+        if (! $this->hasStrategy()) {
+            return null;
+        }
+
+        $currencyPrefix = $this->currency?->prefix ?? 'MXN';
+
+        return 'Estrategia '.$this->strategyRate().'% · Monto Estrategia $'
+            .number_format((float) $this->strategy_amount, 2).' '.$currencyPrefix;
+    }
+
+    /**
+     * @return array{rate: string, amount: string, surcharge: string, total: string, currency: string}|null
+     */
+    public function strategyBreakdown(): ?array
+    {
+        if (! $this->hasStrategy()) {
+            return null;
+        }
+
+        return [
+            'rate' => $this->strategyRate(),
+            'amount' => (string) $this->strategy_amount,
+            'surcharge' => bcsub((string) $this->total, (string) $this->strategy_amount, 2),
+            'total' => (string) $this->total,
+            'currency' => $this->currency?->prefix ?? 'MXN',
+        ];
     }
 
     public function approvals(): HasMany

@@ -65,6 +65,9 @@
 @if (!empty($item['description']) && $item['description'] !== '-')
 <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">{{ $item['description'] }}</div>
 @endif
+@if (!empty($item['strategy']))
+<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">{{ $item['strategy'] }}</div>
+@endif
 </td>
 <td style="padding: 10px 0; border-bottom: 1px solid #E5E7EB; text-align: right; vertical-align: top; white-space: nowrap;">
 <div style="font-size: 14px; font-weight: 700; color: #191731;">$ {{ $item['total'] }}</div>

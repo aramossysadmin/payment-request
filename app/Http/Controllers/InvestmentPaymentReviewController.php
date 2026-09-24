@@ -99,6 +99,8 @@ class InvestmentPaymentReviewController extends Controller
                             'provider' => $p->provider,
                             'rfc' => $p->rfc,
                             'requester' => $p->user?->name ?? '-',
+                            'strategy' => $p->strategySummary(),
+                            'strategy_detail' => $p->strategyBreakdown(),
                             'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                             'branch' => $p->branch?->name ?? '-',
                             'subtotal' => (string) $p->subtotal,

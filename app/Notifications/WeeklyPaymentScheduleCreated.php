@@ -72,6 +72,7 @@ class WeeklyPaymentScheduleCreated extends Notification implements ShouldQueue
             'total' => number_format((float) ($item->investmentPaymentRequest?->total ?? 0), 2),
             'currency' => $item->investmentPaymentRequest?->currency?->prefix ?? 'MXN',
             'description' => $item->investmentPaymentRequest?->description ?? '-',
+            'strategy' => $item->investmentPaymentRequest?->strategySummary(),
             'included' => $item->included,
             'exclusion_reason' => $item->exclusion_reason,
         ])->all();

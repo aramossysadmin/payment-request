@@ -147,6 +147,7 @@ class InvestmentBatchRequesterSummaryNotification extends Notification implement
             'provider' => $payment->provider,
             'concept' => $payment->investmentRequest?->investmentExpenseConcept?->name ?? '-',
             'description' => $payment->description ?? '-',
+            'strategy' => $payment->strategySummary(),
             'total' => number_format($finalAmount, 2),
             'was_adjusted' => $wasAdjusted,
             'original_total' => $wasAdjusted ? number_format((float) $payment->total, 2) : null,

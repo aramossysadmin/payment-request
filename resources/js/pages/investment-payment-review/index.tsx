@@ -22,6 +22,14 @@ type Payment = {
     provider: string;
     rfc: string | null;
     requester: string;
+    strategy: string | null;
+    strategy_detail: {
+        rate: string;
+        amount: string;
+        surcharge: string;
+        total: string;
+        currency: string;
+    } | null;
     currency_prefix: string;
     branch: string;
     subtotal: string;
@@ -256,7 +264,10 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                                             <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
                                                                 #{String(payment.folio_number).padStart(5, '0')}
                                                             </td>
-                                                            <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept}</td>
+                                                            <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">
+                                                                <div>{payment.concept}</div>
+                                                                {payment.strategy && <div className="mt-0.5 text-xs font-normal text-muted-foreground">{payment.strategy}</div>}
+                                                            </td>
                                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">
                                                                 <div>{payment.provider}</div>
                                                                 {payment.rfc && <div className="text-xs text-gray-500">{payment.rfc}</div>}
@@ -354,7 +365,37 @@ export default function InvestmentPaymentReviewIndex({ groups, totalCount, proje
                                         </DialogHeader>
 
                                         <div className="space-y-5 text-sm">
-                                            <section className="space-y-2">
+                                            {detailPayment.strategy_detail && (
+                                                <section className="space-y-2">
+                                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                                        Estrategia
+                                                    </h4>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-muted-foreground">Código</span>
+                                                        <span className="font-medium">{detailPayment.strategy_detail.rate}%</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-muted-foreground">Monto Estrategia</span>
+                                                        <span className="font-mono">
+                                                            {formatCurrency(detailPayment.strategy_detail.amount)} <span className="text-xs text-gray-500">{detailPayment.strategy_detail.currency}</span>
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-muted-foreground">Recargo ({detailPayment.strategy_detail.rate}%)</span>
+                                                        <span className="font-mono">
+                                                            {formatCurrency(detailPayment.strategy_detail.surcharge)} <span className="text-xs text-gray-500">{detailPayment.strategy_detail.currency}</span>
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between border-t pt-2">
+                                                        <span className="font-semibold">Total solicitado (IVA incluido)</span>
+                                                        <span className="font-mono font-semibold">
+                                                            {formatCurrency(detailPayment.strategy_detail.total)} <span className="text-xs text-gray-500">{detailPayment.strategy_detail.currency}</span>
+                                                        </span>
+                                                    </div>
+                                                </section>
+                                            )}
+
+                                            <section className={detailPayment.strategy_detail ? 'space-y-2 border-t pt-4' : 'space-y-2'}>
                                                 <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                                     Semana del pago
                                                 </h4>

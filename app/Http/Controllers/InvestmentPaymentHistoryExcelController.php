@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\InvestmentPaymentType;
 use App\Exports\PaymentHistoryExport;
 use App\Http\Controllers\Concerns\ResolvesDisplayCurrency;
 use App\Models\InvestmentPaymentRequest;
@@ -142,7 +143,9 @@ class InvestmentPaymentHistoryExcelController extends Controller
                 'department' => $p->department?->name,
                 'provider' => $p->provider,
                 'rfc' => $p->rfc,
-                'payment_type' => $p->payment_type,
+                'payment_type' => InvestmentPaymentType::labelFor($p->payment_type),
+                'strategy_rate' => $p->strategyRate(),
+                'strategy_amount' => $p->hasStrategy() ? (float) $p->strategy_amount : null,
                 'total_display' => $this->mxnToDisplay($totalMxn, $displayCurrency),
                 'approved_display' => $approvedMxn !== null
                     ? $this->mxnToDisplay($approvedMxn, $displayCurrency)

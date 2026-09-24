@@ -38,6 +38,7 @@ class InvestmentBatchSubmittedNotification extends Notification implements Shoul
             'provider' => $p->provider,
             'concept' => $p->investmentRequest?->investmentExpenseConcept?->name ?? '-',
             'description' => $p->description ?? '-',
+            'strategy' => $p->strategySummary(),
             'total' => number_format((float) $p->total, 2),
             'currency' => $p->currency?->prefix ?? 'MXN',
         ])->toArray();

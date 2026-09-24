@@ -45,7 +45,7 @@ class WeeklyPaymentScheduleExport implements FromCollection, ShouldAutoSize, Wit
      */
     public function headings(): array
     {
-        return ['Semana', 'Folio', 'Proveedor', 'Concepto', 'Departamento', 'Tipo de pago', 'Fecha Provisión', 'Total', 'Moneda', 'Estatus', 'Documentos', 'Comprobante'];
+        return ['Semana', 'Folio', 'Proveedor', 'Concepto', 'Departamento', 'Tipo de pago', 'Estrategia (%)', 'Monto Estrategia', 'Fecha Provisión', 'Total', 'Moneda', 'Estatus', 'Documentos', 'Comprobante'];
     }
 
     /**
@@ -68,6 +68,8 @@ class WeeklyPaymentScheduleExport implements FromCollection, ShouldAutoSize, Wit
             $payment->investmentRequest?->investmentExpenseConcept?->name ?? '-',
             $payment->department?->name ?? '—',
             self::PAYMENT_TYPE_LABELS[$payment->payment_type] ?? $payment->payment_type,
+            $payment->hasStrategy() ? (float) $payment->strategyRate() : null,
+            $payment->hasStrategy() ? (float) $payment->strategy_amount : null,
             $payment->payment_provision_date?->format('d/m/Y') ?? '-',
             (float) ($payment->approved_amount ?? $payment->total),
             $payment->currency?->prefix ?? 'MXN',
@@ -84,6 +86,7 @@ class WeeklyPaymentScheduleExport implements FromCollection, ShouldAutoSize, Wit
     {
         return [
             'H' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
+            'J' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
         ];
     }
 

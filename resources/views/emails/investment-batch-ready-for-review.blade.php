@@ -27,6 +27,9 @@
 <td style="padding: 10px 0; border-bottom: 1px solid #E5E7EB; vertical-align: top;">
 <div style="font-size: 14px; font-weight: 600; color: #191731;">{{ $item['provider'] }}</div>
 <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">#{{ str_pad($item['folio'], 5, '0', STR_PAD_LEFT) }} · {{ $item['concept'] }}</div>
+@if (!empty($item['strategy']))
+<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">{{ $item['strategy'] }}</div>
+@endif
 </td>
 <td style="padding: 10px 0; border-bottom: 1px solid #E5E7EB; text-align: right; vertical-align: top; white-space: nowrap;">
 <div style="font-size: 14px; font-weight: 700; color: #191731;">$ {{ $item['total'] }}</div>
@@ -62,6 +65,9 @@
 <td style="padding: 10px 0; border-bottom: 1px solid #E5E7EB; vertical-align: top;">
 <div style="font-size: 14px; font-weight: 600; color: #191731;">{{ $item['provider'] }}</div>
 <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">#{{ str_pad($item['folio'], 5, '0', STR_PAD_LEFT) }} · {{ $item['concept'] }}</div>
+@if (!empty($item['strategy']))
+<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">{{ $item['strategy'] }}</div>
+@endif
 </td>
 <td style="padding: 10px 0; border-bottom: 1px solid #E5E7EB; text-align: right; vertical-align: top; white-space: nowrap;">
 <div style="font-size: 14px; font-weight: 700; color: #191731;">$ {{ $item['total'] }}</div>

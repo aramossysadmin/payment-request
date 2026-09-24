@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\InvestmentPaymentType;
 use App\Enums\IvaRate;
+use App\Http\Requests\Concerns\ResolvesInvestmentStrategy;
 use App\Models\Currency;
 use App\Models\InvestmentRequest;
 use App\Services\PaymentPolicyAuditService;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Validator;
 
 class StoreInvestmentPaymentRequest extends FormRequest
 {
+    use ResolvesInvestmentStrategy;
+
     public function authorize(): bool
     {
         return true;
@@ -43,6 +46,7 @@ class StoreInvestmentPaymentRequest extends FormRequest
             'iva' => ['required', 'numeric', 'min:0'],
             'retention' => ['boolean'],
             'total' => ['required', 'numeric', 'min:0'],
+            ...$this->strategyRules(),
         ];
     }
 
@@ -74,6 +78,8 @@ class StoreInvestmentPaymentRequest extends FormRequest
                     "La fecha de programación debe ser {$expected} (martes de la siguiente semana)."
                 );
             }
+
+            $this->validateStrategyIsActive($validator);
 
             $paymentType = $this->input('payment_type');
 
@@ -148,6 +154,7 @@ class StoreInvestmentPaymentRequest extends FormRequest
             'iva.required' => 'El IVA es obligatorio.',
             'total.required' => 'El total es obligatorio.',
             'total.min' => 'El total debe ser mayor o igual a 0.',
+            ...$this->strategyMessages(),
         ];
     }
 }

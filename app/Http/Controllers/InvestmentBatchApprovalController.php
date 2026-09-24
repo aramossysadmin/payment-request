@@ -53,6 +53,7 @@ class InvestmentBatchApprovalController extends Controller
                     'provider' => $p->provider,
                     'rfc' => $p->rfc,
                     'description' => $p->description,
+                    'strategy' => $p->strategySummary(),
                     'currency_prefix' => $p->currency?->prefix ?? 'MXN',
                     'subtotal' => (string) $p->subtotal,
                     'iva' => (string) $p->iva,

@@ -31,6 +31,7 @@ interface Payment {
     currency_prefix: string;
     description: string | null;
     payment_type: string;
+    strategy: string | null;
     status: string;
     documents: { name: string; url: string }[];
     receipt_documents: { name: string; url: string }[];
@@ -48,6 +49,7 @@ interface SchedulePayment {
     currency_prefix: string;
     description: string | null;
     payment_type: string;
+    strategy: string | null;
     status: string;
     included: boolean;
     exclusion_reason: string | null;
@@ -463,7 +465,10 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                         #{String(payment.folio_number).padStart(5, '0')}
                                                     </td>
                                                     <td className="py-3 pr-4 font-medium">{payment.provider}</td>
-                                                    <td className="py-3 pr-4">{payment.concept_name}</td>
+                                                    <td className="py-3 pr-4">
+                                                        <div>{payment.concept_name}</div>
+                                                        {payment.strategy && <div className="mt-0.5 text-xs text-muted-foreground">{payment.strategy}</div>}
+                                                    </td>
                                                     <td className="py-3 pr-4">{payment.department_name}</td>
                                                     <td className="py-3 pr-4">
                                                         <Badge variant="outline" className="text-xs">
@@ -557,7 +562,10 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                                                         #{String(payment.folio_number).padStart(5, '0')}
                                                     </td>
                                                     <td className="py-3 pr-4 font-medium">{payment.provider}</td>
-                                                    <td className="py-3 pr-4">{payment.concept_name}</td>
+                                                    <td className="py-3 pr-4">
+                                                        <div>{payment.concept_name}</div>
+                                                        {payment.strategy && <div className="mt-0.5 text-xs text-muted-foreground">{payment.strategy}</div>}
+                                                    </td>
                                                     <td className="py-3 pr-4">{payment.department_name}</td>
                                                     <td className="py-3 pr-4">
                                                         <Badge variant="outline" className="text-xs">

@@ -14,6 +14,7 @@ type Payment = {
     provider: string;
     rfc: string | null;
     description: string | null;
+    strategy: string | null;
     currency_prefix: string;
     subtotal: string;
     iva: string;
@@ -152,7 +153,10 @@ export default function BatchApprovalShow({ batch }: Props) {
                                                 <td className="px-4 py-3 font-mono text-xs text-gray-500 border-r border-gray-100 dark:border-gray-800">
                                                     #{String(payment.folio_number).padStart(5, '0')}
                                                 </td>
-                                                <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">{payment.concept}</td>
+                                                <td className="px-4 py-3 font-medium border-r border-gray-100 dark:border-gray-800">
+                                                    <div>{payment.concept}</div>
+                                                    {payment.strategy && <div className="mt-0.5 text-xs font-normal text-muted-foreground">{payment.strategy}</div>}
+                                                </td>
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 border-r border-gray-100 dark:border-gray-800">
                                                     <div>{payment.provider}</div>
                                                     {payment.rfc && <div className="text-xs text-gray-500">{payment.rfc}</div>}
