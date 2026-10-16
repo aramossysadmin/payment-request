@@ -7,6 +7,13 @@
 - **On conversation start:** Read `.claude/memory/MEMORY.md` for project context.
 - **Do not save:** Ephemeral information, in-progress task status, or data derivable from code or git log.
 
+## Bóveda de documentación `vault/` (OBLIGATORIO)
+- `vault/` es la bóveda de Obsidian con la documentación completa del proyecto. Punto de entrada: `vault/00 Inicio.md`.
+- **Después de cada modificación, ajuste o cambio** (código, migración, configuración, permisos, correos, reportes, operación o deploy), actualiza la bóveda **en el mismo cambio y en el mismo commit**: nota del módulo, flujo, modelo/migraciones, permisos, salidas, ADR si hubo una decisión y una entrada en `vault/10 Historial/Historial AAAA-MM.md`.
+- Las reglas completas (lista de verificación, formato, contenido prohibido y skills de Obsidian) están en [`AGENTS.md`](AGENTS.md). Aplican a cualquier agente de cualquier workspace.
+- **Nunca** pongas en la bóveda contraseñas, tokens, `APP_KEY`, valores del `.env`, rutas de llaves, nombres de personas reales ni montos/folios/correcciones reales de producción: se versiona y llega a producción.
+- Usa los skills `obsidian-markdown` (notas), `obsidian-bases`, `json-canvas` y `obsidian-cli` de `.claude/skills/`.
+
 ## Git Commits
 - Upon completing a feature, committing is MANDATORY without exception. Always create a commit after finishing each feature.
 

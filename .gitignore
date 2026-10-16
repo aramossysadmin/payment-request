@@ -33,3 +33,8 @@ phpunit.xml
 .claude/BITACORA-COMMITS.md
 .claude/archive/
 .claude/settings.local.json
+
+# Obsidian (vault/): estado local del editor, no versionar
+vault/.obsidian/workspace*.json
+vault/.obsidian/cache
+vault/.trash/
