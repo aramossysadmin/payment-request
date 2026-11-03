@@ -6,12 +6,12 @@ tags:
   - payment-request/historial
 fuentes:
   - git log
-actualizado: 2026-11-02
+actualizado: 2026-11-03
 ---
 
 # Historial noviembre 2026
 
-Control por rol de Panel y Solicitudes de Pago, y tipo de pago Nómina Fiscal. 2 commits.
+Control por rol de Panel y Solicitudes de Pago, tipo de pago Nómina Fiscal y corrección del conteo de conceptos. 3 commits.
 
 ### 2026-11-02 · `9d21f3d` · Panel y Solicitudes de Pago controlados desde Shield
 
@@ -22,7 +22,7 @@ Control por rol de Panel y Solicitudes de Pago, y tipo de pago Nómina Fiscal. 2
 - **Decisión:** [[ADR-024 Panel y Solicitudes de Pago controlados desde Shield]]
 - **Impacto en producción:** requiere respaldo antes del despliegue, porque corre una migración de datos. Los usuarios sin rol pierden ambos recursos al desplegar, y todos pasan a entrar por Hojas de Inversión. Ocultar los recursos a cada rol se hace después, desde Shield.
 
-### 2026-11-02 · sha pendiente · Tipo de pago Nómina Fiscal
+### 2026-11-02 · `3ec15ad` · Tipo de pago Nómina Fiscal
 
 - **Qué cambió:** nuevo tipo de pago de inversión, disponible al crear y editar un pago y al subir sus documentos. Acepta 1 archivo PDF, imagen o Excel (`.xls`, `.xlsx`); Excel aplica solo a este tipo.
 - **Archivos principales:** `app/Enums/InvestmentPaymentType.php`, `app/Http/Requests/StoreInvestmentPaymentRequest.php`, `app/Http/Requests/UpdateInvestmentPaymentRequest.php`, `app/Http/Requests/UploadInvestmentPaymentDocumentsRequest.php`, `resources/js/pages/investment-sheets/consolidated.tsx`
@@ -30,6 +30,15 @@ Control por rol de Panel y Solicitudes de Pago, y tipo de pago Nómina Fiscal. 2
 - **Notas actualizadas:** [[Enums]] · [[Solicitudes de pago de inversion]] · [[Documentos de pago]] · [[Exportaciones Excel]] · [[Comandos y scheduler]] · [[Seguridad de la aplicacion]] · [[ADR-001 Catalogo de tipos de pago en base de datos]]
 - **Decisión:** ninguna
 - **Impacto en producción:** ninguno en datos ni permisos. Los documentos de nómina usan las mismas reglas de acceso que los demás tipos.
+
+### 2026-11-03 · sha pendiente · Conteo de conceptos correcto en PostgreSQL
+
+- **Qué cambió:** los conteos de conceptos usaban `CAST(... AS CHAR)`, que en PostgreSQL conserva solo el primer carácter del ID y agrupaba conceptos distintos. Ahora usan `AS VARCHAR`. Solo cambian los conteos; montos, presupuesto y saldos no se afectan.
+- **Archivos principales:** `app/Http/Controllers/InvestmentSheetConsolidatedIndexController.php`, `app/Http/Controllers/InvestmentSheetConsolidatedController.php`, `app/Services/InvestmentDepartmentBreakdownService.php`
+- **Migraciones:** ninguna
+- **Notas actualizadas:** [[Consolidado por proyecto]] · [[Dashboards]]
+- **Decisión:** ninguna
+- **Impacto en producción:** ninguno en datos. Las Hojas de Inversión pasan a mostrar el número real de conceptos, mayor al que se veía.
 
 ## Relacionado
 - [[Indice del historial]] · [[Historial 2026-09]] · [[Permisos Shield]]

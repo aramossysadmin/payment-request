@@ -149,7 +149,7 @@ class InvestmentSheetConsolidatedController extends Controller
             ->where('project_id', $project->id)
             ->visibleTo($user)
             ->join('currencies', 'investment_requests.currency_id', '=', 'currencies.id')
-            ->selectRaw("SUM(investment_requests.subtotal * currencies.exchange_rate) as total_subtotal, SUM(investment_requests.total * currencies.exchange_rate) as total_total, COUNT(DISTINCT CONCAT(COALESCE(CAST(investment_requests.investment_expense_concept_id AS CHAR), CONCAT('ir-', investment_requests.id)), '-', investment_requests.department_id)) as total_count, SUM(CASE WHEN investment_requests.status = 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as authorized_total, SUM(CASE WHEN investment_requests.status != 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as pending_total")
+            ->selectRaw("SUM(investment_requests.subtotal * currencies.exchange_rate) as total_subtotal, SUM(investment_requests.total * currencies.exchange_rate) as total_total, COUNT(DISTINCT CONCAT(COALESCE(CAST(investment_requests.investment_expense_concept_id AS VARCHAR), CONCAT('ir-', investment_requests.id)), '-', investment_requests.department_id)) as total_count, SUM(CASE WHEN investment_requests.status = 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as authorized_total, SUM(CASE WHEN investment_requests.status != 'completed' THEN investment_requests.total * currencies.exchange_rate ELSE 0 END) as pending_total")
             ->first();
 
         $departmentBreakdown = InvestmentDepartmentBreakdownService::for($project, $user);

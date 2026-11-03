@@ -36,7 +36,7 @@ class InvestmentSheetConsolidatedIndexController extends Controller
             ->visibleTo($user)
             ->groupBy('investment_requests.project_id')
             ->select('investment_requests.project_id')
-            ->selectRaw("COUNT(DISTINCT CONCAT(COALESCE(CAST(investment_requests.investment_expense_concept_id AS CHAR), CONCAT('ir-', investment_requests.id)), '-', investment_requests.department_id)) as concepts_count")
+            ->selectRaw("COUNT(DISTINCT CONCAT(COALESCE(CAST(investment_requests.investment_expense_concept_id AS VARCHAR), CONCAT('ir-', investment_requests.id)), '-', investment_requests.department_id)) as concepts_count")
             ->selectRaw('SUM(investment_requests.total) as sum_total')
             ->get()
             ->keyBy('project_id');

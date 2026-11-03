@@ -7,7 +7,7 @@ tags:
   - payment-request/historial
 fuentes:
   - git log
-actualizado: 2026-11-02
+actualizado: 2026-11-03
 ---
 
 # Índice del historial
@@ -26,8 +26,8 @@ Historial de cambios del proyecto por mes, construido a partir de `git log`. Cad
 | [[Historial 2026-07]] | 13 | Comprobantes, PM con aprobación final, candado por proyecto, reportes ejecutivos |
 | [[Historial 2026-08]] | 1 | Columna Departamento en la programación |
 | [[Historial 2026-09]] | 3 | Cierre de proyectos, acceso por proyecto, Estrategias |
-| [[Historial 2026-11]] | 2 | Panel y Solicitudes de Pago controlados desde Shield, tipo de pago Nómina Fiscal |
-| **Total** | **255** | |
+| [[Historial 2026-11]] | 3 | Panel y Solicitudes de Pago controlados desde Shield, tipo de pago Nómina Fiscal, conteo de conceptos |
+| **Total** | **256** | |
 
 ## Línea de tiempo
 

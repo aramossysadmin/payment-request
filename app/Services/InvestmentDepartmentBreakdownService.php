@@ -39,7 +39,7 @@ class InvestmentDepartmentBreakdownService
             ->visibleTo($user)
             ->join('departments', 'investment_requests.department_id', '=', 'departments.id')
             ->join('currencies', 'investment_requests.currency_id', '=', 'currencies.id')
-            ->selectRaw("departments.id as department_id, departments.name as department_name, SUM(investment_requests.total * currencies.exchange_rate) as department_total, COUNT(DISTINCT COALESCE(CAST(investment_requests.investment_expense_concept_id AS CHAR), CONCAT('ir-', investment_requests.id))) as department_count")
+            ->selectRaw("departments.id as department_id, departments.name as department_name, SUM(investment_requests.total * currencies.exchange_rate) as department_total, COUNT(DISTINCT COALESCE(CAST(investment_requests.investment_expense_concept_id AS VARCHAR), CONCAT('ir-', investment_requests.id))) as department_count")
             ->groupBy('departments.id', 'departments.name')
             ->orderByDesc('department_total')
             ->get();

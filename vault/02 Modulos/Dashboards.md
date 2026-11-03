@@ -15,7 +15,7 @@ fuentes:
   - app/Models/InvestmentPaymentRequest.php
   - app/Filament/Resources/RoleResource.php
   - config/fortify.php
-actualizado: 2026-11-02
+actualizado: 2026-11-03
 ---
 
 # Dashboards
@@ -113,8 +113,8 @@ Servicio estático `InvestmentDepartmentBreakdownService::for(Project $project, 
 - `count` cuenta conceptos de inversión distintos (las solicitudes sin concepto cuentan individualmente).
 - Lo consumen `InvestmentSheetConsolidatedController` (tarjeta "Inversión por Departamento") e `InvestmentSheetInvestmentRequestsPdfController` (cabecera del PDF). Ver [[PDFs]].
 
-> [!question] Por confirmar
-> El `selectRaw` usa `CAST(investment_requests.investment_expense_concept_id AS CHAR)` y `CONCAT(...)`. En MySQL/SQLite equivale a convertir a texto completo; en PostgreSQL `CAST(... AS CHAR)` produce `char(1)` (un solo carácter), lo que podría subcontar `count`. Validar contra el motor de producción.
+> [!info] Conversión del ID a texto
+> El `selectRaw` usa `CAST(investment_requests.investment_expense_concept_id AS VARCHAR)` y `CONCAT(...)`. No usar `AS CHAR`: en PostgreSQL produce `char(1)` (un solo carácter) y subcontaba `count`, algo que SQLite no reproduce. Corregido en noviembre de 2026.
 
 ## Relacionado
 - [[Consolidado por proyecto]] · [[Solicitudes de inversion]] · [[Solicitudes de pago de inversion]] · [[Estados]]

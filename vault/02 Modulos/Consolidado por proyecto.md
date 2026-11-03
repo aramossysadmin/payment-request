@@ -17,7 +17,7 @@ fuentes:
   - app/Services/InvestmentDepartmentBreakdownService.php
   - resources/js/pages/investment-sheets/consolidated-index.tsx
   - resources/js/pages/investment-sheets/consolidated.tsx
-actualizado: 2026-10-15
+actualizado: 2026-11-03
 ---
 
 # Consolidado por proyecto
@@ -42,6 +42,9 @@ Pantalla principal de trabajo del módulo de inversión: muestra por proyecto el
 
 > [!question] Por confirmar
 > El `total` del índice suma `investment_requests.total` sin multiplicar por `exchange_rate`, a diferencia del consolidado (que normaliza a MXN). Con solicitudes en otra moneda las cifras no coinciden.
+
+> [!warning] Conteos y PostgreSQL
+> Los conteos de conceptos del índice, de la hoja y del desglose por departamento convierten el ID a texto con `CAST(... AS VARCHAR)`. No usar `AS CHAR`: en PostgreSQL conserva un solo carácter y agrupa conceptos distintos, y SQLite no reproduce ese error.
 
 ## Acceso y filtros del consolidado
 
