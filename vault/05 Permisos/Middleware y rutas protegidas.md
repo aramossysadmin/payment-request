@@ -15,7 +15,8 @@ fuentes:
   - app/Http/Controllers/DocumentViewController.php
   - app/Http/Controllers/EmailApprovalController.php
   - app/Http/Controllers/InvestmentBatchApprovalController.php
-actualizado: 2026-10-15
+  - config/fortify.php
+actualizado: 2026-11-02
 ---
 
 # Middleware y rutas protegidas
@@ -28,10 +29,11 @@ Qué middleware protege cada grupo de rutas del portal Inertia y del panel Filam
 |---|---|---|
 | `SecurityHeaders` | Global (`append`) | `X-Frame-Options: DENY` (si la respuesta no trae otro), `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS en HTTPS |
 | `HandleAppearance` | Grupo `web` | Tema claro/oscuro |
-| `HandleInertiaRequests` | Grupo `web` | Comparte `auth.user` (id, nombre, correo, departamentos, **roles**), notificaciones no leídas y flash |
+| `HandleInertiaRequests` | Grupo `web` | Comparte `auth.user` (id, nombre, correo, departamentos, **roles**), `auth.can` (casillas de Panel y Solicitudes de Pago), notificaciones no leídas y flash |
 | `AddLinkHeadersForPreloadedAssets` | Grupo `web` | Preload de Vite |
 | `encryptCookies(except: appearance, sidebar_state)` | Global | |
 | Alias `role`, `permission`, `role_or_permission` | Rutas | Middleware de spatie/laravel-permission |
+| `redirectUsersTo(config('fortify.home'))` | Middleware `guest` | Quien ya tiene sesión y abre `/` o `/login` va a Hojas de Inversión, no a la ruta `dashboard` |
 
 > [!info] `verified`
 > `User` no implementa `MustVerifyEmail`, por lo que `verified` deja pasar a todo usuario autenticado. En la práctica el grupo protegido equivale a `auth`.
@@ -54,9 +56,9 @@ Qué middleware protege cada grupo de rutas del portal Inertia y del panel Filam
 
 | Grupo | Rutas | Middleware extra | Autorización adicional |
 |---|---|---|---|
-| Dashboard | `dashboard` | — | Contenido según rol |
+| Dashboard | `dashboard` | — | Casilla `view_portal::dashboard`; sin ella redirige a Hojas de Inversión |
 | Proveedores | `providers/search` | `throttle:30,1` | — |
-| Pagos legacy | `payment-requests.*`, `approve`, `reject`, `sap-folios`, `pdf`, `documents/{index}` | `throttle:10,1` en approve/reject | `PaymentRequestPolicy` |
+| Pagos legacy | `payment-requests.*`, `approve`, `reject`, `sap-folios`, `pdf`, `documents/{index}` | `throttle:10,1` en approve/reject | Lista y formulario: casillas `view_any_` y `create_payment::request` (redirigen con aviso); guardar: 403 sin `create_`; el resto, `PaymentRequestPolicy` |
 | Dashboard de inversión | `investment-dashboard` | — | `super_admin`/`project_manager` ven todo; resto por `visibleTo` |
 | Consolidado | `investment-sheets/consolidated`, `{project}`, `payment-history-pdf`, `payment-history-excel` | — | `visibleTo` + roles para ver todos los departamentos |
 | Reportes de solicitudes | `investment-sheets/consolidated/{project}/investment-requests-pdf`, `-excel` | `role:super_admin\|ceo\|project_manager` | |

@@ -7,7 +7,7 @@ tags:
   - payment-request/historial
 fuentes:
   - git log
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Índice del historial
@@ -26,7 +26,8 @@ Historial de cambios del proyecto por mes, construido a partir de `git log`. Cad
 | [[Historial 2026-07]] | 13 | Comprobantes, PM con aprobación final, candado por proyecto, reportes ejecutivos |
 | [[Historial 2026-08]] | 1 | Columna Departamento en la programación |
 | [[Historial 2026-09]] | 3 | Cierre de proyectos, acceso por proyecto, Estrategias |
-| **Total** | **253** | |
+| [[Historial 2026-11]] | 1 | Panel y Solicitudes de Pago controlados desde Shield |
+| **Total** | **254** | |
 
 ## Línea de tiempo
 
@@ -41,6 +42,7 @@ timeline
     Julio : PM aprobacion final : Candado por proyecto
     Agosto : Mantenimiento
     Septiembre : Acceso por proyecto : Estrategias
+    Noviembre : Panel y Solicitudes de Pago en Shield
 ```
 
 > [!info] Alcance

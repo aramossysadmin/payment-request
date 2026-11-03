@@ -13,7 +13,9 @@ fuentes:
   - resources/js/pages/investment-dashboard/index.tsx
   - app/Services/InvestmentDepartmentBreakdownService.php
   - app/Models/InvestmentPaymentRequest.php
-actualizado: 2026-10-15
+  - app/Filament/Resources/RoleResource.php
+  - config/fortify.php
+actualizado: 2026-11-02
 ---
 
 # Dashboards
@@ -25,7 +27,7 @@ El portal tiene dos tableros en el frontend Inertia: el **Panel** (`/dashboard`)
 | Panel | `GET /dashboard` (`dashboard`) | `DashboardController` (invocable) | `resources/js/pages/dashboard.tsx` | `PaymentRequest` (legacy) |
 | Control Presupuestal | `GET /investment-dashboard` (`investment-dashboard`) | `InvestmentDashboardController` (invocable) | `resources/js/pages/investment-dashboard/index.tsx` | `InvestmentRequest` + `InvestmentPaymentRequest` |
 
-Ambas rutas están dentro del grupo `auth` + `verified` de `routes/web.php`; no llevan middleware de rol ni permiso Shield. Ver [[Rutas]].
+Ambas rutas están dentro del grupo `auth` + `verified` de `routes/web.php`. El Panel exige la casilla `view_portal::dashboard` de Shield (tarjeta "Panel"); sin ella, `DashboardController` redirige a Hojas de Inversión. El Control Presupuestal no lleva permiso Shield. Ver [[Rutas]] y [[ADR-024 Panel y Solicitudes de Pago controlados desde Shield]].
 
 ## Panel (`/dashboard`)
 
@@ -53,7 +55,10 @@ En la página (`dashboard.tsx`) cada bloque está envuelto en `<Deferred>` con s
 > `monthlyTotal` suma `total` tal cual (sin tipo de cambio) y el frontend lo formatea siempre como MXN (`Intl.NumberFormat('es-MX', { currency: 'MXN' })`). Si hay solicitudes legacy en otra moneda, el monto mostrado mezcla divisas. Ver [[Multimoneda]].
 
 > [!info] El Panel no refleja el flujo de inversión
-> El Panel no muestra Solicitudes de Inversión ni Pagos de Inversión; para eso está el Control Presupuestal y el [[Consolidado por proyecto]]. Además, el home de Fortify es `/payment-requests` (`config/fortify.php`), no `/dashboard`.
+> El Panel no muestra Solicitudes de Inversión ni Pagos de Inversión; para eso está el Control Presupuestal y el [[Consolidado por proyecto]]. Además, el home de Fortify es `/investment-sheets/consolidated` (`config/fortify.php`), no `/dashboard`.
+
+> [!info] Casillas en el Panel
+> En la página, "+ Nueva Solicitud de Pago" requiere `auth.can.createPaymentRequests` y los folios son enlace solo con `auth.can.viewPaymentRequestDetail`. Un rol con Panel y sin Solicitudes de Pago sigue viendo sus cifras.
 
 ## Control Presupuestal (`/investment-dashboard`)
 

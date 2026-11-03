@@ -20,6 +20,7 @@ type PaymentRequestDetailProps = {
     baseUrl?: string;
     showSapFolios?: boolean;
     isInvestment?: boolean;
+    canEdit?: boolean;
 };
 
 export function PaymentRequestDetail({
@@ -31,6 +32,7 @@ export function PaymentRequestDetail({
     baseUrl = '/payment-requests',
     showSapFolios = true,
     isInvestment = false,
+    canEdit = true,
 }: PaymentRequestDetailProps) {
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -135,7 +137,7 @@ export function PaymentRequestDetail({
                                                 </Button>
                                             </a>
                                         )}
-                                        {isEditable && (
+                                        {isEditable && canEdit && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"

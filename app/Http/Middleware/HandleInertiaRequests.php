@@ -54,6 +54,13 @@ class HandleInertiaRequests extends Middleware
                     'two_factor_confirmed_at' => $request->user()->two_factor_confirmed_at,
                     'roles' => $request->user()->getRoleNames()->toArray(),
                 ] : null,
+                'can' => [
+                    'viewDashboard' => $request->user()?->hasPortalPermission('view_portal::dashboard') ?? false,
+                    'viewPaymentRequests' => $request->user()?->hasPortalPermission('view_any_payment::request') ?? false,
+                    'createPaymentRequests' => $request->user()?->hasPortalPermission('create_payment::request') ?? false,
+                    'viewPaymentRequestDetail' => $request->user()?->hasPortalPermission('view_payment::request') ?? false,
+                    'updatePaymentRequests' => $request->user()?->hasPortalPermission('update_payment::request') ?? false,
+                ],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'unreadNotificationsCount' => $request->user()?->unreadNotifications()->count() ?? 0,

@@ -16,7 +16,7 @@ fuentes:
   - app/Services/ApprovalService.php
   - app/Services/InvestmentApprovalService.php
   - app/Services/WeeklyPaymentScheduleApprovalService.php
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Roles y actores
@@ -39,6 +39,9 @@ Quién es quién en el portal: los roles de spatie/laravel-permission, los actor
 
 > [!info] Permisos de `administrador`
 > Según el seeder, `administrador` recibe permisos de **solicitudes de pago y de solicitudes de inversión**. Si en producción solo tiene `payment::request`, la diferencia viene de cambios hechos desde Shield. Por confirmar.
+
+> [!warning] Excepción de `super_admin` en el portal
+> Panel y las casillas de lista y formulario de Solicitudes de Pago usan `User::hasPortalPermission()`, que no pasa por `Gate::before`. Si se desmarcan en su rol, `super_admin` deja de verlos en el portal, aunque conserva Solicitudes de Pago en `/admin`. Ver [[Permisos Shield]].
 
 ### Roles con acceso elevado
 

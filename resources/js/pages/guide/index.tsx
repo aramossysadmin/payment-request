@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     Banknote,
@@ -432,7 +432,7 @@ function InvestmentRequestsGuide() {
                         Se abrirá un modal con los conceptos del grupo. Selecciona los conceptos que deseas incluir en la solicitud de pago.
                     </Step>
                     <Step number={3}>
-                        Haz clic en <strong>Solicitar Pago</strong> para crear la solicitud. Esta se agregará al panel de <strong>Solicitudes de Pago</strong> y seguirá el flujo de aprobación estándar.
+                        Haz clic en <strong>Solicitar Pago</strong> para crear la solicitud. Esta se agregará a <strong>Pagos en Borrador</strong> del proyecto y seguirá el flujo de aprobación de pagos de inversión.
                     </Step>
                 </CardContent>
             </Card>
@@ -489,6 +489,8 @@ function InvestmentRequestsGuide() {
 }
 
 function GeneralGuide() {
+    const { auth } = usePage().props;
+
     return (
         <div className="space-y-6">
             {/* Navegación */}
@@ -506,12 +508,16 @@ function GeneralGuide() {
                         El menú lateral (sidebar) organiza todas las funcionalidades del sistema en las siguientes secciones:
                     </p>
                     <ul className="space-y-2 text-muted-foreground">
-                        <li>
-                            <strong>Plataforma:</strong> Acceso rápido al Dashboard y principal del sistema.
-                        </li>
-                        <li>
-                            <strong>Solicitudes:</strong> Gestión de Solicitudes de Pago con opciones para crear, consultar y aprobar solicitudes.
-                        </li>
+                        {auth.can.viewDashboard && (
+                            <li>
+                                <strong>Plataforma:</strong> Acceso rápido al Dashboard y principal del sistema.
+                            </li>
+                        )}
+                        {auth.can.viewPaymentRequests && (
+                            <li>
+                                <strong>Solicitudes:</strong> Gestión de Solicitudes de Pago con opciones para crear, consultar y aprobar solicitudes.
+                            </li>
+                        )}
                         <li>
                             <strong>Presupuestos de Inversión:</strong> Gestión de Solicitudes De Inversión, Hojas Consolidadas, Control Presupuestal y Solicitud de Pagos desde inversiones.
                         </li>
@@ -744,6 +750,9 @@ function TesoreryGuide() {
 }
 
 export default function Guide() {
+    const { auth } = usePage().props;
+    const canViewPaymentRequests = auth.can.viewPaymentRequests;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Guía de Usuario" />
@@ -758,12 +767,14 @@ export default function Guide() {
                     </p>
                 </div>
 
-                <Tabs defaultValue="payment-requests">
+                <Tabs defaultValue={canViewPaymentRequests ? 'payment-requests' : 'investment-requests'}>
                     <TabsList className="w-full">
-                        <TabsTrigger value="payment-requests">
-                            <FileText className="size-4" />
-                            Solicitudes de Pago
-                        </TabsTrigger>
+                        {canViewPaymentRequests && (
+                            <TabsTrigger value="payment-requests">
+                                <FileText className="size-4" />
+                                Solicitudes de Pago
+                            </TabsTrigger>
+                        )}
                         <TabsTrigger value="investment-requests">
                             <Banknote className="size-4" />
                             Presupuestos de Inversión
@@ -778,9 +789,11 @@ export default function Guide() {
                         </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="payment-requests">
-                        <PaymentRequestsGuide />
-                    </TabsContent>
+                    {canViewPaymentRequests && (
+                        <TabsContent value="payment-requests">
+                            <PaymentRequestsGuide />
+                        </TabsContent>
+                    )}
 
                     <TabsContent value="investment-requests">
                         <InvestmentRequestsGuide />

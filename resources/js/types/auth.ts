@@ -11,8 +11,17 @@ export type User = {
     [key: string]: unknown;
 };
 
+export type AuthPermissions = {
+    viewDashboard: boolean;
+    viewPaymentRequests: boolean;
+    createPaymentRequests: boolean;
+    viewPaymentRequestDetail: boolean;
+    updatePaymentRequests: boolean;
+};
+
 export type Auth = {
     user: User;
+    can: AuthPermissions;
 };
 
 export type TwoFactorSetupData = {

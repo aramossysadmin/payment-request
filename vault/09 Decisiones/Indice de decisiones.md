@@ -9,7 +9,7 @@ fuentes:
   - .claude/memory/architecture_decisions.md
   - .claude/memory/tech_stack.md
   - CLAUDE.md
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Índice de decisiones
@@ -43,6 +43,7 @@ Registro de decisiones de arquitectura y operación (ADR) del proyecto. Cada not
 | [[ADR-021 Snapshot inmutable de estrategia\|021]] | Estrategias inmutables y copia fija en el pago | 2026-09-23 | vigente |
 | [[ADR-022 Aprobacion por correo con token\|022]] | Aprobación desde el correo con token caducable | 2026-03-14 | vigente |
 | [[ADR-023 Normalizacion de textos en modelos\|023]] | Normalización de textos en mutators de modelos | 2026-03-14 / 2026-06-01 | vigente |
+| [[ADR-024 Panel y Solicitudes de Pago controlados desde Shield\|024]] | Panel y Solicitudes de Pago por rol desde Shield; Hojas de Inversión como entrada | 2026-11-02 | vigente |
 
 > [!info] Numeración
 > Los números 001–021 siguen el orden cronológico; 022 y 023 se agregaron después y son anteriores en fecha. La columna **Fecha** es la referencia temporal.
@@ -51,7 +52,7 @@ Registro de decisiones de arquitectura y operación (ADR) del proyecto. Cada not
 
 - **Flujo de inversión**: 006 · 007 · 011 · 014 · 015 · 016 · 017 · 018 · 021
 - **Datos e integridad**: 001 · 005 · 008 · 017 · 021 · 023
-- **Seguridad y acceso**: 003 · 004 · 010 · 012 · 019 · 020 · 022
+- **Seguridad y acceso**: 003 · 004 · 010 · 012 · 019 · 020 · 022 · 024
 - **Operación**: 002 · 009 · 013
 
 ## Cómo agregar una decisión

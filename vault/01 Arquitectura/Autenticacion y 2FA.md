@@ -19,7 +19,8 @@ fuentes:
   - routes/settings.php
   - resources/js/pages/auth/
   - resources/js/pages/settings/
-actualizado: 2026-10-15
+  - bootstrap/app.php
+actualizado: 2026-11-02
 ---
 
 # Autenticación y 2FA
@@ -33,7 +34,7 @@ El portal Inertia autentica con **Laravel Fortify** (backend headless, vistas en
 | `guard` / `passwords` | `web` / `users` | Guard de sesión estándar. |
 | `username` / `email` | `email` | Login por correo. |
 | `lowercase_usernames` | `true` | El correo se normaliza a minúsculas al autenticar (el modelo `User` también lo guarda en minúsculas con `setEmailAttribute`). |
-| `home` | `/payment-requests` | Destino tras login. |
+| `home` | `/investment-sheets/consolidated` | Destino tras login para todos los usuarios, salvo que hubieran abierto otro enlace sin sesión (`redirect()->intended`). `bootstrap/app.php` lo usa también en `redirectUsersTo()`, para quien ya tiene sesión y abre `/` o `/login`. |
 | `prefix` / `domain` | `''` / `null` | Rutas en la raíz (`/login`, `/logout`, `/forgot-password`, `/two-factor-challenge`, `/user/two-factor-authentication`, etc.). |
 | `limiters` | `login`, `two-factor` | Definidos en `FortifyServiceProvider`. |
 | `views` | `true` | Fortify registra las rutas GET de vistas (renderizadas con Inertia). |

@@ -16,7 +16,7 @@ fuentes:
   - config/fortify.php
   - config/filesystems.php
   - app/Models/User.php
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Rutas
@@ -54,7 +54,7 @@ Ver [[Middleware y rutas protegidas]] y [[Seguridad de la aplicacion]].
 
 | Método | URI | Nombre | Controller | Middleware extra | Autorización extra |
 |---|---|---|---|---|---|
-| GET | `/dashboard` | `dashboard` | `DashboardController` | — | `visibleTo` |
+| GET | `/dashboard` | `dashboard` | `DashboardController` | — | Casilla `view_portal::dashboard` (sin ella redirige a Hojas de Inversión), `visibleTo` |
 | GET | `/providers/search` | `providers.search` | `ProviderSearchController` | `throttle:30,1` | — |
 | GET | `/guide` | `guide` | closure → `Inertia::render('guide/index')` | — | — |
 | POST | `/notifications/{id}/read` | `notifications.read` | `NotificationController@markAsRead` | — | Solo notificaciones propias |
@@ -68,9 +68,9 @@ Ver [[Dashboards]], [[Busqueda de proveedores]], [[Guia de usuario]], [[Notifica
 
 | Método | URI | Nombre | Controller | Middleware extra | Autorización extra |
 |---|---|---|---|---|---|
-| GET | `/payment-requests` | `payment-requests.index` | `PaymentRequestController@index` | — | Solo `visibleTo` (sin Gate) |
-| GET | `/payment-requests/create` | `payment-requests.create` | `@create` | — | Ninguna |
-| POST | `/payment-requests` | `payment-requests.store` | `@store` | — | Ninguna (FormRequest `authorize` = true) |
+| GET | `/payment-requests` | `payment-requests.index` | `PaymentRequestController@index` | — | Casilla `view_any_payment::request` (sin ella redirige con aviso), `visibleTo` |
+| GET | `/payment-requests/create` | `payment-requests.create` | `@create` | — | Casilla `create_payment::request` (sin ella redirige con aviso) |
+| POST | `/payment-requests` | `payment-requests.store` | `@store` | — | Casilla `create_payment::request` en `StorePaymentRequestRequest::authorize()` (403) |
 | GET | `/payment-requests/{payment_request}` | `payment-requests.show` | `@show` | — | `Gate view` |
 | GET | `/payment-requests/{payment_request}/edit` | `payment-requests.edit` | `@edit` | — | `Gate update` + estado `pending_department` |
 | PUT/PATCH | `/payment-requests/{payment_request}` | `payment-requests.update` | `@update` | — | Ídem |

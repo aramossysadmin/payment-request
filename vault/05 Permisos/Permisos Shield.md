@@ -12,7 +12,9 @@ fuentes:
   - app/Filament/Resources/RoleResource.php
   - database/seeders/RoleAndPermissionSeeder.php
   - vendor/bezhansalleh/filament-shield/src/FilamentShieldServiceProvider.php
-actualizado: 2026-10-15
+  - app/Models/User.php
+  - app/Http/Middleware/HandleInertiaRequests.php
+actualizado: 2026-11-02
 ---
 
 # Permisos Shield
@@ -104,7 +106,23 @@ Algunos recursos sobrescriben la policy en la clase del recurso: `InvestmentPaym
 6. Probar con un usuario sin `super_admin` (con `super_admin` todo pasa por `Gate::before`).
 
 > [!tip]
-> En el portal Inertia (fuera de `/admin`) casi no se usan permisos Shield: allí mandan los roles (`role:` en rutas, `hasRole`/`hasAnyRole` en controladores) y los scopes de visibilidad. Ver [[Middleware y rutas protegidas]].
+> En el portal Inertia (fuera de `/admin`) casi no se usan permisos Shield: allí mandan los roles (`role:` en rutas, `hasRole`/`hasAnyRole` en controladores) y los scopes de visibilidad. Las excepciones son Panel y Solicitudes de Pago. Ver [[Middleware y rutas protegidas]].
+
+## Permisos del portal
+
+Panel y Solicitudes de Pago se habilitan por rol desde `/admin/shield/roles` ([[ADR-024 Panel y Solicitudes de Pago controlados desde Shield]]).
+
+- `User::hasPortalPermission()` usa `checkPermissionTo()` de Spatie: revisa los permisos reales de los roles del usuario, no pasa por `Gate::before` y también aplica a `super_admin`.
+- `HandleInertiaRequests` comparte el resultado en `auth.can` (`viewDashboard`, `viewPaymentRequests`, `createPaymentRequests`, `viewPaymentRequestDetail`, `updatePaymentRequests`).
+- Los permisos de varios roles se suman.
+
+| Tarjeta | Permisos | Origen |
+|---|---|---|
+| Panel | `view_portal::dashboard` | No corresponde a un recurso de Filament: `RoleResource` agrega la tarjeta en `getResourceEntitiesSchema()`, y la migración `add_portal_dashboard_permission` crea el permiso |
+| Solicitud de Pago | `*_payment::request` | `PaymentRequestResource`. Ver [[Modulo legacy Payment Requests]] |
+
+> [!warning] Permisos fuera del formulario
+> `EditRole` ejecuta `syncPermissions()` con los campos del formulario. Un permiso que no aparezca como casilla se borra del rol al guardarlo; por eso cualquier permiso nuevo del portal necesita su tarjeta en `RoleResource`.
 
 ## Relacionado
 - [[Roles y actores]] · [[Policies]] · [[Panel Filament]] · [[Role]]

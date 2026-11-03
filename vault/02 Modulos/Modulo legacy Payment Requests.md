@@ -22,12 +22,14 @@ fuentes:
   - app/Filament/Resources/PaymentRequestResource.php
   - resources/js/pages/payment-requests
   - resources/js/components/app-sidebar.tsx
-actualizado: 2026-10-15
+  - app/Models/User.php
+  - app/Http/Middleware/HandleInertiaRequests.php
+actualizado: 2026-11-02
 ---
 
 # Módulo legacy Payment Requests
 
-Primer módulo del portal (febrero–abril 2026): **Solicitudes de Pago** generales (no ligadas a proyectos de inversión) con un flujo secuencial de autorización Departamento → Administración → Tesorería, aprobación por correo con token y captura de **folios SAP**. Sigue activo en `/payment-requests` y en Filament (`/admin/payment-requests`, grupo "Operaciones"), pero el trabajo actual del portal se concentra en el flujo de inversión.
+Primer módulo del portal (febrero–abril 2026): **Solicitudes de Pago** generales (no ligadas a proyectos de inversión) con un flujo secuencial de autorización Departamento → Administración → Tesorería, aprobación por correo con token y captura de **folios SAP**. Sigue activo en `/payment-requests` y en Filament (`/admin/payment-requests`, grupo "Operaciones"), con acceso controlado por rol desde Shield; el trabajo actual del portal se concentra en el flujo de inversión.
 
 ## Modelo `PaymentRequest`
 
@@ -95,9 +97,9 @@ Detalle del flujo en [[Flujo legacy de solicitud de pago]].
 
 | Método | URI | Acción | Autorización |
 |---|---|---|---|
-| GET | `/payment-requests` | `index`: lista paginada (15) con búsqueda (proveedor, folio factura, folio), filtro de estado y grupo `pending` (default) / `completed` / todos | Solo `visibleTo($user)`; **sin** `Gate` |
-| GET | `/payment-requests/create` | Formulario | Sin `Gate` |
-| POST | `/payment-requests` | `store` (FormRequest `authorize()` = `true`) + `createApprovals` | Sin `Gate` |
+| GET | `/payment-requests` | `index`: lista paginada (15) con búsqueda (proveedor, folio factura, folio), filtro de estado y grupo `pending` (default) / `completed` / todos | Casilla `view_any_payment::request`, luego `visibleTo($user)`. Sin la casilla redirige a Hojas de Inversión con aviso |
+| GET | `/payment-requests/create` | Formulario | Casilla `create_payment::request`. Sin ella redirige a Hojas de Inversión con aviso |
+| POST | `/payment-requests` | `store` + `createApprovals` | `StorePaymentRequestRequest::authorize()` exige la casilla `create_payment::request`; sin ella responde 403 antes de validar |
 | GET | `/payment-requests/{uuid}` | `show` | `Gate::authorize('view')` |
 | GET/PUT/PATCH | `/payment-requests/{uuid}/edit`, `/payment-requests/{uuid}` | Editar; solo en `pending_department`. Si se suben archivos nuevos, se **borran del disco** los anteriores | `Gate::authorize('update')` |
 | DELETE | `/payment-requests/{uuid}` | Soft delete | `Gate::authorize('delete')` |
@@ -113,14 +115,28 @@ Detalle del flujo en [[Flujo legacy de solicitud de pago]].
 
 `/approval/{token}` (`EmailApprovalController`, `throttle:10,1`) busca el token en `PaymentRequestApproval`, `InvestmentRequestApproval`, `InvestmentPaymentApproval` y `WeeklyPaymentScheduleApproval`; valida vigencia (48 h) y estado, y llama al servicio correspondiente. No requiere sesión. Ver [[Rutas]].
 
-### Por qué Shield no oculta el menú
+### Control desde Shield
 
-> [!warning] Menú fijo y sin control de permisos
-> - En `resources/js/components/app-sidebar.tsx` el grupo "Solicitudes" → "Solicitudes de Pago" (`/payment-requests`) está **fijo en el código** y se muestra a todos los usuarios autenticados; no consulta roles ni permisos.
-> - `PaymentRequestController::index()` (y `create` / `store`) no llama a `Gate::authorize('viewAny' | 'create')`; solo aplica el scope `visibleTo`.
-> - Por eso quitar los permisos Shield `view_any_payment::request` / `create_payment::request` a un rol **solo oculta el recurso en `/admin`**, no en el portal Inertia: el usuario sigue viendo el menú, la lista (de lo que `visibleTo` le permite) y puede crear solicitudes.
->
-> Ver [[Permisos Shield]] y [[Middleware y rutas protegidas]].
+La tarjeta "Solicitud de Pago" de `/admin/shield/roles` controla el portal y `/admin` ([[ADR-024 Panel y Solicitudes de Pago controlados desde Shield]]). Para ocultar el recurso a un rol se desmarca toda la tarjeta; "Ver el listado" es la casilla que oculta el menú.
+
+| Casilla | Efecto en el portal | `auth.can` |
+|---|---|---|
+| Ver el listado (`view_any_payment::request`) | Menú "Solicitudes de Pago" y lista con detalle lateral | `viewPaymentRequests` |
+| Crear (`create_payment::request`) | Botones "Nueva", formulario y guardado | `createPaymentRequests` |
+| Ver un registro (`view_payment::request`) | Página de detalle, PDF, documentos y enlaces de folio en el Panel | `viewPaymentRequestDetail` |
+| Actualizar (`update_payment::request`) | Botón "Editar" y edición | `updatePaymentRequests` |
+| Eliminar (`delete_payment::request`) | Borrado lógico (el portal no tiene botón) | — |
+
+Las demás casillas (restaurar, replicar, reordenar y forzar eliminación) solo aplican en `/admin`.
+
+> [!warning] `super_admin`
+> La lista y el formulario usan `User::hasPortalPermission()`, que no pasa por el `Gate::before` de Shield: si se desmarca la casilla en su rol, `super_admin` deja de ver el recurso en el portal, pero lo conserva en `/admin`. Detalle, edición, borrado, PDF y documentos siguen en `PaymentRequestPolicy`, por lo que todavía puede abrir un detalle con su URL directa.
+
+> [!info] Permisos de varios roles
+> Los permisos se suman: un usuario deja de ver el recurso solo si **ninguno** de sus roles tiene la casilla.
+
+> [!warning] Aprobaciones pendientes
+> Las aprobaciones por correo (`/approval/{token}`) y las rutas `approve`/`reject` no dependen de estas casillas. Si el token ya venció, el aprobador solo puede atender la solicitud en pantalla, así que al desmarcar la tarjeta de su rol no tiene cómo hacerlo hasta volver a marcarla.
 
 ## Panel Filament (`PaymentRequestResource`)
 

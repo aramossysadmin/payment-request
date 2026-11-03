@@ -14,6 +14,7 @@ class RoleAndPermissionSeeder extends Seeder
      */
     private const ROLE_PERMISSIONS = [
         'super_admin' => [
+            'view_portal::dashboard',
             'view_any_branch', 'view_branch', 'create_branch', 'update_branch',
             'delete_branch', 'delete_any_branch', 'restore_branch', 'restore_any_branch',
             'replicate_branch', 'reorder_branch', 'force_delete_branch', 'force_delete_any_branch',
@@ -48,6 +49,7 @@ class RoleAndPermissionSeeder extends Seeder
             'replicate_user', 'reorder_user', 'force_delete_user', 'force_delete_any_user',
         ],
         'admin_sp' => [
+            'view_portal::dashboard',
             'view_any_branch', 'view_branch', 'create_branch', 'update_branch',
             'delete_branch', 'delete_any_branch', 'restore_branch', 'restore_any_branch',
             'replicate_branch', 'reorder_branch', 'force_delete_branch', 'force_delete_any_branch',
@@ -82,6 +84,7 @@ class RoleAndPermissionSeeder extends Seeder
             'replicate_user', 'reorder_user', 'force_delete_user', 'force_delete_any_user',
         ],
         'administrador' => [
+            'view_portal::dashboard',
             'view_any_payment::request', 'view_payment::request', 'create_payment::request', 'update_payment::request',
             'delete_payment::request', 'delete_any_payment::request', 'restore_payment::request', 'restore_any_payment::request',
             'replicate_payment::request', 'reorder_payment::request', 'force_delete_payment::request', 'force_delete_any_payment::request',

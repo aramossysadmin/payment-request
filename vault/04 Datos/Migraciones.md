@@ -6,12 +6,12 @@ tags:
   - payment-request/datos
 fuentes:
   - database/migrations/
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Migraciones
 
-Historia del esquema en `database/migrations` (97 archivos), agrupada por bloque funcional y fecha. Indica qué tablas y columnas introdujo cada bloque y qué migraciones también transforman datos.
+Historia del esquema en `database/migrations` (98 archivos), agrupada por bloque funcional y fecha. Indica qué tablas y columnas introdujo cada bloque y qué migraciones también transforman datos.
 
 > [!danger] Regla del proyecto
 > Nunca ejecutar `migrate:fresh`, `migrate:refresh`, `db:wipe` ni rollbacks destructivos. `AppServiceProvider` activa `DB::prohibitDestructiveCommands()` en producción. Ver [[Proteccion de la base de datos]].
@@ -28,6 +28,7 @@ timeline
     Jun : Dashboards y multimoneda : activity_log : Politica de ventanas : SAP en sucursales
     Jul : Comprobantes de pago : Cierre del paso final CEO : requires_pm_approval
     Sep : Proyectos abiertos o cerrados : Acceso por proyecto : Estrategias
+    Nov : Permiso del Panel en Shield
 ```
 
 ## Bloques
@@ -154,6 +155,12 @@ timeline
 | `2026_09_10_192000_backfill_project_user_from_departments` | — | Asigna a usuarios no privilegiados los proyectos donde sus departamentos ya capturaron solicitudes (idempotente) |
 | `2026_09_22_135543` | `strategies` | |
 | `2026_09_22_135544` | `strategy_id`, `strategy_amount`, `strategy_factor_snapshot`, `strategy_name_snapshot` en pagos | |
+
+### Permisos del portal (2026-11-02)
+
+| Migración | Introduce |
+|---|---|
+| `2026_11_02_192516_add_portal_dashboard_permission` | Solo datos: crea `view_portal::dashboard` con `firstOrCreate`, lo asigna a `super_admin`, `admin_sp`, `administrador`, `project_manager` y `ceo`, y limpia la caché de permisos. `down()` vacío. Ver [[ADR-024 Panel y Solicitudes de Pago controlados desde Shield]] |
 
 ## Cómo agregar una migración
 

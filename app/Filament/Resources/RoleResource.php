@@ -21,7 +21,21 @@ use Illuminate\Validation\Rules\Unique;
 
 class RoleResource extends Resource implements HasShieldPermissions
 {
-    use HasShieldFormComponents;
+    use HasShieldFormComponents {
+        getResourceEntitiesSchema as getShieldResourceEntitiesSchema;
+        getResourceTabBadgeCount as getShieldResourceTabBadgeCount;
+    }
+
+    /**
+     * Permisos del portal Inertia que no corresponden a un recurso de Filament.
+     * Deben estar en el formulario: `EditRole` ejecuta `syncPermissions()` y
+     * quitaría del rol cualquier permiso que no aparezca aquí.
+     *
+     * @var array<string, string>
+     */
+    private const PORTAL_DASHBOARD_PERMISSIONS = [
+        'view_portal::dashboard' => 'Ver',
+    ];
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -83,6 +97,32 @@ class RoleResource extends Resource implements HasShieldPermissions
                     ]),
                 static::getShieldFormComponents(),
             ]);
+    }
+
+    public static function getResourceEntitiesSchema(): ?array
+    {
+        return [
+            Forms\Components\Section::make('Panel')
+                ->description('Portal: menú "Panel" y /dashboard')
+                ->compact()
+                ->schema([
+                    static::getCheckboxListFormComponent(
+                        name: 'portal_dashboard',
+                        options: self::PORTAL_DASHBOARD_PERMISSIONS,
+                        searchable: false,
+                        columns: static::shield()->getResourceCheckboxListColumns(),
+                        columnSpan: static::shield()->getResourceCheckboxListColumnSpan(),
+                    ),
+                ])
+                ->columnSpan(static::shield()->getSectionColumnSpan())
+                ->collapsible(),
+            ...static::getShieldResourceEntitiesSchema(),
+        ];
+    }
+
+    public static function getResourceTabBadgeCount(): ?int
+    {
+        return static::getShieldResourceTabBadgeCount() + count(self::PORTAL_DASHBOARD_PERMISSIONS);
     }
 
     public static function table(Table $table): Table

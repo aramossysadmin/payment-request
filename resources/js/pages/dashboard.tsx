@@ -7,7 +7,7 @@ import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { create as createRoute } from '@/routes/payment-requests';
 import type { BreadcrumbItem, DashboardPageProps, PaymentRequest } from '@/types';
-import { Deferred, Head, Link } from '@inertiajs/react';
+import { Deferred, Head, Link, usePage } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -95,6 +95,8 @@ function RecentTableSkeleton() {
 }
 
 function RecentRequestsTable({ requests }: { requests: PaymentRequest[] }) {
+    const { auth } = usePage().props;
+
     if (requests.length === 0) {
         return <p className="text-muted-foreground py-8 text-center text-sm">No hay solicitudes recientes.</p>;
     }
@@ -115,12 +117,18 @@ function RecentRequestsTable({ requests }: { requests: PaymentRequest[] }) {
                     {requests.map((request) => (
                         <tr key={request.uuid} className="hover:bg-muted/50 transition-colors">
                             <td className="whitespace-nowrap px-6 py-3">
-                                <Link
-                                    href={`/payment-requests/${request.uuid}`}
-                                    className="text-primary font-mono text-xs font-semibold hover:underline"
-                                >
-                                    #{String(request.folio_number).padStart(5, '0')}
-                                </Link>
+                                {auth.can.viewPaymentRequestDetail ? (
+                                    <Link
+                                        href={`/payment-requests/${request.uuid}`}
+                                        className="text-primary font-mono text-xs font-semibold hover:underline"
+                                    >
+                                        #{String(request.folio_number).padStart(5, '0')}
+                                    </Link>
+                                ) : (
+                                    <span className="text-foreground font-mono text-xs font-semibold">
+                                        #{String(request.folio_number).padStart(5, '0')}
+                                    </span>
+                                )}
                             </td>
                             <td className="px-6 py-3">
                                 <span className="text-foreground block max-w-[200px] truncate font-medium">{request.provider}</span>
@@ -143,30 +151,46 @@ function RecentRequestsTable({ requests }: { requests: PaymentRequest[] }) {
 }
 
 function PendingApprovalsList({ approvals }: { approvals: PaymentRequest[] }) {
+    const { auth } = usePage().props;
+
     if (approvals.length === 0) {
         return <p className="text-muted-foreground py-4 text-center text-sm">Sin aprobaciones pendientes.</p>;
     }
 
     return (
         <div className="flex flex-col gap-2">
-            {approvals.map((request) => (
-                <Link
-                    key={request.uuid}
-                    href={`/payment-requests/${request.uuid}`}
-                    className="hover:bg-muted/50 flex items-center justify-between rounded-lg border p-3 transition-colors"
-                >
-                    <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">#{request.folio_number}</p>
-                        <p className="text-muted-foreground truncate text-xs">{request.provider}</p>
+            {approvals.map((request) => {
+                const content = (
+                    <>
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">#{request.folio_number}</p>
+                            <p className="text-muted-foreground truncate text-xs">{request.provider}</p>
+                        </div>
+                        <span className="ml-2 text-sm font-medium">{formatCurrency(request.total)}</span>
+                    </>
+                );
+
+                return auth.can.viewPaymentRequestDetail ? (
+                    <Link
+                        key={request.uuid}
+                        href={`/payment-requests/${request.uuid}`}
+                        className="hover:bg-muted/50 flex items-center justify-between rounded-lg border p-3 transition-colors"
+                    >
+                        {content}
+                    </Link>
+                ) : (
+                    <div key={request.uuid} className="flex items-center justify-between rounded-lg border p-3">
+                        {content}
                     </div>
-                    <span className="ml-2 text-sm font-medium">{formatCurrency(request.total)}</span>
-                </Link>
-            ))}
+                );
+            })}
         </div>
     );
 }
 
 export default function Dashboard({ isAuthorizer, stats, recentRequests, pendingApprovals, chartData }: DashboardPageProps) {
+    const { auth } = usePage().props;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
@@ -195,14 +219,16 @@ export default function Dashboard({ isAuthorizer, stats, recentRequests, pending
                 </Deferred>
 
                 {/* Quick action */}
-                <div className="flex justify-end">
-                    <Link
-                        href={createRoute().url}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
-                    >
-                        + Nueva Solicitud de Pago
-                    </Link>
-                </div>
+                {auth.can.createPaymentRequests && (
+                    <div className="flex justify-end">
+                        <Link
+                            href={createRoute().url}
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
+                        >
+                            + Nueva Solicitud de Pago
+                        </Link>
+                    </div>
+                )}
 
                 {/* Chart + Pending Approvals */}
                 <div className={`flex flex-col gap-4 ${isAuthorizer ? 'lg:flex-row' : ''}`}>

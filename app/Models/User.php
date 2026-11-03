@@ -142,6 +142,16 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * True si alguno de los roles del usuario tiene marcada la casilla del permiso.
+     * No pasa por el `Gate::before` de Shield, así que también aplica a `super_admin`
+     * y permite ocultarle recursos del portal desmarcando la casilla de su rol.
+     */
+    public function hasPortalPermission(string $permission): bool
+    {
+        return $this->checkPermissionTo($permission);
+    }
+
+    /**
      * True si el usuario puede acceder al proyecto dado. Los roles privilegiados
      * tienen bypass total; el resto necesita tener el proyecto en su lista
      * de proyectos autorizados. Un proyecto `null` (para IRs históricos sin

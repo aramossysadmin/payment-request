@@ -15,6 +15,8 @@ import { dashboard } from '@/routes';
 import type { Auth, NavItem } from '@/types';
 import AppLogo from './app-logo';
 
+const HOME_URL = '/investment-sheets/consolidated';
+
 const platformItems: NavItem[] = [
     {
         title: 'Panel',
@@ -39,7 +41,7 @@ const investmentItems: NavItem[] = [
     },
     {
         title: 'Hojas de Inversión',
-        href: '/investment-sheets/consolidated',
+        href: HOME_URL,
         icon: ClipboardList,
     },
     {
@@ -86,7 +88,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link href={HOME_URL} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -95,8 +97,8 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={platformItems} label="Plataforma" />
-                <NavMain items={requestItems} label="Solicitudes" />
+                {auth.can.viewDashboard && <NavMain items={platformItems} label="Plataforma" />}
+                {auth.can.viewPaymentRequests && <NavMain items={requestItems} label="Solicitudes" />}
                 <NavMain items={finalInvestmentItems} label="Presupuestos de Inversión" />
                 <NavMain items={treasuryItems} label="Tesorería" />
                 <NavMain items={docsItems} label="Documentación" />

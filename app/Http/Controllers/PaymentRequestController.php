@@ -27,9 +27,13 @@ class PaymentRequestController extends Controller
 {
     public function __construct(private ApprovalService $approvalService) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
+
+        if (! $user->hasPortalPermission('view_any_payment::request')) {
+            return $this->redirectToInvestmentSheets();
+        }
 
         $query = PaymentRequest::query()
             ->with(['user', 'department', 'currency', 'branch', 'paymentType', 'expenseConcept', 'approvals.user'])
@@ -100,9 +104,13 @@ class PaymentRequestController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(): Response|RedirectResponse
     {
         $user = auth()->user();
+
+        if (! $user->hasPortalPermission('create_payment::request')) {
+            return $this->redirectToInvestmentSheets();
+        }
 
         return Inertia::render('payment-requests/create', [
             'currencies' => Currency::all(['id', 'name', 'prefix']),
@@ -251,5 +259,11 @@ class PaymentRequestController extends Controller
 
         return redirect()->route('payment-requests.index')
             ->with('success', 'Solicitud de pago eliminada exitosamente.');
+    }
+
+    private function redirectToInvestmentSheets(): RedirectResponse
+    {
+        return redirect()->route('investment-sheets.consolidated.index')
+            ->with('error', 'Las solicitudes de pago de inversión se capturan en Hojas de Inversión.');
     }
 }

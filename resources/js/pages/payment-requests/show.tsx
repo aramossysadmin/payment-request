@@ -14,7 +14,7 @@ type PageProps = {
 };
 
 export default function Show() {
-    const { paymentRequest: resource, canApprove, approvalStage, canEditPurchaseInvoices, canEditVendorPayments } =
+    const { paymentRequest: resource, canApprove, approvalStage, canEditPurchaseInvoices, canEditVendorPayments, auth } =
         usePage<PageProps>().props;
     const pr = resource.data;
 
@@ -52,6 +52,7 @@ export default function Show() {
                     approvalStage={approvalStage}
                     canEditPurchaseInvoices={canEditPurchaseInvoices}
                     canEditVendorPayments={canEditVendorPayments}
+                    canEdit={auth.can.updatePaymentRequests}
                 />
             </div>
         </AppLayout>

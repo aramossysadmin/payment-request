@@ -25,7 +25,7 @@ type PageProps = {
 };
 
 export default function Index() {
-    const { paymentRequests, canApproveIds, approvalStages, canEditPurchaseInvoicesIds, canEditVendorPaymentsIds, filters } =
+    const { paymentRequests, canApproveIds, approvalStages, canEditPurchaseInvoicesIds, canEditVendorPaymentsIds, filters, auth } =
         usePage<PageProps>().props;
 
     const isMobile = useIsMobile();
@@ -100,13 +100,15 @@ export default function Index() {
                 <h1 className="text-lg font-bold tracking-tight text-foreground">
                     Solicitudes
                 </h1>
-                <Button
-                    size="sm"
-                    onClick={() => router.visit('/payment-requests/create')}
-                >
-                    <Plus className="size-4" />
-                    Nueva
-                </Button>
+                {auth.can.createPaymentRequests && (
+                    <Button
+                        size="sm"
+                        onClick={() => router.visit('/payment-requests/create')}
+                    >
+                        <Plus className="size-4" />
+                        Nueva
+                    </Button>
+                )}
             </div>
 
             {/* Search */}
@@ -183,6 +185,7 @@ export default function Index() {
                     approvalStage={(selectedId ? approvalStages[selectedId] : null) as 'department' | 'administration' | 'treasury' | null}
                     canEditPurchaseInvoices={selectedId !== null && canEditPurchaseInvoicesIds.includes(selectedId)}
                     canEditVendorPayments={selectedId !== null && canEditVendorPaymentsIds.includes(selectedId)}
+                    canEdit={auth.can.updatePaymentRequests}
                 />
             ) : (
                 <div className="flex h-full flex-col items-center justify-center text-muted-foreground">

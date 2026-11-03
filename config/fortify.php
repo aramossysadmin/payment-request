@@ -73,7 +73,7 @@ return [
     |
     */
 
-    'home' => '/payment-requests',
+    'home' => '/investment-sheets/consolidated',
 
     /*
     |--------------------------------------------------------------------------
