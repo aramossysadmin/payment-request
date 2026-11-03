@@ -98,13 +98,13 @@ class StoreInvestmentPaymentRequest extends FormRequest
                 }
             }
 
-            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana'], true)) {
+            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana', 'nomina_fiscal'], true)) {
                 $files = $this->file('advance_documents', []);
                 if (is_array($files) && count($files) > 0) {
                     if (count($files) > 1) {
-                        $validator->errors()->add('advance_documents', 'Para reembolso, estrategia, anticipo, cotización, pagaré o domiciliado, adjunta un solo documento (PDF o imagen).');
-                    } elseif (! in_array(strtolower($files[0]->getClientOriginalExtension()), ['pdf', 'jpg', 'jpeg', 'png'], true)) {
-                        $validator->errors()->add('advance_documents', 'El documento debe ser PDF o imagen (JPG, JPEG o PNG).');
+                        $validator->errors()->add('advance_documents', 'Para reembolso, estrategia, anticipo, cotización, pagaré, domiciliado, factura España o nómina fiscal, adjunta un solo documento.');
+                    } elseif (! in_array(strtolower($files[0]->getClientOriginalExtension()), InvestmentPaymentType::singleDocumentExtensionsFor($paymentType), true)) {
+                        $validator->errors()->add('advance_documents', InvestmentPaymentType::singleDocumentFormatMessageFor($paymentType));
                     }
                 }
             }

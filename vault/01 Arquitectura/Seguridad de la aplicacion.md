@@ -22,7 +22,7 @@ fuentes:
   - app/Models/Branch.php
   - config/session.php
   - config/app.php
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Seguridad de la aplicación
@@ -110,8 +110,8 @@ Los archivos subidos viven en el disco `local` (`storage/app/private`), **nunca*
 | FormRequest | Campo | Regla |
 |---|---|---|
 | `StoreInvestmentPaymentRequest` / `UpdateInvestmentPaymentRequest` | `invoice_documents.*` (máx. 2) | `mimes:pdf,xml`, 10 MB |
-| | `advance_documents.*` (máx. 10) | `mimes:pdf,xml,jpg,jpeg,png,doc,docx,xls,xlsx`, 10 MB; además en `withValidator` se exige 1 solo documento PDF/imagen para reembolso, estrategia, anticipo, cotización, pagaré o domiciliado |
-| `UploadInvestmentPaymentDocumentsRequest` | `pdf` / `xml` / `document` | `mimes:pdf` / `mimetypes:application/xml,text/xml,text/plain` / `mimes:pdf,jpg,jpeg,png`, 10 MB |
+| | `advance_documents.*` (máx. 10) | `mimes:pdf,xml,jpg,jpeg,png,doc,docx,xls,xlsx`, 10 MB; además en `withValidator` se exige 1 solo documento: PDF o imagen para reembolso, estrategia, anticipo, cotización, pagaré, domiciliado y factura España; PDF, imagen o Excel (`xls`, `xlsx`) para nómina fiscal. La revisión de contenido comparte la lista amplia y la de extensión depende del tipo |
+| `UploadInvestmentPaymentDocumentsRequest` | `pdf` / `xml` / `document` | `mimes:pdf` / `mimetypes:application/xml,text/xml,text/plain` / `mimes:pdf,jpg,jpeg,png`; con nómina fiscal agrega `xls,xlsx`, 10 MB |
 | `StoreInvestmentRequestRequest` | `invoice_documents.*` / `advance_documents.*` (máx. 5) | `mimes:pdf,xml` / `mimes:pdf,jpg,jpeg,png`, 10 MB |
 | `UploadPaymentReceiptRequest` | `receipt_documents.*` (1 a 5) | `mimes:pdf,xml,jpg,jpeg,png`, 10 MB |
 

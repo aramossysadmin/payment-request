@@ -26,8 +26,8 @@ Historial de cambios del proyecto por mes, construido a partir de `git log`. Cad
 | [[Historial 2026-07]] | 13 | Comprobantes, PM con aprobación final, candado por proyecto, reportes ejecutivos |
 | [[Historial 2026-08]] | 1 | Columna Departamento en la programación |
 | [[Historial 2026-09]] | 3 | Cierre de proyectos, acceso por proyecto, Estrategias |
-| [[Historial 2026-11]] | 1 | Panel y Solicitudes de Pago controlados desde Shield |
-| **Total** | **254** | |
+| [[Historial 2026-11]] | 2 | Panel y Solicitudes de Pago controlados desde Shield, tipo de pago Nómina Fiscal |
+| **Total** | **255** | |
 
 ## Línea de tiempo
 
@@ -42,7 +42,7 @@ timeline
     Julio : PM aprobacion final : Candado por proyecto
     Agosto : Mantenimiento
     Septiembre : Acceso por proyecto : Estrategias
-    Noviembre : Panel y Solicitudes de Pago en Shield
+    Noviembre : Panel y Solicitudes de Pago en Shield : Nomina Fiscal
 ```
 
 > [!info] Alcance

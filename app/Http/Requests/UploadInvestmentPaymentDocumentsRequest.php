@@ -26,7 +26,7 @@ class UploadInvestmentPaymentDocumentsRequest extends FormRequest
             // declaracion XML ni BOM al inicio). La extension .xml sigue verificandose
             // en withValidator() abajo.
             'xml' => ['nullable', 'file', 'mimetypes:application/xml,text/xml,text/plain', 'max:10240'],
-            'document' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'document' => ['nullable', 'file', 'mimes:'.implode(',', InvestmentPaymentType::singleDocumentExtensionsFor($this->input('payment_type'))), 'max:10240'],
         ];
     }
 
@@ -52,13 +52,13 @@ class UploadInvestmentPaymentDocumentsRequest extends FormRequest
                 }
             }
 
-            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana'], true)) {
+            if (in_array($paymentType, ['reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana', 'nomina_fiscal'], true)) {
                 $document = $this->file('document');
 
                 if (! $document) {
                     $validator->errors()->add('document', 'El documento es obligatorio.');
-                } elseif (! in_array(strtolower($document->getClientOriginalExtension()), ['pdf', 'jpg', 'jpeg', 'png'], true)) {
-                    $validator->errors()->add('document', 'El documento debe ser PDF o imagen (JPG, JPEG o PNG).');
+                } elseif (! in_array(strtolower($document->getClientOriginalExtension()), InvestmentPaymentType::singleDocumentExtensionsFor($paymentType), true)) {
+                    $validator->errors()->add('document', InvestmentPaymentType::singleDocumentFormatMessageFor($paymentType));
                 }
             }
         });
@@ -78,7 +78,7 @@ class UploadInvestmentPaymentDocumentsRequest extends FormRequest
             'xml.mimetypes' => 'El archivo XML debe ser un XML válido.',
             'xml.max' => 'El archivo XML no puede exceder 10MB.',
             'document.file' => 'El documento debe ser un archivo válido.',
-            'document.mimes' => 'El documento debe ser PDF o imagen (JPG, JPEG o PNG).',
+            'document.mimes' => InvestmentPaymentType::singleDocumentFormatMessageFor($this->input('payment_type')),
             'document.max' => 'El documento no puede exceder 10MB.',
         ];
     }

@@ -17,7 +17,7 @@ fuentes:
   - resources/js/pages/investment-sheets/consolidated.tsx
   - resources/js/pages/weekly-payment-schedule/index.tsx
   - composer.lock
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Exportaciones Excel
@@ -104,7 +104,7 @@ Formato `#,##0.00_-` en M, N y O. La columna L no tiene formato explícito.
 | C | Proveedor | |
 | D | Concepto | Concepto de inversión |
 | E | Departamento | |
-| F | Tipo de pago | Etiqueta (Factura, Anticipo, Reembolso, Estrategia, Cotización, Pagaré, Domiciliado, Factura España) |
+| F | Tipo de pago | Etiqueta (Factura, Anticipo, Reembolso, Estrategia, Cotización, Pagaré, Domiciliado, Factura España, Nómina Fiscal) |
 | G | Estrategia (%) | Tasa si es estrategia |
 | H | Monto Estrategia | `strategy_amount` si es estrategia |
 | I | Fecha Provisión | `d/m/Y` |

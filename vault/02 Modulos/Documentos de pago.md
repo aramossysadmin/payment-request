@@ -11,7 +11,7 @@ fuentes:
   - app/Http/Requests/UploadInvestmentPaymentDocumentsRequest.php
   - app/Http/Controllers/DocumentViewController.php
   - resources/js/pages/investment-sheets/consolidated.tsx
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Documentos de pago
@@ -41,6 +41,10 @@ Después de la [[Revision del PM|aprobación final del PM]], el solicitante sube
 |---|---|---|
 | `factura` | `pdf` y `xml` obligatorios | PDF con mime pdf y extensión `.pdf`; XML con mimetype `application/xml`, `text/xml` o `text/plain` y extensión `.xml`; 10 MB c/u |
 | `reembolso`, `estrategia`, `anticipo`, `cotizacion`, `pagare`, `domiciliado`, `factura_espana` | `document` obligatorio | PDF, JPG, JPEG o PNG; 10 MB |
+| `nomina_fiscal` | `document` obligatorio | PDF, JPG, JPEG, PNG, XLS o XLSX; 10 MB |
+
+> [!info] Excel en Nómina Fiscal
+> La regla `mimes` depende del tipo, así que los demás tipos rechazan Excel por contenido. El Excel no tiene vista previa: `DocumentPreview` muestra un enlace y `DocumentViewController` lo sirve como descarga. Un archivo HTML o XML con extensión `.xls` se rechaza; hay que guardarlo antes como Excel real.
 
 > [!info] XML de CFDI como texto plano
 > Se acepta `text/plain` porque los XML de CFDI suelen detectarse así por `finfo` (no traen declaración XML ni BOM). La extensión `.xml` se valida aparte.

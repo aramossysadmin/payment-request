@@ -24,6 +24,7 @@ class WeeklyPaymentScheduleExport implements FromCollection, ShouldAutoSize, Wit
         'pagare' => 'Pagaré',
         'domiciliado' => 'Domiciliado',
         'factura_espana' => 'Factura España',
+        'nomina_fiscal' => 'Nómina Fiscal',
     ];
 
     private const STATUS_LABELS = [

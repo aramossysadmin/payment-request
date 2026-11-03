@@ -13,7 +13,7 @@ fuentes:
   - app/Services/PaymentRequestPolicyService.php
   - app/Filament/Pages/PaymentPolicySettings.php
   - database/seeders/BulkImport/InvestmentPaymentsHistoricalSeeder.php
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Comandos y scheduler
@@ -116,7 +116,7 @@ Genera un XLSX para la **carga masiva de pagos históricos de inversión**. Coma
 | Hoja `pagos` | Encabezados técnicos (fila 1) y etiquetas en español (fila 2): `investment_request_folio`, `provider`, `rfc`, `invoice_folio`, `payment_type`, `payment_provision_date`, `description`, `subtotal`, `iva_rate`, `iva`, `retention`, `total`, `created_by_email`, `currency`, `branch`, `created_at`. |
 | Hoja `conceptos_referencia` | Una fila por `InvestmentRequest` con folio, proveedor, descripción, proyecto, gasto de inversión, categoría, sucursal, moneda, total del concepto, pagado al día y saldo disponible, y correo del solicitante. |
 | Saldos | Se agrupan por **proyecto + gasto de inversión** (`groupKey()`); "pagado" suma pagos en `pending_approval` y `approved`. Los montos se suman en su moneda nativa, sin tipo de cambio (ver [[Multimoneda]]). |
-| Valores válidos documentados | `payment_type`: factura, reembolso, estrategia, anticipo, cotizacion, pagare, domiciliado, factura_espana. `iva_rate`: 0.00, 0.04, 0.08, 0.10, 0.16, 0.21. |
+| Valores válidos documentados | `payment_type`: factura, reembolso, estrategia, anticipo, cotizacion, pagare, domiciliado, factura_espana, nomina_fiscal. `iva_rate`: 0.00, 0.04, 0.08, 0.10, 0.16, 0.21. |
 
 Uso esperado: se genera el XLSX, se llena la hoja `pagos` y el resultado se guarda como `database/seeders/data/investment_payments_historical.tsv`, que es lo que lee `Database\Seeders\BulkImport\InvestmentPaymentsHistoricalSeeder` (carga los pagos con estatus aprobado y su aprobación, sin notificaciones). Ver [[Respaldos y restauracion]] antes de cualquier carga.
 

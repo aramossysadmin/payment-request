@@ -12,7 +12,7 @@ fuentes:
   - app/Enums/PaymentRequestStatus.php
   - app/Enums/PaymentType.php
   - app/Enums/PaymentTypeCategory.php
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Enums
@@ -52,8 +52,10 @@ Uso: casts de [[PaymentType]]; validación de documentos en `StorePaymentRequest
 | `Pagare` | `pagare` | Pagaré | 1 archivo |
 | `Domiciliado` | `domiciliado` | Domiciliado | 1 archivo |
 | `FacturaEspana` | `factura_espana` | Factura España | 1 archivo |
+| `NominaFiscal` | `nomina_fiscal` | Nómina Fiscal | 1 archivo PDF/JPG/PNG/XLS/XLSX |
 
 - `labelFor(?string $value)` devuelve la etiqueta o `—` si el valor no existe.
+- `singleDocumentExtensionsFor()` y `singleDocumentFormatMessageFor()` definen las extensiones y el mensaje de error del documento único según el tipo; solo `nomina_fiscal` agrega Excel.
 - Uso: validación `Rule::enum` en `StoreInvestmentPaymentRequest`, `UpdateInvestmentPaymentRequest`, `UploadInvestmentPaymentDocumentsRequest`; reglas de estrategia en `Concerns/ResolvesInvestmentStrategy`; etiquetas en `InvestmentPaymentRequestResource` y `InvestmentPaymentHistoryExcelController`.
 - El frontend tiene su propio mapa en `resources/js/lib/payment-type-labels.ts` y `WeeklyPaymentScheduleExport` otro en PHP: al agregar un caso hay que actualizar esos mapas.
 

@@ -62,6 +62,9 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Branch, Currency, PaginatedData } from '@/types';
 import type { InvestmentRequest } from '@/types/investment-request';
 
+const singleDocumentAccept = (paymentType: string): string =>
+    paymentType === 'nomina_fiscal' ? '.pdf,.jpg,.jpeg,.png,.xls,.xlsx' : '.pdf,.jpg,.jpeg,.png';
+
 type DepartmentBreakdown = {
     id: number;
     name: string;
@@ -607,8 +610,8 @@ export default function Consolidated() {
         );
     };
 
-    type UploadType = 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado' | 'factura_espana';
-    const UPLOAD_TYPES: UploadType[] = ['factura', 'reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana'];
+    type UploadType = 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado' | 'factura_espana' | 'nomina_fiscal';
+    const UPLOAD_TYPES: UploadType[] = ['factura', 'reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana', 'nomina_fiscal'];
     const isValidUploadType = (value: string | undefined | null): value is UploadType =>
         UPLOAD_TYPES.includes(value as UploadType);
 
@@ -3022,7 +3025,9 @@ export default function Consolidated() {
                         <DialogDescription>
                             {uploadType === 'factura'
                                 ? 'Adjunta el PDF y el XML de la factura. Ambos son obligatorios (máximo 10 MB cada uno).'
-                                : 'Adjunta un documento (PDF o imagen, máximo 10 MB).'}
+                                : uploadType === 'nomina_fiscal'
+                                    ? 'Adjunta un documento (PDF, imagen o Excel, máximo 10 MB).'
+                                    : 'Adjunta un documento (PDF o imagen, máximo 10 MB).'}
                         </DialogDescription>
                     </DialogHeader>
                     {(() => {
@@ -3092,7 +3097,7 @@ export default function Consolidated() {
                                 files={uploadDocument ? [uploadDocument] : []}
                                 onChange={(f) => setUploadDocument(f[0] ?? null)}
                                 maxFiles={1}
-                                accept=".pdf,.jpg,.jpeg,.png"
+                                accept={singleDocumentAccept(uploadType)}
                             />
                             <InputError message={uploadErrors.document} />
                         </div>
@@ -3403,7 +3408,7 @@ function PaymentRequestModal({
                 payment_provision_date: editingPayment.payment_provision_date ?? '',
                 currency_id: String(editingPayment.currency_id),
                 branch_id: String(editingPayment.branch_id),
-                payment_type: (['factura', 'reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana'].includes(editingPayment.payment_type) ? editingPayment.payment_type : 'factura') as 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado' | 'factura_espana',
+                payment_type: (['factura', 'reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana', 'nomina_fiscal'].includes(editingPayment.payment_type) ? editingPayment.payment_type : 'factura') as 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado' | 'factura_espana' | 'nomina_fiscal',
                 description: editingPayment.description ?? '',
                 subtotal: editingPayment.subtotal,
                 iva_rate: editingPayment.iva_rate ?? '',
@@ -3421,7 +3426,7 @@ function PaymentRequestModal({
             payment_provision_date: paymentPolicy.provision.nextDate,
             currency_id: ir.currency?.id ? String(ir.currency.id) : '',
             branch_id: ir.branch?.id ? String(ir.branch.id) : '',
-            payment_type: 'factura' as 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado' | 'factura_espana',
+            payment_type: 'factura' as 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado' | 'factura_espana' | 'nomina_fiscal',
             description: '',
             subtotal: '',
             iva_rate: '',
@@ -3493,7 +3498,7 @@ function PaymentRequestModal({
         setValues((prev) => ({ ...prev, [field]: value }));
     };
 
-    const changePaymentType = (type: 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado' | 'factura_espana') => {
+    const changePaymentType = (type: 'factura' | 'reembolso' | 'estrategia' | 'anticipo' | 'cotizacion' | 'pagare' | 'domiciliado' | 'factura_espana' | 'nomina_fiscal') => {
         setValues((prev) => {
             if (type === 'estrategia') {
                 return withStrategyAmounts({ ...prev, payment_type: type, iva_rate: '0.16' });
@@ -3845,7 +3850,7 @@ function PaymentRequestModal({
                                 <div className="space-y-2">
                                     <Label>Tipo de pago</Label>
                                     <div className="flex flex-wrap gap-2">
-                                        {(['factura', 'reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana'] as const).map((type) => (
+                                        {(['factura', 'reembolso', 'estrategia', 'anticipo', 'cotizacion', 'pagare', 'domiciliado', 'factura_espana', 'nomina_fiscal'] as const).map((type) => (
                                             <Button
                                                 key={type}
                                                 type="button"
@@ -3861,7 +3866,9 @@ function PaymentRequestModal({
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
                                     {values.payment_type === 'factura'
                                         ? 'Adjunta el PDF y XML de la factura.'
-                                        : 'Adjunta 1 documento (PDF o imagen).'}
+                                        : values.payment_type === 'nomina_fiscal'
+                                            ? 'Adjunta 1 documento (PDF, imagen o Excel).'
+                                            : 'Adjunta 1 documento (PDF o imagen).'}
                                 </p>
 
                                 {isEditMode && existingDocuments.length > 0 && (
@@ -3918,7 +3925,7 @@ function PaymentRequestModal({
                                         files={files}
                                         onChange={setFiles}
                                         maxFiles={1}
-                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        accept={singleDocumentAccept(values.payment_type)}
                                         error={errors.advance_documents || errors['advance_documents.0']}
                                     />
                                 )}

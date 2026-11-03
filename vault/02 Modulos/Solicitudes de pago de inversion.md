@@ -14,7 +14,7 @@ fuentes:
   - app/Http/Requests/Concerns/ResolvesInvestmentStrategy.php
   - app/Enums/InvestmentPaymentType.php
   - app/Enums/IvaRate.php
-actualizado: 2026-10-15
+actualizado: 2026-11-02
 ---
 
 # Solicitudes de pago de inversión
@@ -46,8 +46,9 @@ Enum `App\Enums\InvestmentPaymentType`:
 | `pagare` | Pagaré | Igual que reembolso | Igual que reembolso |
 | `domiciliado` | Domiciliado | Igual que reembolso | Igual que reembolso |
 | `factura_espana` | Factura España | Igual que reembolso | Igual que reembolso |
+| `nomina_fiscal` | Nómina Fiscal | `advance_documents`: 1 archivo PDF/JPG/JPEG/PNG/XLS/XLSX | `document`: 1 PDF, imagen o Excel |
 
-Regla de fondo: **factura = PDF + XML; el resto = 1 archivo PDF o imagen**. Las reglas declarativas aceptan hasta 2 archivos de factura y hasta 10 adjuntos de 10 MB, pero `withValidator()` reduce el resto de tipos a un único archivo. El tipo puede cambiar al subir documentos (ver [[Documentos de pago]]).
+Regla de fondo: **factura = PDF + XML; nómina fiscal = 1 archivo PDF, imagen o Excel; el resto = 1 archivo PDF o imagen**. Las reglas declarativas aceptan hasta 2 archivos de factura y hasta 10 adjuntos de 10 MB, pero `withValidator()` reduce el resto de tipos a un único archivo. El tipo puede cambiar al subir documentos (ver [[Documentos de pago]]).
 
 ## Campos de monto
 
