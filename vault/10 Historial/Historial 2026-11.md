@@ -11,7 +11,7 @@ actualizado: 2026-11-04
 
 # Historial noviembre 2026
 
-Control por rol de Panel y Solicitudes de Pago, tipo de pago Nómina Fiscal, corrección del conteo de conceptos y consulta de Estrategias. 4 commits.
+Control por rol de Panel y Solicitudes de Pago, tipo de pago Nómina Fiscal, corrección del conteo de conceptos, consulta de Estrategias y tarjeta de Programación semanal. 5 commits.
 
 ### 2026-11-02 · `9d21f3d` · Panel y Solicitudes de Pago controlados desde Shield
 
@@ -40,7 +40,7 @@ Control por rol de Panel y Solicitudes de Pago, tipo de pago Nómina Fiscal, cor
 - **Decisión:** ninguna
 - **Impacto en producción:** ninguno en datos. Las Hojas de Inversión pasan a mostrar el número real de conceptos, mayor al que se veía.
 
-### 2026-11-04 · sha pendiente · Consulta de Estrategias
+### 2026-11-04 · `115feb0` · Consulta de Estrategias
 
 - **Qué cambió:** nueva página `/strategies`, de solo lectura, para consultar por Hoja de Inversión o de todas a la vez las estrategias de todos los departamentos, en cualquier estado. Muestra fechas y semanas de captura y programación, filtra por departamento, estado y semanas, y descarga PDF y Excel. Se habilita con la casilla `view_portal::strategies` y el rol nuevo `estrategias`.
 - **Archivos principales:** `app/Services/StrategyPaymentHistory.php`, `app/Http/Controllers/StrategyHistoryController.php`, `app/Exports/StrategyHistoryExport.php`, `app/Filament/Resources/RoleResource.php`, `resources/js/pages/strategies/index.tsx`, `resources/views/pdf/strategies.blade.php`
@@ -48,6 +48,15 @@ Control por rol de Panel y Solicitudes de Pago, tipo de pago Nómina Fiscal, cor
 - **Notas actualizadas:** [[Estrategias]] · [[Permisos Shield]] · [[Roles y actores]] · [[Middleware y rutas protegidas]] · [[Acceso por proyecto]] · [[Rutas]] · [[Migraciones]] · [[Guia de usuario]] · [[PDFs]] · [[Exportaciones Excel]] · [[Frontend Inertia React]] · [[Indice de decisiones]]
 - **Decisión:** [[ADR-025 Consulta de Estrategias con permiso del portal]]
 - **Impacto en producción:** requiere respaldo antes del despliegue, porque corre una migración de datos. Los `super_admin` verán el recurso al desplegar, salvo que se desmarque en su rol. A los demás usuarios se les asigna el rol `estrategias` desde el panel. El selector de Hojas ahora admite la opción "Todas" solo en esta página.
+
+### 2026-11-04 · sha pendiente · Total a procesar, ancho fijo y selector de semana en Programación
+
+- **Qué cambió:** la tarjeta "Total a procesar" significa siempre lo pendiente de comprobante. En semanas con programación guardada ya no muestra "Total programado" como monto principal; ese dato pasa a un renglón "Programado" debajo. La página conserva su ancho al cambiar de semana. El botón de semana abre un selector con búsqueda, y las flechas ya no se saltan la semana 53. No cambian datos ni la suma entre monedas. El navegador de Hojas de Inversión sigue igual.
+- **Archivos principales:** `resources/js/pages/weekly-payment-schedule/index.tsx`, `resources/js/components/week-navigator.tsx`
+- **Migraciones:** ninguna
+- **Notas actualizadas:** [[Programacion semanal]]
+- **Decisión:** ninguna
+- **Impacto en producción:** ninguno en datos. Solo cambia la pantalla de Programación de Pagos.
 
 ## Relacionado
 - [[Indice del historial]] · [[Historial 2026-09]] · [[Permisos Shield]]

@@ -15,7 +15,7 @@ fuentes:
   - app/Notifications/WeeklyPaymentScheduleCreated.php
   - app/Http/Controllers/EmailApprovalController.php
   - resources/js/pages/weekly-payment-schedule/index.tsx
-actualizado: 2026-10-15
+actualizado: 2026-11-04
 ---
 
 # Programación semanal
@@ -39,11 +39,17 @@ Pantalla "Programación de Pagos Semanal" (`/weekly-payment-schedule`) donde se 
 
 1. Selector **Hoja de Inversión** con los proyectos visibles (`InvestmentRequest::visibleTo()`). Sin selección o con un proyecto no visible: estado vacío.
 2. Pagos del proyecto en `approved` (legacy), `completed` o `receipt_attached`, con `payment_provision_date` no nula. El monto mostrado es `approved_amount ?? total`.
-3. Navegador de semanas: filtra en cliente por `payment_week_number`. La semana inicial es `Carbon::now()->weekOfYear`.
+3. Navegador de semanas: filtra en cliente por `payment_week_number`, sin el año. La semana inicial es `Carbon::now()->weekOfYear`. Se cambia con las flechas o con un selector que lista todas las semanas ISO por año, incluida la 53 cuando existe, permite buscar por número y muestra la cantidad de pagos de cada una. El selector pone arriba la semana actual y sigue en orden descendente; las semanas futuras quedan al final, en el grupo "Próximas semanas".
 4. Si existe una programación no rechazada para la semana/año seleccionados, se muestra en **solo lectura** con sus pagos incluidos/excluidos y su estado (`pending_approval`, `approved`, `rejected`).
 5. Si no existe: tabla "Pagos Autorizados — Semana N" con casillas de inclusión y motivo de exclusión. Los pagos `receipt_attached` se ven pero no son programables.
 6. **Historial de Programaciones** del proyecto (últimas 20); clic en una fila navega a esa semana.
 7. Columna "Comprobante de pago" en ambas vistas.
+8. Tarjeta **Total a procesar**: siempre es lo pendiente de comprobante, calculado en cliente con `approved_amount ?? total`.
+   - **Sin programación:** suma los pagos seleccionados con las casillas, sin los `receipt_attached`.
+   - **Con programación:** suma los pagos incluidos que no están en `receipt_attached`, y debajo muestra "Programado: $…" con el total histórico de los incluidos.
+
+> [!warning] Suma sin convertir
+> La tarjeta y el Historial de Programaciones suman los montos tal cual, sin tipo de cambio ni etiqueta de moneda. En proyectos o semanas con varias monedas, el número no representa un total real. Ver [[Multimoneda]].
 
 ## Guardar programación (`store`)
 

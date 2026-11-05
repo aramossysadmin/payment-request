@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProjectClosedBanner } from '@/components/project-closed-banner';
 import { ProjectCombobox, type Project } from '@/components/project-combobox';
-import { WeekNavigator } from '@/components/week-navigator';
+import { WeekNavigator, type WeekOption } from '@/components/week-navigator';
 import { formatCurrency } from '@/lib/currency';
 import { investmentPaymentTypeLabel } from '@/lib/payment-type-labels';
 import AppLayout from '@/layouts/app-layout';
@@ -157,6 +157,14 @@ function DocumentChips({ documents, onPreview }: { documents: DocumentItem[]; on
     );
 }
 
+/** Un año ISO tiene 53 semanas si inicia en jueves, o en miércoles si es bisiesto. */
+const isoWeeksInYear = (year: number): number => {
+    const firstDay = new Date(year, 0, 1).getDay();
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+
+    return firstDay === 4 || (isLeapYear && firstDay === 3) ? 53 : 52;
+};
+
 export default function WeeklyPaymentScheduleIndex({ payments, schedules, projects, selectedProjectId, currentWeek, currentYear }: Props) {
     const [selectedWeek, setSelectedWeek] = useState(currentWeek);
     const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -232,19 +240,47 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
     const schedulePayments = existingScheduleForWeek?.payments ?? [];
     const scheduleIncluded = schedulePayments.filter((p) => p.included);
     const scheduleTotal = scheduleIncluded.reduce((sum, p) => sum + parseFloat(p.total), 0);
+    const schedulePendingTotal = scheduleIncluded
+        .filter((p) => p.status !== 'receipt_attached')
+        .reduce((sum, p) => sum + parseFloat(p.total), 0);
+
+    const weekOptions = useMemo<WeekOption[]>(() => {
+        const years = new Set<number>([currentYear, selectedYear, ...schedules.map((s) => s.year)]);
+        payments.forEach((p) => years.add(Number(p.payment_provision_date.slice(0, 4))));
+
+        return [...years]
+            .sort((a, b) => a - b)
+            .flatMap((year) =>
+                Array.from({ length: isoWeeksInYear(year) }, (_, index) => {
+                    const week = index + 1;
+                    const schedule = schedules.find((s) => s.week_number === week && s.year === year && s.status !== 'rejected');
+
+                    return {
+                        week,
+                        year,
+                        paymentsCount: schedule ? schedule.payments.length : payments.filter((p) => p.payment_week_number === week).length,
+                    };
+                }),
+            );
+    }, [payments, schedules, currentYear, selectedYear]);
 
     const navigateWeek = (direction: number) => {
         let newWeek = selectedWeek + direction;
         let newYear = selectedYear;
-        if (newWeek > 52) {
+        if (newWeek > isoWeeksInYear(newYear)) {
             newWeek = 1;
             newYear += 1;
         } else if (newWeek < 1) {
-            newWeek = 52;
             newYear -= 1;
+            newWeek = isoWeeksInYear(newYear);
         }
         setSelectedWeek(newWeek);
         setSelectedYear(newYear);
+    };
+
+    const selectWeek = (week: number, year: number) => {
+        setSelectedWeek(week);
+        setSelectedYear(year);
     };
 
     const isSelectedProjectClosed = selectedProject !== null && selectedProject.is_active === false;
@@ -334,7 +370,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Programación de Pagos Semanal" />
 
-            <div className="mx-auto max-w-7xl space-y-6 p-4 lg:p-6">
+            <div className="mx-auto w-full max-w-7xl space-y-6 p-4 lg:p-6">
                 {/* Project Selector */}
                 <Card>
                     <CardContent className="pt-6">
@@ -379,7 +415,7 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                     </div>
 
                     {/* Export + Week navigator */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" onClick={() => { setExportScope('week'); setExportOpen(true); }}>
                             <FileDown className="mr-2 h-4 w-4" />
                             Exportar Excel
@@ -390,6 +426,8 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                             currentWeek={currentWeek}
                             currentYear={currentYear}
                             onNavigate={navigateWeek}
+                            weekOptions={weekOptions}
+                            onSelect={selectWeek}
                         />
                     </div>
                 </div>
@@ -410,8 +448,11 @@ export default function WeeklyPaymentScheduleIndex({ payments, schedules, projec
                     </Card>
                     <Card>
                         <CardContent className="pt-6">
-                            <div className="text-sm text-gray-500 dark:text-gray-400">{existingScheduleForWeek ? 'Total programado' : 'Total a procesar'}</div>
-                            <div className="text-2xl font-bold text-blue-600">{formatCurrency(existingScheduleForWeek ? scheduleTotal : totalIncluded)}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">Total a procesar</div>
+                            <div className="text-2xl font-bold text-blue-600">{formatCurrency(existingScheduleForWeek ? schedulePendingTotal : totalIncluded)}</div>
+                            {existingScheduleForWeek && (
+                                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Programado: {formatCurrency(scheduleTotal)}</div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
