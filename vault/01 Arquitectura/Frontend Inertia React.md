@@ -18,7 +18,7 @@ fuentes:
   - resources/views/app.blade.php
   - vite.config.ts
   - components.json
-actualizado: 2026-11-02
+actualizado: 2026-11-04
 ---
 
 # Frontend Inertia React
@@ -71,7 +71,7 @@ El portal de usuarios (todo lo que no es `/admin`) es una SPA servida por Inerti
 |---|---|
 | Plataforma | Panel (`/dashboard`), solo con `auth.can.viewDashboard` |
 | Solicitudes | Solicitudes de Pago, solo con `auth.can.viewPaymentRequests` |
-| Presupuestos de Inversión | Solicitudes De Inversión, Hojas de Inversión, Control Presupuestal, y **Revisión de Pagos** solo si el usuario tiene rol `project_manager` o `super_admin` |
+| Presupuestos de Inversión | Solicitudes De Inversión, Hojas de Inversión, Control Presupuestal, **Estrategias** solo con `auth.can.viewStrategies`, y **Revisión de Pagos** solo si el usuario tiene rol `project_manager` o `super_admin` |
 | Tesorería | Programación de Pagos |
 | Documentación | Guía de Usuario |
 

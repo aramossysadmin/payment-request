@@ -9,7 +9,7 @@ fuentes:
   - .claude/memory/architecture_decisions.md
   - .claude/memory/tech_stack.md
   - CLAUDE.md
-actualizado: 2026-11-02
+actualizado: 2026-11-04
 ---
 
 # Índice de decisiones
@@ -44,6 +44,7 @@ Registro de decisiones de arquitectura y operación (ADR) del proyecto. Cada not
 | [[ADR-022 Aprobacion por correo con token\|022]] | Aprobación desde el correo con token caducable | 2026-03-14 | vigente |
 | [[ADR-023 Normalizacion de textos en modelos\|023]] | Normalización de textos en mutators de modelos | 2026-03-14 / 2026-06-01 | vigente |
 | [[ADR-024 Panel y Solicitudes de Pago controlados desde Shield\|024]] | Panel y Solicitudes de Pago por rol desde Shield; Hojas de Inversión como entrada | 2026-11-02 | vigente |
+| [[ADR-025 Consulta de Estrategias con permiso del portal\|025]] | Consulta de Estrategias con casilla de Shield y rol propio, sin filtro por proyecto | 2026-11-04 | vigente |
 
 > [!info] Numeración
 > Los números 001–021 siguen el orden cronológico; 022 y 023 se agregaron después y son anteriores en fecha. La columna **Fecha** es la referencia temporal.

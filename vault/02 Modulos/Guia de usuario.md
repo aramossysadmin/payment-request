@@ -9,7 +9,7 @@ fuentes:
   - resources/js/pages/guide/index.tsx
   - routes/web.php
   - resources/js/components/app-sidebar.tsx
-actualizado: 2026-11-02
+actualizado: 2026-11-04
 ---
 
 # Guía de usuario
@@ -20,7 +20,7 @@ Página estática dentro del portal (`/guide`) con instrucciones de uso para el 
 
 - `GET /guide` (`guide`), closure `fn () => Inertia::render('guide/index')` dentro del grupo `auth` + `verified` de `routes/web.php`. Ver [[Rutas]].
 - Menú lateral: grupo "Documentación" → "Guía de Usuario" (`app-sidebar.tsx`), visible para todos los usuarios autenticados.
-- La pestaña "Solicitudes de Pago" solo aparece con `auth.can.viewPaymentRequests`; sin ella, la guía abre en "Presupuestos de Inversión". En la pestaña General, las líneas "Plataforma" y "Solicitudes" dependen de `auth.can.viewDashboard` y `auth.can.viewPaymentRequests`.
+- La pestaña "Solicitudes de Pago" solo aparece con `auth.can.viewPaymentRequests`; sin ella, la guía abre en "Presupuestos de Inversión". En la pestaña General, las líneas "Plataforma", "Solicitudes" y "Estrategias" dependen de `auth.can.viewDashboard`, `auth.can.viewPaymentRequests` y `auth.can.viewStrategies`.
 
 ## Estructura de la página
 
@@ -42,7 +42,7 @@ Historial de cambios del archivo (git): creada en abril 2026, reorganizada a 4 p
 La guía no se ha actualizado desde mayo 2026 y describe varios flujos que ya cambiaron:
 
 > [!warning] Contenido desactualizado
-> - No menciona: [[Lotes de pago]], [[Aprobacion del CEO]], [[Revision del PM]], [[Documentos de pago]], [[Comprobantes de pago]], [[Estrategias]], la [[Politica de ventanas de pago]], el estado cerrado de [[Proyectos]] ni el [[Acceso por proyecto]].
+> - No menciona: [[Lotes de pago]], [[Aprobacion del CEO]], [[Revision del PM]], [[Documentos de pago]], [[Comprobantes de pago]], el tipo de pago [[Estrategias|estrategia]] (solo describe la consulta en la pestaña General), la [[Politica de ventanas de pago]], el estado cerrado de [[Proyectos]] ni el [[Acceso por proyecto]].
 > - **Flujo de Solicitudes de Inversión**: dice que hay un autorizador único; hoy, si el proyecto tiene `requires_pm_approval`, la aprobación va a los PM, y existe un bypass global de autorización. Ver [[Flujo de solicitud de inversion]].
 > - **Tesorería**: describe "Autorizar Lote" / "Rechazar Lote" y que los pagos pasan a "Pagado"; la [[Programacion semanal]] actual envía la programación a aprobación por correo y los estados son `scheduled_for_bank` / `receipt_attached`.
 > - **Control Presupuestal**: dice que el comprometido son "conceptos pendientes"; hoy comprometido y pagado se calculan sobre estados de pagos de inversión. Ver [[Dashboards]].

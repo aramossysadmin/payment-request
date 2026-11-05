@@ -16,7 +16,7 @@ fuentes:
   - config/fortify.php
   - config/filesystems.php
   - app/Models/User.php
-actualizado: 2026-11-02
+actualizado: 2026-11-04
 ---
 
 # Rutas
@@ -92,6 +92,9 @@ Ver [[Dashboards]], [[Busqueda de proveedores]], [[Guia de usuario]], [[Notifica
 | GET | `…/consolidated/{project}/payment-history-excel` | `investment-sheets.payment-history-excel` | `InvestmentPaymentHistoryExcelController` | — | Ídem |
 | GET | `…/consolidated/{project}/investment-requests-pdf` | `investment-sheets.investment-requests-pdf` | `InvestmentSheetInvestmentRequestsPdfController` | `role:super_admin\|ceo\|project_manager` | Rol + `canAccessProject` |
 | GET | `…/consolidated/{project}/investment-requests-excel` | `investment-sheets.investment-requests-excel` | `InvestmentSheetInvestmentRequestsExcelController` | `role:super_admin\|ceo\|project_manager` | Rol + `canAccessProject` |
+| GET | `/strategies` | `strategies.index` | `StrategyHistoryController` | — | Casilla `view_portal::strategies` (sin ella redirige a Hojas de Inversión). `project_id`: ID o `all`. Ver [[Estrategias]] |
+| GET | `/strategies/pdf` | `strategies.pdf` | `StrategyHistoryPdfController` | — | Casilla (403). `project_id` obligatorio: ID o `all` (404 si es inválido); opcionales `department_id`, `status`, `capture_week`, `provision_week` |
+| GET | `/strategies/excel` | `strategies.excel` | `StrategyHistoryExcelController` | — | Ídem |
 
 Ver [[Consolidado por proyecto]], [[PDFs]], [[Exportaciones Excel]], [[Acceso por proyecto]].
 

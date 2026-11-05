@@ -23,12 +23,16 @@ fuentes:
   - app/Http/Controllers/InvestmentSheetInvestmentRequestsExcelController.php
   - app/Http/Controllers/InvestmentRequestController.php
   - app/Http/Controllers/WeeklyPaymentScheduleExportController.php
-actualizado: 2026-10-15
+  - app/Http/Controllers/StrategyHistoryController.php
+actualizado: 2026-11-04
 ---
 
 # Acceso por proyecto
 
 Control que restringe **qué proyectos puede ver y capturar cada usuario**. Se asigna en Filament (sección "Proyectos autorizados" del usuario) y se guarda en la pivote `project_user`. Los roles `super_admin`, `ceo` y `project_manager` tienen acceso total sin asignación. Es una capa **adicional** (AND) sobre la visibilidad por departamento que ya existía.
+
+> [!info] Excepción: consulta de Estrategias
+> `/strategies` no aplica este control: la casilla `view_portal::strategies` da lectura de todas las Hojas y departamentos. Ver [[ADR-025 Consulta de Estrategias con permiso del portal]].
 
 ## Piezas
 

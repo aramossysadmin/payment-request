@@ -31,10 +31,19 @@ class RoleResource extends Resource implements HasShieldPermissions
      * Deben estar en el formulario: `EditRole` ejecuta `syncPermissions()` y
      * quitaría del rol cualquier permiso que no aparezca aquí.
      *
-     * @var array<string, string>
+     * @var array<string, array{label: string, description: string, permissions: array<string, string>}>
      */
-    private const PORTAL_DASHBOARD_PERMISSIONS = [
-        'view_portal::dashboard' => 'Ver',
+    private const PORTAL_PERMISSION_CARDS = [
+        'portal_dashboard' => [
+            'label' => 'Panel',
+            'description' => 'Portal: menú "Panel" y /dashboard',
+            'permissions' => ['view_portal::dashboard' => 'Ver'],
+        ],
+        'portal_strategies' => [
+            'label' => 'Estrategias (portal)',
+            'description' => 'Portal: menú "Estrategias" y /strategies',
+            'permissions' => ['view_portal::strategies' => 'Ver'],
+        ],
     ];
 
     protected static ?string $recordTitleAttribute = 'name';
@@ -101,28 +110,31 @@ class RoleResource extends Resource implements HasShieldPermissions
 
     public static function getResourceEntitiesSchema(): ?array
     {
-        return [
-            Forms\Components\Section::make('Panel')
-                ->description('Portal: menú "Panel" y /dashboard')
+        $portalCards = collect(self::PORTAL_PERMISSION_CARDS)
+            ->map(fn (array $card, string $name) => Forms\Components\Section::make($card['label'])
+                ->description($card['description'])
                 ->compact()
                 ->schema([
                     static::getCheckboxListFormComponent(
-                        name: 'portal_dashboard',
-                        options: self::PORTAL_DASHBOARD_PERMISSIONS,
+                        name: $name,
+                        options: $card['permissions'],
                         searchable: false,
                         columns: static::shield()->getResourceCheckboxListColumns(),
                         columnSpan: static::shield()->getResourceCheckboxListColumnSpan(),
                     ),
                 ])
                 ->columnSpan(static::shield()->getSectionColumnSpan())
-                ->collapsible(),
-            ...static::getShieldResourceEntitiesSchema(),
-        ];
+                ->collapsible())
+            ->values()
+            ->all();
+
+        return [...$portalCards, ...static::getShieldResourceEntitiesSchema()];
     }
 
     public static function getResourceTabBadgeCount(): ?int
     {
-        return static::getShieldResourceTabBadgeCount() + count(self::PORTAL_DASHBOARD_PERMISSIONS);
+        return static::getShieldResourceTabBadgeCount()
+            + collect(self::PORTAL_PERMISSION_CARDS)->sum(fn (array $card) => count($card['permissions']));
     }
 
     public static function table(Table $table): Table

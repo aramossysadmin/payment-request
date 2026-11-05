@@ -60,6 +60,7 @@ class HandleInertiaRequests extends Middleware
                     'createPaymentRequests' => $request->user()?->hasPortalPermission('create_payment::request') ?? false,
                     'viewPaymentRequestDetail' => $request->user()?->hasPortalPermission('view_payment::request') ?? false,
                     'updatePaymentRequests' => $request->user()?->hasPortalPermission('update_payment::request') ?? false,
+                    'viewStrategies' => $request->user()?->hasPortalPermission('view_portal::strategies') ?? false,
                 ],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

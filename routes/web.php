@@ -24,6 +24,9 @@ use App\Http\Controllers\PaymentRequestController;
 use App\Http\Controllers\PaymentRequestDocumentController;
 use App\Http\Controllers\PaymentRequestPdfController;
 use App\Http\Controllers\ProviderSearchController;
+use App\Http\Controllers\StrategyHistoryController;
+use App\Http\Controllers\StrategyHistoryExcelController;
+use App\Http\Controllers\StrategyHistoryPdfController;
 use App\Http\Controllers\WeeklyPaymentReceiptController;
 use App\Http\Controllers\WeeklyPaymentScheduleController;
 use App\Http\Controllers\WeeklyPaymentScheduleExportController;
@@ -90,6 +93,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('weekly-payment-schedule/export', WeeklyPaymentScheduleExportController::class)->name('weekly-payment-schedule.export');
     Route::post('weekly-payment-schedule', [WeeklyPaymentScheduleController::class, 'store'])->name('weekly-payment-schedule.store');
     Route::post('weekly-payment-schedule/{payment:uuid}/receipt', [WeeklyPaymentReceiptController::class, 'store'])->name('weekly-payment-schedule.upload-receipt');
+
+    Route::get('strategies', StrategyHistoryController::class)->name('strategies.index');
+    Route::get('strategies/pdf', StrategyHistoryPdfController::class)->name('strategies.pdf');
+    Route::get('strategies/excel', StrategyHistoryExcelController::class)->name('strategies.excel');
 
     Route::get('guide', fn () => Inertia::render('guide/index'))->name('guide');
 

@@ -521,6 +521,11 @@ function GeneralGuide() {
                         <li>
                             <strong>Presupuestos de Inversión:</strong> Gestión de Solicitudes De Inversión, Hojas Consolidadas, Control Presupuestal y Solicitud de Pagos desde inversiones.
                         </li>
+                        {auth.can.viewStrategies && (
+                            <li>
+                                <strong>Estrategias:</strong> Consulta, por Hoja de Inversión o de todas a la vez, las estrategias solicitadas por todos los departamentos, con su estado y documentos.
+                            </li>
+                        )}
                         <li>
                             <strong>Tesorería:</strong> Programación semanal de pagos, autorización de lotes de pago e historial de ejecuciones.
                         </li>

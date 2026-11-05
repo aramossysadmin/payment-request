@@ -14,7 +14,7 @@ fuentes:
   - vendor/bezhansalleh/filament-shield/src/FilamentShieldServiceProvider.php
   - app/Models/User.php
   - app/Http/Middleware/HandleInertiaRequests.php
-actualizado: 2026-11-02
+actualizado: 2026-11-04
 ---
 
 # Permisos Shield
@@ -106,19 +106,20 @@ Algunos recursos sobrescriben la policy en la clase del recurso: `InvestmentPaym
 6. Probar con un usuario sin `super_admin` (con `super_admin` todo pasa por `Gate::before`).
 
 > [!tip]
-> En el portal Inertia (fuera de `/admin`) casi no se usan permisos Shield: allí mandan los roles (`role:` en rutas, `hasRole`/`hasAnyRole` en controladores) y los scopes de visibilidad. Las excepciones son Panel y Solicitudes de Pago. Ver [[Middleware y rutas protegidas]].
+> En el portal Inertia (fuera de `/admin`) casi no se usan permisos Shield: allí mandan los roles (`role:` en rutas, `hasRole`/`hasAnyRole` en controladores) y los scopes de visibilidad. Las excepciones son Panel, Solicitudes de Pago y la consulta de Estrategias. Ver [[Middleware y rutas protegidas]].
 
 ## Permisos del portal
 
-Panel y Solicitudes de Pago se habilitan por rol desde `/admin/shield/roles` ([[ADR-024 Panel y Solicitudes de Pago controlados desde Shield]]).
+Panel, Solicitudes de Pago y la consulta de Estrategias se habilitan por rol desde `/admin/shield/roles` ([[ADR-024 Panel y Solicitudes de Pago controlados desde Shield]], [[ADR-025 Consulta de Estrategias con permiso del portal]]).
 
 - `User::hasPortalPermission()` usa `checkPermissionTo()` de Spatie: revisa los permisos reales de los roles del usuario, no pasa por `Gate::before` y también aplica a `super_admin`.
-- `HandleInertiaRequests` comparte el resultado en `auth.can` (`viewDashboard`, `viewPaymentRequests`, `createPaymentRequests`, `viewPaymentRequestDetail`, `updatePaymentRequests`).
+- `HandleInertiaRequests` comparte el resultado en `auth.can` (`viewDashboard`, `viewStrategies`, `viewPaymentRequests`, `createPaymentRequests`, `viewPaymentRequestDetail`, `updatePaymentRequests`).
 - Los permisos de varios roles se suman.
 
 | Tarjeta | Permisos | Origen |
 |---|---|---|
-| Panel | `view_portal::dashboard` | No corresponde a un recurso de Filament: `RoleResource` agrega la tarjeta en `getResourceEntitiesSchema()`, y la migración `add_portal_dashboard_permission` crea el permiso |
+| Panel | `view_portal::dashboard` | No corresponde a un recurso de Filament: `RoleResource` agrega la tarjeta desde `PORTAL_PERMISSION_CARDS`, y la migración `add_portal_dashboard_permission` crea el permiso |
+| Estrategias (portal) | `view_portal::strategies` | Igual que Panel, con la migración `add_portal_strategies_permission_and_role`. Es distinta de la tarjeta del catálogo `*_strategy`. Ver [[Estrategias]] |
 | Solicitud de Pago | `*_payment::request` | `PaymentRequestResource`. Ver [[Modulo legacy Payment Requests]] |
 
 > [!warning] Permisos fuera del formulario

@@ -15,6 +15,7 @@ class RoleAndPermissionSeeder extends Seeder
     private const ROLE_PERMISSIONS = [
         'super_admin' => [
             'view_portal::dashboard',
+            'view_portal::strategies',
             'view_any_branch', 'view_branch', 'create_branch', 'update_branch',
             'delete_branch', 'delete_any_branch', 'restore_branch', 'restore_any_branch',
             'replicate_branch', 'reorder_branch', 'force_delete_branch', 'force_delete_any_branch',
@@ -82,6 +83,9 @@ class RoleAndPermissionSeeder extends Seeder
             'view_any_user', 'view_user', 'create_user', 'update_user',
             'delete_user', 'delete_any_user', 'restore_user', 'restore_any_user',
             'replicate_user', 'reorder_user', 'force_delete_user', 'force_delete_any_user',
+        ],
+        'estrategias' => [
+            'view_portal::strategies',
         ],
         'administrador' => [
             'view_portal::dashboard',

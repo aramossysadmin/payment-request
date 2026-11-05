@@ -6,12 +6,12 @@ tags:
   - payment-request/historial
 fuentes:
   - git log
-actualizado: 2026-11-03
+actualizado: 2026-11-04
 ---
 
 # Historial noviembre 2026
 
-Control por rol de Panel y Solicitudes de Pago, tipo de pago Nómina Fiscal y corrección del conteo de conceptos. 3 commits.
+Control por rol de Panel y Solicitudes de Pago, tipo de pago Nómina Fiscal, corrección del conteo de conceptos y consulta de Estrategias. 4 commits.
 
 ### 2026-11-02 · `9d21f3d` · Panel y Solicitudes de Pago controlados desde Shield
 
@@ -31,7 +31,7 @@ Control por rol de Panel y Solicitudes de Pago, tipo de pago Nómina Fiscal y co
 - **Decisión:** ninguna
 - **Impacto en producción:** ninguno en datos ni permisos. Los documentos de nómina usan las mismas reglas de acceso que los demás tipos.
 
-### 2026-11-03 · sha pendiente · Conteo de conceptos correcto en PostgreSQL
+### 2026-11-03 · `e9840ff` · Conteo de conceptos correcto en PostgreSQL
 
 - **Qué cambió:** los conteos de conceptos usaban `CAST(... AS CHAR)`, que en PostgreSQL conserva solo el primer carácter del ID y agrupaba conceptos distintos. Ahora usan `AS VARCHAR`. Solo cambian los conteos; montos, presupuesto y saldos no se afectan.
 - **Archivos principales:** `app/Http/Controllers/InvestmentSheetConsolidatedIndexController.php`, `app/Http/Controllers/InvestmentSheetConsolidatedController.php`, `app/Services/InvestmentDepartmentBreakdownService.php`
@@ -39,6 +39,15 @@ Control por rol de Panel y Solicitudes de Pago, tipo de pago Nómina Fiscal y co
 - **Notas actualizadas:** [[Consolidado por proyecto]] · [[Dashboards]]
 - **Decisión:** ninguna
 - **Impacto en producción:** ninguno en datos. Las Hojas de Inversión pasan a mostrar el número real de conceptos, mayor al que se veía.
+
+### 2026-11-04 · sha pendiente · Consulta de Estrategias
+
+- **Qué cambió:** nueva página `/strategies`, de solo lectura, para consultar por Hoja de Inversión o de todas a la vez las estrategias de todos los departamentos, en cualquier estado. Muestra fechas y semanas de captura y programación, filtra por departamento, estado y semanas, y descarga PDF y Excel. Se habilita con la casilla `view_portal::strategies` y el rol nuevo `estrategias`.
+- **Archivos principales:** `app/Services/StrategyPaymentHistory.php`, `app/Http/Controllers/StrategyHistoryController.php`, `app/Exports/StrategyHistoryExport.php`, `app/Filament/Resources/RoleResource.php`, `resources/js/pages/strategies/index.tsx`, `resources/views/pdf/strategies.blade.php`
+- **Migraciones:** `database/migrations/2026_11_03_184104_add_portal_strategies_permission_and_role.php`
+- **Notas actualizadas:** [[Estrategias]] · [[Permisos Shield]] · [[Roles y actores]] · [[Middleware y rutas protegidas]] · [[Acceso por proyecto]] · [[Rutas]] · [[Migraciones]] · [[Guia de usuario]] · [[PDFs]] · [[Exportaciones Excel]] · [[Frontend Inertia React]] · [[Indice de decisiones]]
+- **Decisión:** [[ADR-025 Consulta de Estrategias con permiso del portal]]
+- **Impacto en producción:** requiere respaldo antes del despliegue, porque corre una migración de datos. Los `super_admin` verán el recurso al desplegar, salvo que se desmarque en su rol. A los demás usuarios se les asigna el rol `estrategias` desde el panel. El selector de Hojas ahora admite la opción "Todas" solo en esta página.
 
 ## Relacionado
 - [[Indice del historial]] · [[Historial 2026-09]] · [[Permisos Shield]]

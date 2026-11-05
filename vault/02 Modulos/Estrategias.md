@@ -17,12 +17,20 @@ fuentes:
   - database/migrations/2026_09_22_135543_create_strategies_table.php
   - database/migrations/2026_09_22_135544_add_strategy_fields_to_investment_payment_requests_table.php
   - resources/js/pages/investment-sheets/consolidated.tsx
-actualizado: 2026-10-15
+  - app/Services/StrategyPaymentHistory.php
+  - app/Http/Controllers/StrategyHistoryController.php
+  - app/Http/Controllers/StrategyHistoryPdfController.php
+  - app/Http/Controllers/StrategyHistoryExcelController.php
+  - app/Exports/StrategyHistoryExport.php
+  - resources/views/pdf/strategies.blade.php
+  - resources/js/pages/strategies/index.tsx
+  - resources/js/components/project-combobox.tsx
+actualizado: 2026-11-04
 ---
 
 # Estrategias
 
-Catálogo de tasas de recargo para los pagos de inversión de tipo **estrategia**. El usuario captura un **Monto Estrategia** y el sistema calcula el total con recargo e IVA a partir de la tasa del catálogo.
+Catálogo de tasas de recargo para los pagos de inversión de tipo **estrategia**. El usuario captura un **Monto Estrategia** y el sistema calcula el total con recargo e IVA a partir de la tasa del catálogo. El portal también ofrece una [[#Consulta de estrategias (`/strategies`)|consulta de solo lectura]] de las estrategias solicitadas.
 
 ## Modelo `Strategy`
 
@@ -113,6 +121,43 @@ Dónde aparece:
 | Excel programación semanal | `WeeklyPaymentScheduleExport` |
 | Filament pagos | `InvestmentPaymentRequestResource` (descripción en tabla, campos Estrategia y Monto Estrategia en detalle) |
 
+## Consulta de estrategias (`/strategies`)
+
+Página de solo lectura para revisar las estrategias de todos los departamentos, sin capturar ni aprobar nada. Ver [[ADR-025 Consulta de Estrategias con permiso del portal]].
+
+**Acceso:** casilla `view_portal::strategies` (rol `estrategias`), también para `super_admin`. Sin ella, la página redirige a Hojas de Inversión y los reportes responden 403. No aplica [[Acceso por proyecto]]: quien tiene la casilla ve todas las Hojas y departamentos.
+
+**Selector:** al entrar se pide elegir una Hoja de Inversión, o la opción **Todas** (`project_id=all`). Un `project_id` vacío o inválido no muestra pagos, y en los reportes responde 404. Las Hojas cerradas se incluyen; las borradas no.
+
+**Pagos incluidos** (`StrategyPaymentHistory::payments()`):
+
+- `payment_type = estrategia`, o `strategy_factor_snapshot` no nulo si el pago cambió de tipo después de capturarse. Estos últimos se muestran como "Tipo actual: …".
+- Todos los estados, incluidos borradores, rechazados y cancelados. Los pagos eliminados y los de solicitudes eliminadas no aparecen.
+- Sin snapshot, el pago se marca "Anterior al catálogo" y no muestra tasa, monto base ni recargo.
+- Orden por folio descendente, con las Hojas mezcladas.
+
+**Columnas:** Folio · Hoja de Inversión · Departamento / Solicitante · Concepto / Proveedor · Código y tasa · Monto base / Recargo · Total / Aprobado · Tipo · Estado · Fecha Captura · Semana Captura · Fecha Programación · Semana Programación · Documentos · Comprobante.
+
+**Montos:** cada fila conserva su moneda original. No hay totales, porque mezclarían monedas.
+
+**Filtros y paginación:** Departamento, Estado, Semana Captura y Semana Programación se combinan y se aplican en el navegador, con paginación de 10, 25 o 50 filas. Los reportes [[PDFs#`pdf.strategies` (Estrategias Solicitadas)|PDF]] y [[Exportaciones Excel#`StrategyHistoryExport`|Excel]] reciben los mismos filtros e incluyen todas las filas filtradas.
+
+**Semanas:** son semanas ISO, con lunes como inicio, calculadas al consultar en `StrategyPaymentHistory::row()`.
+
+| Dato | Origen |
+|---|---|
+| Semana Captura | `created_at` en la zona horaria de la aplicación |
+| Semana Programación | `payment_provision_date`, igual que el [[Consolidado por proyecto]] |
+
+> [!warning] `payment_week_number` no se usa aquí
+> [[Programacion semanal]] puede cambiar esa columna sin cambiar la fecha. La consulta calcula la semana desde la fecha mostrada para que ambas siempre coincidan.
+
+El filtro de semana usa el formato `AAAA-S` en la URL (ejemplo ficticio: `2030-7`) para no mezclar la misma semana de años distintos. Se aplica en PHP, no en SQL, para no depender de las funciones de fecha de cada motor. Un valor inválido se ignora.
+
+> [!info] Fechas históricas
+> En pagos de cargas masivas anteriores a la [[Politica de ventanas de pago]], Programación puede ser anterior a Captura. No es un error de la consulta.
+
 ## Relacionado
 - [[Solicitudes de pago de inversion]] · [[Consolidado por proyecto]] · [[Catalogos]] · [[Panel Filament]]
 - [[Strategy]] · [[InvestmentPaymentRequest]] · [[Catalogo de correos]] · [[PDFs]] · [[Exportaciones Excel]]
+- [[Permisos Shield]] · [[Roles y actores]] · [[Rutas]] · [[ADR-025 Consulta de Estrategias con permiso del portal]]

@@ -6,7 +6,7 @@ tags:
   - payment-request/datos
 fuentes:
   - database/migrations/
-actualizado: 2026-11-02
+actualizado: 2026-11-04
 ---
 
 # Migraciones
@@ -156,11 +156,12 @@ timeline
 | `2026_09_22_135543` | `strategies` | |
 | `2026_09_22_135544` | `strategy_id`, `strategy_amount`, `strategy_factor_snapshot`, `strategy_name_snapshot` en pagos | |
 
-### Permisos del portal (2026-11-02)
+### Permisos del portal (2026-11)
 
 | Migración | Introduce |
 |---|---|
 | `2026_11_02_192516_add_portal_dashboard_permission` | Solo datos: crea `view_portal::dashboard` con `firstOrCreate`, lo asigna a `super_admin`, `admin_sp`, `administrador`, `project_manager` y `ceo`, y limpia la caché de permisos. `down()` vacío. Ver [[ADR-024 Panel y Solicitudes de Pago controlados desde Shield]] |
+| `2026_11_03_184104_add_portal_strategies_permission_and_role` | Solo datos: crea `view_portal::strategies` y el rol `estrategias` con `firstOrCreate`, asigna el permiso a ese rol y a `super_admin`, y limpia la caché de permisos. `down()` vacío. Ver [[ADR-025 Consulta de Estrategias con permiso del portal]] |
 
 ## Cómo agregar una migración
 

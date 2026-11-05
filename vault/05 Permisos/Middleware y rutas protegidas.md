@@ -16,7 +16,9 @@ fuentes:
   - app/Http/Controllers/EmailApprovalController.php
   - app/Http/Controllers/InvestmentBatchApprovalController.php
   - config/fortify.php
-actualizado: 2026-11-02
+  - app/Http/Controllers/StrategyHistoryController.php
+  - app/Services/StrategyPaymentHistory.php
+actualizado: 2026-11-04
 ---
 
 # Middleware y rutas protegidas
@@ -29,7 +31,7 @@ Qué middleware protege cada grupo de rutas del portal Inertia y del panel Filam
 |---|---|---|
 | `SecurityHeaders` | Global (`append`) | `X-Frame-Options: DENY` (si la respuesta no trae otro), `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS en HTTPS |
 | `HandleAppearance` | Grupo `web` | Tema claro/oscuro |
-| `HandleInertiaRequests` | Grupo `web` | Comparte `auth.user` (id, nombre, correo, departamentos, **roles**), `auth.can` (casillas de Panel y Solicitudes de Pago), notificaciones no leídas y flash |
+| `HandleInertiaRequests` | Grupo `web` | Comparte `auth.user` (id, nombre, correo, departamentos, **roles**), `auth.can` (casillas de Panel, Estrategias y Solicitudes de Pago), notificaciones no leídas y flash |
 | `AddLinkHeadersForPreloadedAssets` | Grupo `web` | Preload de Vite |
 | `encryptCookies(except: appearance, sidebar_state)` | Global | |
 | Alias `role`, `permission`, `role_or_permission` | Rutas | Middleware de spatie/laravel-permission |
@@ -61,6 +63,7 @@ Qué middleware protege cada grupo de rutas del portal Inertia y del panel Filam
 | Pagos legacy | `payment-requests.*`, `approve`, `reject`, `sap-folios`, `pdf`, `documents/{index}` | `throttle:10,1` en approve/reject | Lista y formulario: casillas `view_any_` y `create_payment::request` (redirigen con aviso); guardar: 403 sin `create_`; el resto, `PaymentRequestPolicy` |
 | Dashboard de inversión | `investment-dashboard` | — | `super_admin`/`project_manager` ven todo; resto por `visibleTo` |
 | Consolidado | `investment-sheets/consolidated`, `{project}`, `payment-history-pdf`, `payment-history-excel` | — | `visibleTo` + roles para ver todos los departamentos |
+| Consulta de Estrategias | `strategies`, `strategies/pdf`, `strategies/excel` | — | Casilla `view_portal::strategies`: la página redirige a Hojas de Inversión y los reportes responden 403. Sin filtro por proyecto ni departamento del usuario |
 | Reportes de solicitudes | `investment-sheets/consolidated/{project}/investment-requests-pdf`, `-excel` | `role:super_admin\|ceo\|project_manager` | |
 | Pagos de inversión | `investment-payment-requests.index`, `store`, `update` | — | Acceso al proyecto, proyecto abierto, política de ventanas |
 | Corrección de fecha de provisión | `investment-payment-requests/{payment}/provision-date` | `role:super_admin` | Además `abort_unless(hasRole('super_admin'))` |

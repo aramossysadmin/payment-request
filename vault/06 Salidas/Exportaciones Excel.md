@@ -17,12 +17,16 @@ fuentes:
   - resources/js/pages/investment-sheets/consolidated.tsx
   - resources/js/pages/weekly-payment-schedule/index.tsx
   - composer.lock
-actualizado: 2026-11-02
+  - app/Exports/StrategyHistoryExport.php
+  - app/Http/Controllers/StrategyHistoryExcelController.php
+  - app/Services/StrategyPaymentHistory.php
+  - resources/js/pages/strategies/index.tsx
+actualizado: 2026-11-04
 ---
 
 # Exportaciones Excel
 
-Tres exportaciones `.xlsx` generadas con **Laravel Excel** (`maatwebsite/excel` 3.1.69 sobre `phpoffice/phpspreadsheet` 1.30.5). Las clases viven en `app/Exports/` y se descargan con `Excel::download()` desde controllers invocables; se generan en el request (sin cola).
+Cuatro exportaciones `.xlsx` generadas con **Laravel Excel** (`maatwebsite/excel` 3.1.69 sobre `phpoffice/phpspreadsheet` 1.30.5). Las clases viven en `app/Exports/` y se descargan con `Excel::download()` desde controllers invocables; se generan en el request (sin cola).
 
 Todas implementan `FromCollection`, `WithHeadings`, `WithMapping`, `WithColumnFormatting`, `WithStyles` (fila 1 en negrita) y `ShouldAutoSize` (ancho automático de columnas).
 
@@ -33,8 +37,9 @@ Todas implementan `FromCollection`, `WithHeadings`, `WithMapping`, `WithColumnFo
 | `InvestmentRequestsConsolidatedExport` | `InvestmentSheetInvestmentRequestsExcelController` | `GET /investment-sheets/consolidated/{project}/investment-requests-excel` | `Solicitudes` | `Solicitudes de Inversion - {proyecto} - {depto o TODOS} - {AAAA-MM-DD}.xlsx` |
 | `PaymentHistoryExport` | `InvestmentPaymentHistoryExcelController` | `GET /investment-sheets/consolidated/{project}/payment-history-excel` | `Historial` | `historial-pagos-{slug}-{AAAAMMDD}.xlsx` |
 | `WeeklyPaymentScheduleExport` | `WeeklyPaymentScheduleExportController` | `GET /weekly-payment-schedule/export` | (sin título) | `programacion-pagos-{slug}-S{n}-{año}.xlsx` o `…-todas-las-semanas.xlsx` |
+| `StrategyHistoryExport` | `StrategyHistoryExcelController` | `GET /strategies/excel` | `Estrategias` | `estrategias-{slug}-{AAAAMMDD}.xlsx` o `estrategias-todas-las-hojas-de-inversion-{AAAAMMDD}.xlsx` |
 
-Las dos primeras se disparan desde la página del [[Consolidado por proyecto]] (`consolidated.tsx`); la tercera desde [[Programacion semanal]] (`weekly-payment-schedule/index.tsx`).
+Las dos primeras se disparan desde la página del [[Consolidado por proyecto]] (`consolidated.tsx`); la tercera desde [[Programacion semanal]] (`weekly-payment-schedule/index.tsx`); la cuarta desde la consulta de [[Estrategias]] (`strategies/index.tsx`).
 
 ## `InvestmentRequestsConsolidatedExport`
 
@@ -116,8 +121,37 @@ Formato `#,##0.00_-` en M, N y O. La columna L no tiene formato explícito.
 
 Formato `#,##0.00` (`FORMAT_NUMBER_COMMA_SEPARATED1`) en H y J.
 
+## `StrategyHistoryExport`
+
+- **Acceso**: casilla `view_portal::strategies` (403 sin ella).
+- **Filtros**: `project_id` (ID o `all`; 404 si es inválido), `department_id`, `status`, `capture_week` y `provision_week` (formato `AAAA-S`). Exporta todas las filas filtradas, no solo la página visible. Ver [[Estrategias]].
+
+| Col | Encabezado | Contenido |
+|---|---|---|
+| A | Folio | `#00000` |
+| B | Hoja de Inversión | Nombre del proyecto |
+| C | Departamento | |
+| D | Solicitante | |
+| E | Concepto | |
+| F | Proveedor | |
+| G | Código | Nombre del snapshot, o "Anterior al catálogo" |
+| H | Tasa (%) | Tasa de la estrategia o vacío |
+| I | Monto Base | `strategy_amount` o vacío |
+| J | Recargo | Total − `strategy_amount`, o vacío |
+| K | Total | `total` en moneda original |
+| L | Aprobado | `approved_amount` o vacío |
+| M | Moneda | Prefijo |
+| N | Tipo | "Estrategia" o "Tipo actual: …" |
+| O | Estado | Etiqueta en español |
+| P | Fecha Captura | `Y-m-d` |
+| Q | Semana Captura | Semana ISO de la captura |
+| R | Fecha Programación | `Y-m-d` |
+| S | Semana Programación | Semana ISO de la programación |
+
+Formato `#,##0.00_-` (`FORMAT_NUMBER_COMMA_SEPARATED2`) en I, J, K y L.
+
 > [!info] Diferencia de moneda entre exports
-> Los dos reportes del consolidado convierten a una moneda de despliegue (ver [[Multimoneda]] y [[PDFs#Moneda de despliegue]]); la programación semanal exporta cada monto en su moneda nativa con su prefijo en la columna K.
+> Los dos reportes del consolidado convierten a una moneda de despliegue (ver [[Multimoneda]] y [[PDFs#Moneda de despliegue]]); la programación semanal y las estrategias exportan cada monto en su moneda nativa con su prefijo.
 
 ## Relacionado
 - [[PDFs]] · [[Rutas]] · [[Consolidado por proyecto]] · [[Programacion semanal]] · [[Estrategias]]

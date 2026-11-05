@@ -16,7 +16,8 @@ fuentes:
   - app/Services/ApprovalService.php
   - app/Services/InvestmentApprovalService.php
   - app/Services/WeeklyPaymentScheduleApprovalService.php
-actualizado: 2026-11-02
+  - database/migrations/2026_11_03_184104_add_portal_strategies_permission_and_role.php
+actualizado: 2026-11-04
 ---
 
 # Roles y actores
@@ -32,6 +33,7 @@ Quién es quién en el portal: los roles de spatie/laravel-permission, los actor
 | `project_manager` | `ProjectManagerRoleSeeder` (sin permisos; asigna el rol a un usuario por correo) | Ninguno | Revisión y aprobación final de pagos (`/investment-payment-review`), edita la política de ventanas, abre/cierra proyectos, aprueba solicitudes de inversión de proyectos con `requires_pm_approval`, acceso elevado a proyectos, dashboard completo |
 | `administrador` | `RoleAndPermissionSeeder` | `*_payment::request` y `*_investment::request` (12 + 12) | Ningún chequeo por nombre de rol; solo lo que dan esos permisos |
 | `admin_sp` | `RoleAndPermissionSeeder` | Mismos que `super_admin` en el seeder | **No se usa en el código** (sin `hasRole('admin_sp')`). Al no tener `Gate::before`, depende solo de sus permisos |
+| `estrategias` | `RoleAndPermissionSeeder` y migración `add_portal_strategies_permission_and_role` | `view_portal::strategies` | Consulta de solo lectura en `/strategies`, de todas las Hojas y departamentos, con sus reportes. Sin acceso a `/admin` por este rol. Ver [[Estrategias]] |
 | `panel_user` | `config/filament-shield.php` (`panel_user.enabled = true`) | — | Nombre reservado por Shield; `User` no usa `HasPanelShield`, así que no condiciona el acceso al panel |
 
 > [!question] Por confirmar: rol `usuarios`
@@ -41,7 +43,7 @@ Quién es quién en el portal: los roles de spatie/laravel-permission, los actor
 > Según el seeder, `administrador` recibe permisos de **solicitudes de pago y de solicitudes de inversión**. Si en producción solo tiene `payment::request`, la diferencia viene de cambios hechos desde Shield. Por confirmar.
 
 > [!warning] Excepción de `super_admin` en el portal
-> Panel y las casillas de lista y formulario de Solicitudes de Pago usan `User::hasPortalPermission()`, que no pasa por `Gate::before`. Si se desmarcan en su rol, `super_admin` deja de verlos en el portal, aunque conserva Solicitudes de Pago en `/admin`. Ver [[Permisos Shield]].
+> Panel, la consulta de Estrategias y las casillas de lista y formulario de Solicitudes de Pago usan `User::hasPortalPermission()`, que no pasa por `Gate::before`. Si se desmarcan en su rol, `super_admin` deja de verlos en el portal, aunque conserva Solicitudes de Pago en `/admin`. Ver [[Permisos Shield]].
 
 ### Roles con acceso elevado
 

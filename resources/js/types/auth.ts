@@ -17,6 +17,7 @@ export type AuthPermissions = {
     createPaymentRequests: boolean;
     viewPaymentRequestDetail: boolean;
     updatePaymentRequests: boolean;
+    viewStrategies: boolean;
 };
 
 export type Auth = {

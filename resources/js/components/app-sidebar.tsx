@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Banknote, BarChart3, BookOpen, CalendarCheck, CheckSquare, ClipboardList, FileText, LayoutGrid } from 'lucide-react';
+import { Banknote, BarChart3, BookOpen, CalendarCheck, CheckSquare, ClipboardList, FileText, LayoutGrid, Percent } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -51,6 +51,12 @@ const investmentItems: NavItem[] = [
     },
 ];
 
+const strategiesItem: NavItem = {
+    title: 'Estrategias',
+    href: '/strategies',
+    icon: Percent,
+};
+
 const reviewItem: NavItem = {
     title: 'Revisión de Pagos',
     href: '/investment-payment-review',
@@ -78,9 +84,11 @@ export function AppSidebar() {
     const roles = (auth.user?.roles ?? []) as string[];
     const canReview = roles.includes('project_manager') || roles.includes('super_admin');
 
-    const finalInvestmentItems = canReview
-        ? [...investmentItems, reviewItem]
-        : investmentItems;
+    const finalInvestmentItems = [
+        ...investmentItems,
+        ...(auth.can.viewStrategies ? [strategiesItem] : []),
+        ...(canReview ? [reviewItem] : []),
+    ];
 
     return (
         <Sidebar collapsible="icon" variant="inset">

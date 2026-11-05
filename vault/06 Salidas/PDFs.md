@@ -20,12 +20,15 @@ fuentes:
   - app/Services/InvestmentDepartmentBreakdownService.php
   - composer.json
   - composer.lock
-actualizado: 2026-10-15
+  - resources/views/pdf/strategies.blade.php
+  - app/Http/Controllers/StrategyHistoryPdfController.php
+  - app/Services/StrategyPaymentHistory.php
+actualizado: 2026-11-04
 ---
 
 # PDFs
 
-El portal genera cuatro tipos de PDF con **DomPDF** a partir de vistas Blade en `resources/views/pdf/`. Tres se descargan desde el portal y uno se adjunta a un correo.
+El portal genera cinco tipos de PDF con **DomPDF** a partir de vistas Blade en `resources/views/pdf/`. Cuatro se descargan desde el portal y uno se adjunta a un correo.
 
 ## Librería
 
@@ -43,6 +46,7 @@ El portal genera cuatro tipos de PDF con **DomPDF** a partir de vistas Blade en 
 | `pdf.payment-history` | `InvestmentPaymentHistoryPdfController` | `GET /investment-sheets/consolidated/{project}/payment-history-pdf` | oficio horizontal | `historial-pagos-{slug}-{AAAAMMDD}.pdf` |
 | `pdf.investment-requests-consolidated` | `InvestmentSheetInvestmentRequestsPdfController` | `GET /investment-sheets/consolidated/{project}/investment-requests-pdf` | oficio horizontal | `Solicitudes de Inversion - {proyecto} - {depto o TODOS} - {AAAA-MM-DD}.pdf` |
 | `pdf.final-approval-summary-pm` | `InvestmentBatchFinalApprovalSummaryToPmNotification` | Adjunto de correo | carta horizontal | `aprobacion-final-{slug}-{AAAAMMDD-HHmm}.pdf` |
+| `pdf.strategies` | `StrategyHistoryPdfController` | `GET /strategies/pdf` | oficio horizontal | `estrategias-{slug}-{AAAAMMDD}.pdf` o `estrategias-todas-las-hojas-de-inversion-{AAAAMMDD}.pdf` |
 
 ## `pdf.payment-request` (Solicitud de Pago / de Inversión)
 
@@ -66,6 +70,16 @@ Generado por `InvestmentPaymentHistoryPdfController` desde el [[Consolidado por 
 - **Columnas**: Folio, Estatus (etiquetas en español, con color), F. Programación Pago, Concepto (+ línea de estrategia si aplica), Descripción, Categoría del Concepto, Proveedor, Depto (solo si se piden todos los departamentos), Monto Solicitado, Monto Aprobado, Solicitante, F. Solicitud.
 - **Encabezado**: proyecto, fecha y usuario que generó, número de pagos, moneda de despliegue y filtros aplicados.
 - **Totales**: total solicitado y total aprobado (con *fallback* al solicitado), más nota de tipos de cambio.
+
+## `pdf.strategies` (Estrategias Solicitadas)
+
+Generado por `StrategyHistoryPdfController` desde la consulta de [[Estrategias]].
+
+- **Acceso**: casilla `view_portal::strategies` (403 sin ella).
+- **Filtros** (query string): `project_id` (ID o `all`; 404 si es inválido), `department_id`, `status`, `capture_week` y `provision_week` (formato `AAAA-S`). Un filtro de estado o semana inválido se ignora.
+- **Columnas**: Folio, Hoja de Inversión, Departamento / Solicitante, Concepto / Proveedor, Código y tasa, Monto base, Recargo, Total, Aprobado, Moneda, Tipo, Estado, Fecha captura, Sem. capt., Fecha prog., Sem. prog.
+- **Encabezado**: Hoja o "Todas las Hojas de Inversión", fecha y usuario que generó, número de estrategias y filtros aplicados.
+- **Montos**: en su moneda original, sin conversión ni totales.
 
 ## `pdf.investment-requests-consolidated` (Solicitudes de Inversión del proyecto)
 

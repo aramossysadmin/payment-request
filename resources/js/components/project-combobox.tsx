@@ -25,6 +25,11 @@ type ProjectComboboxProps = {
     onSelect: (id: number) => void;
     placeholder?: string;
     emptyMessage?: string;
+    allOption?: {
+        label: string;
+        selected: boolean;
+        onSelect: () => void;
+    };
 };
 
 export function ProjectCombobox({
@@ -33,10 +38,12 @@ export function ProjectCombobox({
     onSelect,
     placeholder = 'Seleccionar Hoja de Inversión...',
     emptyMessage = 'No hay proyectos disponibles.',
+    allOption,
 }: ProjectComboboxProps) {
     const [open, setOpen] = useState(false);
 
     const selectedProject = selectedId ? projects.find((p) => p.id === selectedId) : null;
+    const allSelected = allOption?.selected === true;
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -47,9 +54,9 @@ export function ProjectCombobox({
                     aria-expanded={open}
                     className="w-full justify-between"
                 >
-                    <span className={cn('flex min-w-0 items-center gap-2 truncate', !selectedProject && 'text-muted-foreground')}>
+                    <span className={cn('flex min-w-0 items-center gap-2 truncate', !selectedProject && !allSelected && 'text-muted-foreground')}>
                         <span className="truncate">
-                            {selectedProject ? selectedProject.name : placeholder}
+                            {selectedProject ? selectedProject.name : allSelected ? allOption?.label : placeholder}
                         </span>
                         {selectedProject?.is_active === false && (
                             <span className="inline-flex shrink-0 items-center gap-1 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-200">
@@ -67,6 +74,18 @@ export function ProjectCombobox({
                     <CommandList>
                         <CommandEmpty>{emptyMessage}</CommandEmpty>
                         <CommandGroup>
+                            {allOption && (
+                                <CommandItem
+                                    value={allOption.label}
+                                    onSelect={() => {
+                                        allOption.onSelect();
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <Check className={cn('mr-2 h-4 w-4', allOption.selected ? 'opacity-100' : 'opacity-0')} />
+                                    <span className="truncate font-medium">{allOption.label}</span>
+                                </CommandItem>
+                            )}
                             {projects.map((project) => (
                                 <CommandItem
                                     key={project.id}
